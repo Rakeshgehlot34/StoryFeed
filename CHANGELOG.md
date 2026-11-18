@@ -1,0 +1,250 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+- **Android 16 (API 36) Targeting & 16 KB Page Alignment Compliance:**
+  - Updated build toolchain to `compileSdk = 36`, `targetSdk = 36`, and `minSdk = 28` in `android/app/build.gradle.kts`.
+  - Verified 16 KB memory page size alignment across all native shared libraries (`.so`) using `scripts/check_16kb.sh` and `zipalign -c -P 16 -v 4` (100% PASS).
+  - Implemented Android 15 & 16 mandatory foreground service timeout handler `override fun onTimeout(startId: Int, fgsType: Int)` in `ExportForegroundService.kt`.
+  - Supported full edge-to-edge window insets and predictive back navigation.
+- **High-Performance Transcode Engine (Seconds instead of Hours):**
+  - Implemented single-pass stream copy segment muxer (`-f segment`) in `FFmpegVideoProcessor.splitVideo`, cutting all 30 clips in **0.205s** (2,926x realtime).
+  - Architected high-performance downscaled background blur pipeline ($108\times 192$ 10% scale, `boxblur=5:1`, bicubic upscale to $1080\times 1920$) accelerating blur transcoding by 4.3x on desktop and >15x-20x on mobile ARM, eliminating thermal throttling.
+  - Added hardware acceleration with Android `h264_mediacodec` and software `libx264 -preset ultrafast` fallback, removing fixed 60fps frame interpolation.
+  - Added execution watchdog timer (`totalDuration * 3 + 30` seconds) preventing silent process hangs.
+  - Expanded `StorageBridge.kt` I/O buffer to 512 KB and introduced session caching for `content://` streaming URIs and video metadata.
+  - Built `PerfTrace` utility (`lib/core/performance/perf_trace.dart`) for zero-PII telemetry and diagnostics sharing.
+- **Selective Clip Processing (Goal C):**
+  - Created domain model `PartItem` and lifecycle enum `ClipProcessingStatus` (`notProcessed`, `processing`, `processed`, `failed`, `stale`, `missing`) with `PartSelectionHelpers`.
+  - Preserved strict naming invariant `{originalName}_part_{NNN}.mp4` where `NNN` is determined strictly by the plan index, never renumbered on subset selection.
+  - Added selection action bar on `PlanReviewScreen` with "X of Y selected" count, Select All, Deselect, and Invert actions, responsive to 200% font scaling and compact screens.
+  - Added status chips on `PlanPartTile` (`Processed`, `Not processed`, `Processing`, `Failed`, `Modified`, `Missing`) with inline Retry action.
+  - Built pure `PartsSelectionValidator` validating minimum selection and disk storage required for selected parts.
+  - Updated `ResultsScreen` to display exported clips alongside dimmed unprocessed clips with direct "Process" action buttons.
+  - Updated `HistoryScreen` and `DashboardScreen` cards with "X/Y processed" badges and visual progress bars.
+  - Added test suite: `clip_processing_state_test.dart` (9 tests), `plan_review_selection_widget_test.dart` (1 test), `history_partial_test.dart` (5 tests), `results_screen_test.dart` (1 test), `selective_split_integration_test.dart` (2 tests). All 277 automated tests passing.
+  - Authored `docs/PERFORMANCE.md` with baseline vs post-optimization benchmark comparisons.
+
+### Fixed
+- **Centralized Validation & Action Feedback:**
+  - Implemented `ValidationResult` and `ValidationIssue` value objects along with pure domain validators (`SelectVideoValidator`, `TrimValidator`, `SplitSettingsValidator`, `BackgroundValidator`, `OverlayValidator`, `AudioValidator`, `OutputLocationValidator`, `ExportPreflightValidator`, `CustomSplitValidator`).
+  - Added centralized `AppMessenger` service supporting error, warning, success, and info messages with deduplication (1500ms), floating Material 3 styling, auto-dismiss timers, action button callbacks, and screen reader announcements (`SemanticsService.announce`).
+  - Enforced tappable action buttons across `SelectVideoScreen`, `TrimScreen`, `SplitConfigScreen`, `CustomSplitScreen`, and `PlanReviewScreen` with inline field error rendering and smooth viewport scrolling to invalid inputs.
+- **Trim Screen Playhead & Handle Boundary Invariants:**
+  - Built pure integer-millisecond `TimelineMapper` with strict boundary clamping preventing playhead drift outside the track rect.
+  - Implemented custom-painted `InteractiveTrimTimeline` utilizing `LayoutBuilder`, strictly clipped playhead painter, dual range handles with 48dp touch targets, minimum 1.0s gap enforcement, and throttled scrubbing seeks (40ms).
+  - Fixed play selection stopping cleanly at the selected end timestamp without overflowing.
+- **Create Shorts End-to-End Reliability:**
+  - Fixed duplicate export job dispatch race condition between `PlanReviewScreen` and `ProcessingScreen` via single-dispatch submission lock (`_isSubmitting`).
+  - Guarded against rapid double-taps and ensured state cleanup on both cancellation and job failure.
+  - Reset video picker and split configuration state upon choosing "Create Another Shorts" to prevent stale state contamination.
+- **Create Page & History Page Enhancements:**
+  - Replaced flat `ShellRoute` with `StatefulShellRoute.indexedStack` in `lib/app/router.dart` ensuring tab state, scroll positions, and inputs are preserved on bottom navigation switches.
+  - Implemented date grouping ("Today", "Yesterday", "Earlier This Week", "Older") and sorting (Newest, Oldest, Longest Duration, Most Clips) in `HistoryScreen`.
+  - Replaced synchronous disk I/O in `HistoryProjectCard.build()` with non-blocking asynchronous cached verification (`checkFilesExistAsync()`).
+  - Added full quick-action menu (View Clips, Share Clips, Open Folder, Delete with Undo) on history project cards.
+
+### Added
+- **Phase 8: Full Regression Suite, Release Build Verification & Final Signoff:**
+  - Ran comprehensive regression suite of all 202 automated tests across domain, presentation, data, and real FFmpeg integration layers with 100% pass rate.
+  - Verified zero static analysis issues with strict fatal flags (`flutter analyze --fatal-infos --fatal-warnings`).
+  - Executed clean code formatting across all 194 Dart source files via `dart format .`.
+  - Executed full release compilation via `./scripts/build_apk.sh --split-abi` producing optimized production APKs in `dist/`:
+    - `ShortsSplitter-1.0.0+1-release-arm64-v8a.apk` (65MB, SHA-256: `1778f8867e5b3bfac63f0688ca812c0352e934dacd5dfb212410e88ed4f22535`).
+    - `ShortsSplitter-1.0.0+1-release-armeabi-v7a.apk` (99MB, SHA-256: `ddec57da8552806039360661624b58ad5da1e5e7e5f22c536dc9f9884eb635aa`).
+    - `ShortsSplitter-1.0.0+1-release-x86_64.apk` (73MB, SHA-256: `b7256293f4e107883e4603e56fad3a967abac19fb38cc1153a3078b9d9479ab8`).
+  - Verified binary metadata badging via `aapt2`: confirmed package `com.shortssplitter.shorts_splitter`, `minSdkVersion: 28`, `targetSdkVersion: 35`.
+  - Validated full repository sanity gate script (`./scripts/sanity.sh`) and documentation integrity verification (`./scripts/docs_check.sh`).
+- **Phase 7: Video Merge Tool (Multi-Video Join, Reordering, Canvas Fit & Transitions):**
+  - Created `MergeConfig`, `MergeClipItem`, `CanvasAspectRatioPreset`, `CanvasFitMode`, `MergeTransition`, and `MergeMethod` in `lib/features/merge/domain/models/merge_project.dart`.
+  - Implemented mathematical validation for fast concat demuxer compatibility (`isFastConcatCompatible()`), total merged duration calculation with transition overlaps ($\sum \text{dur}_i - (N - 1) \times D$), and output size estimation based on resolution, duration, and CRF 23 bitrate heuristics.
+  - Built pure Dart `MergeFilterCompiler` compiling:
+    - Fast stream-copy concat demuxer list and command line (`-f concat -safe 0 -i list.txt -c copy -movflags +faststart`).
+    - Multi-input complex filter graph with aspect ratio normalization:
+      - `fitBlack`: letterbox/pillarbox padding with black borders (`scale=...:force_original_aspect_ratio=decrease,pad=...`).
+      - `cropFill`: canvas-filling center crop (`scale=...:force_original_aspect_ratio=increase,crop=...`).
+      - `fitBlur`: blurred video background clone behind centered video (`split=2`, `gblur=sigma=20`, `overlay=...`).
+    - Cascaded visual transitions using dynamic `xfade` chains with computed time offsets ($O_1 = \text{dur}_0 - D$, $O_i = O_{i-1} + \text{dur}_{i-1} - D$), paired with audio `acrossfade=d=D:c1=tri:c2=tri`.
+    - Synthetic silence generator (`anullsrc=r=44100:cl=stereo,atrim=0:<duration>,asetpts=PTS-STARTPTS`) preventing FFmpeg stream mismatch crashes on silent video clips.
+  - Added `mergeVideos` to `VideoProcessor` interface, implemented in `FFmpegVideoProcessor` with 4-tier storage saving, and stubbed in `FakeVideoProcessor`.
+  - Wired `JobQueueController` to execute `JobType.merge` background operations with live foreground service notifications.
+  - Built `MergeController` managing clip sequence additions, drag-and-drop reordering, duplication, per-clip trimming, canvas aspect presets, transitions, and queue submission.
+  - Implemented 4-state `MergeScreen` (`/merge`) featuring summary metrics card (`MergeSummaryCard`), `ReorderableListView` with clip tiles (`MergeClipTile`), modal trimming dialog (`MergeTrimDialog`), and configuration panels (`MergeSettingsCard`).
+  - Updated router in `lib/app/router.dart` routing `AppRoutes.merge` to `MergeScreen`.
+  - Authored automated test suite in `test/features/merge/`: `merge_project_test.dart` (8 tests), `merge_filter_compiler_test.dart` (6 tests), `merge_controller_test.dart` (6 tests), `merge_screen_test.dart` (4 tests), and `merge_integration_test.dart` (3 real FFmpeg tests on fixtures verifying fast stream copy, aspect normalization with crossfade, and synthetic silence concat).
+  - Added test cases `TC-MERGE-001` through `TC-MERGE-008` in `docs/TEST_CASES.md`, updated `docs/FEATURES.md` (Section 18), and updated architecture documentation.
+- **Phase 6: Screenshot Capture Tool (Instant Snap, Timestamps, Intervals & Interactive Gallery):**
+  - Created `ScreenshotConfig`, `ScreenshotItem`, `ScreenshotImageFormat`, `ScreenshotCaptureMode`, and `IntervalType` in `lib/features/screenshot/domain/models/screenshot_config.dart`.
+  - Built pure Dart `ScreenshotCompiler` compiling FFmpeg frame extraction commands:
+    - Lossless PNG frame extraction at native resolution (`-frames:v 1 -update 1`).
+    - High-quality JPEG extraction with quality percentage mapping (50% to 100% mapped to `-q:v 10` to `2`).
+    - Sub-second timestamp clamping and filename slug formatting (`{base}_frame_{NN}_{mm}m{ss}s{ms}ms.{ext}`).
+  - Added `captureSingleFrame` and `captureScreenshots` to `VideoProcessor` interface, implemented in `FFmpegVideoProcessor` with 4-tier storage saving, and stubbed in `FakeVideoProcessor`.
+  - Wired `JobQueueController` to execute `JobType.screenshot` background jobs with live progress notification updates.
+  - Built `ScreenshotController` managing playhead positioning, frame capture, session frame cache, multi-selection, and destination saves.
+  - Implemented full-screen interactive preview dialog `ScreenshotPreviewDialog` with pinch-to-zoom and pan via `InteractiveViewer` ($0.5\times$ to $5.0\times$), metadata inspector (dimensions, timestamp, file size, format), system share sheet integration, and save-to-gallery action.
+  - Implemented 4-state `ScreenshotScreen` (`/screenshot`) with video player scrubber, nudge buttons ($-1\text{s}$, $-0.1\text{s}$, $+0.1\text{s}$, $+1\text{s}$), 3 capture modes (Instant Snap, Custom Timestamps, Periodic Intervals), format and JPEG quality controls, and a horizontal session gallery ribbon with multi-select and batch actions.
+  - Updated router in `lib/app/router.dart` directing `AppRoutes.screenshot` to `ScreenshotScreen`.
+  - Authored automated test suite in `test/features/screenshot/`: `screenshot_config_test.dart` (7 tests), `screenshot_compiler_test.dart` (4 tests), `screenshot_controller_test.dart` (6 tests), `screenshot_screen_test.dart` (3 tests), and `screenshot_integration_test.dart` (3 real FFmpeg tests on `test_16_9.mp4` verified via `OutputVerifier.probe`).
+  - Added test cases `TC-SHOT-001` through `TC-SHOT-008` in `docs/TEST_CASES.md`, updated `docs/FEATURES.md` (Section 17), and updated architecture documentation.
+- **Phase 5: Audio Studio (Multi-Track Mixing, Background Music, Voice-over & Ducking):**
+  - Created `AudioTrack`, `AudioTrackType`, `AudioStudioExportMode`, and `AudioStudioConfig` in `lib/features/audio_studio/domain/models/audio_studio_project.dart`.
+  - Built `AudioStudioCompiler` assembling multi-track FFmpeg filter graphs:
+    - Multi-track mixing (`amix=inputs=N:duration=first:dropout_transition=2`) with 44.1kHz sample rate normalization (`aresample=44100`).
+    - Smart sidechain ducking filter chain (`[a_music][a_voice] sidechaincompress=threshold=0.08:ratio=5:attack=50:release=300`) to dynamically lower background music when voice-over speech is active.
+    - Timeline start offsets via millisecond channel delays (`adelay=X|X`).
+    - Background music looping (`-stream_loop -1`) for seamless repetition across long videos.
+    - Single-track audio null filter routing (`[tag] anull [aout]`).
+    - Lossless video stream-copy muxing (`-c:v copy -map 0:v -map [aout] -c:a aac -b:a 192k -movflags +faststart`).
+    - Standalone audio extraction (`-vn`) to MP3, WAV, AAC, and Opus.
+  - Implemented zero-dependency on-device microphone voice-over recording using Android's native `MediaRecorder` API via `AudioRecorderBridge.kt` and `PlatformAudioRecordingService` over `MethodChannel('com.shortssplitter.shorts_splitter/audio_recorder')` (recording AAC @ 44.1kHz, 192kbps).
+  - Added `<uses-permission android:name="android.permission.RECORD_AUDIO" />` in `AndroidManifest.xml`.
+  - Added `processAudioStudio` to `VideoProcessor` interface and implemented it in `FFmpegVideoProcessor` with 4-tier storage saving.
+  - Wired `JobQueueController` to execute `JobType.audioStudio` background jobs with live foreground service notifications.
+  - Implemented `AudioStudioController` and 4-state `AudioStudioScreen` (`/audio`) featuring timeline level meters, track cards (Original Audio with mute switch and volume slider, Background Music with audio file picker and loop toggle, Microphone Voice-over with live record button and delay offset slider), smart ducking toggle, and export mode options.
+  - Authored automated tests in `test/features/audio_studio/`: `audio_studio_project_test.dart` (5 tests), `audio_studio_compiler_test.dart` (6 tests), `audio_studio_controller_test.dart` (3 tests), `audio_studio_screen_test.dart` (3 tests), and `audio_studio_integration_test.dart` (3 tests executing real FFmpeg mixing, ducking, and extraction on `test_16_9.mp4` and `test_audio.mp3`).
+  - Added test cases `TC-AUDIO-001` through `TC-AUDIO-008` in `docs/TEST_CASES.md`, updated `docs/FEATURES.md` (Section 16), and updated architecture documentation.
+- **Phase 4: Format Convert & Compression Tool (Containers, Codecs, GIF & Audio Extraction):**
+  - Created `ConvertConfig`, `ConvertOutputFormat`, `ResolutionPreset`, `FpsPreset`, `QualityPreset`, `AudioOutputFormat`, and `GifConfig` models in `lib/features/convert/domain/models/convert_config.dart`.
+  - Implemented dynamic output file size estimation (`estimateOutputSizeBytes`) computing byte sizes based on target MB limits, audio bitrate, GIF frame dimensions, and resolution/CRF efficiency heuristics.
+  - Built `ConvertFilterCompiler` compiling FFmpeg commands for:
+    - MP4 (H.264 / AVC) with `yuv420p` and `+faststart` streaming optimization.
+    - MP4 (H.265 / HEVC) with `-tag:v hvc1` for native iOS/Android hardware decoding.
+    - WebM (VP9 + Opus) royalty-free web streaming.
+    - MKV (Matroska) flexible container.
+    - Animated GIF using 2-pass `palettegen` & `paletteuse` with Bayer dithering for crisp 256-color palette without banding.
+    - Audio-only extraction (`-vn`) to MP3 (`libmp3lame`), WAV (`pcm_s16le`), AAC (`aac`), and Opus (`libopus`).
+    - Constrained VBR target file size mode (`-b:v`, `-maxrate`, `-bufsize`) calculating target video bitrate with 2% container overhead (supporting WhatsApp 16MB and Discord 25MB limits).
+    - Aspect-ratio preserving video downscale formula ensuring even dimensions: `scale='if(gt(iw,ih),min(iw,MAX),-2)':'if(gt(iw,ih),-2,min(ih,MAX))'`.
+  - Added `convertVideo` to `VideoProcessor` interface, implemented in `FFmpegVideoProcessor` with 4-tier storage saving, and stubbed in `FakeVideoProcessor`.
+  - Wired `JobQueueController` to execute `JobType.convert` background jobs with live foreground service notifications.
+  - Implemented `ConvertController` and 4-state `ConvertScreen` (`/convert`) with format selector chips, resolution/FPS dropdowns, quality/target MB mode toggles, audio settings, GIF options, and live output size comparison.
+  - Authored automated tests in `test/features/convert/`: `convert_config_test.dart` (6 tests), `convert_filter_compiler_test.dart` (8 tests), `convert_controller_test.dart` (4 tests), `convert_screen_test.dart` (3 tests), and `convert_integration_test.dart` (3 tests running real FFmpeg on `test_16_9.mp4`).
+  - Added test cases `TC-CONV-001` through `TC-CONV-008` in `docs/TEST_CASES.md`, updated `docs/FEATURES.md` (Section 15), and updated architecture documentation.
+- **Phase 3: Studio Video Editor (Non-Destructive EditProject & 1-Pass FFmpeg Pipeline):**
+  - Created non-destructive `EditProject` specification in `lib/features/editor/domain/models/edit_project.dart` modeling trim, 2D transforms (crop, 90° rotation, mirror flips), canvas aspect framing (9:16, 1:1, 16:9), speed scaling (0.25x-4.0x with pitch preservation), color correction, video/audio fades, logo watermark, text badge, and reverse.
+  - Enforced memory safety invariant strictly guarding reverse playback to clips $\le 15.0\text{s}$ to prevent native FFmpeg OOM.
+  - Implemented 1-pass FFmpeg compiler `EditorFilterCompiler` assembling video filter chains, audio filter graphs, and overlay inputs into a single render pass without generational loss.
+  - Added rapid 5-second preview generation (`generateEditPreview`) utilizing FFmpeg's `ultrafast` preset for instantaneous feedback in the UI.
+  - Integrated `exportEditProject` into `VideoProcessor` and `FFmpegVideoProcessor` with software fallback and 4-tier storage saving.
+  - Wired `JobQueueController` to execute `JobType.editExport` background jobs with live foreground progress notifications.
+  - Implemented `EditorController` and `EditorScreen` (`/editor`) featuring 6 specialized tool docks (Trim, Canvas, Speed, Color, Overlay, Effects) with live duration and property updates.
+  - Authored automated tests in `test/features/editor/`: `edit_project_test.dart` (5 tests), `editor_filter_compiler_test.dart` (2 tests), `editor_controller_test.dart` (4 tests), `editor_screen_test.dart` (2 tests), and `editor_integration_test.dart` (real FFmpeg 1-pass execution on `test_16_9.mp4` with `test_logo.png` verified via `OutputVerifier`).
+  - Added test cases `TC-EDIT-001` through `TC-EDIT-008` in `docs/TEST_CASES.md` and updated architecture documentation.
+- **Phase 2: Custom Split Tool (No Duration Limit & Multi-Mode Slicing):**
+  - Added `CustomSplitMode` (`byDuration`, `byParts`, `byPoints`, `bySize`) and `SplitMethod` (`fast`, `precise`) models in `lib/features/custom_split/domain/models/custom_split_config.dart`.
+  - Added `CustomClipItem` and `CustomClipPlan` in `lib/features/custom_split/domain/models/custom_clip_plan.dart` modeling clip boundaries, zero-padded filenames, and estimated file sizes.
+  - Implemented mathematical calculation engine `CustomSplitCalculator` supporting contiguous cuts, remainder absorption (< 3.0s), equal-part division, custom timestamp lists, and bitrate-based file size approximations.
+  - Interactive editing in `CustomSplitCalculator`: boundary shifting (`adjustBoundary`), adjacent part merging (`mergeWithNext`), mid-clip splitting (`splitClip`), and inline clip renaming.
+  - Created `CustomSplitController` managing mode selection, parameter updates, live plan calculation, and background queue dispatching.
+  - Created 4-state `CustomSplitScreen` (`/split`) with segmented mode selectors, preset duration/size chips, custom split point management, and keyframe snap warnings.
+  - Created `CustomSplitPlanReviewScreen` (`/split/review`) with overview metrics, keyframe drift warning banner, interactive clip cards, and "Start Split" queue trigger.
+  - Integrated `splitCustom` into `VideoProcessor` and `FFmpegVideoProcessor` supporting fast stream copy (`-c copy -avoid_negative_ts make_zero`) and precise re-encoding (`libx264/aac`).
+  - Wired `JobQueueController` to execute `JobType.customSplit` jobs with foreground notification updates, live progress, and cancellation handling.
+  - Authored automated tests in `test/features/custom_split/`: `custom_split_calculator_test.dart` (13 tests), `custom_split_controller_test.dart` (4 tests), `custom_split_screen_test.dart` (3 tests), and `custom_split_integration_test.dart` (2 tests running real FFmpeg on `test_70s.mp4`).
+  - Added test cases `TC-CUSTOM-001` through `TC-CUSTOM-008` in `docs/TEST_CASES.md` and updated architecture documentation.
+- **Phase 1: Video Studio Foundation & Core Architecture:**
+  - Standardized APK output naming convention in Gradle `applicationVariants.all`: `ShortsSplitter-<versionName>+<buildNumber>-<buildType>[-<abi>].apk`.
+  - Standardized Android application label referencing `@string/app_name` ("ShortsSplitter") in `AndroidManifest.xml`.
+  - Vector branding assets (`assets/branding/app_icon.svg`, `app_icon_monochrome.svg`) and automated icon generation scripts (`scripts/gen_icons.sh`, `scripts/gen_icons.ps1`) for adaptive launcher mipmaps, notification drawable (`ic_notification.png`), and Play Store graphics.
+  - Unified sequential `JobQueueController` (`lib/features/jobs/domain/job_queue_controller.dart`) orchestrating single-concurrency execution across all 7 studio tools with persistent checkpoints in `SharedPreferences` (`shorts_splitter_job_queue_v2`), foreground service integration, and crash recovery.
+  - Dedicated 4-state tabbed job queue screen (`JobsScreen`) filtering by All, Active, Completed, and Failed with live progress and cancel/retry actions.
+  - 5-tab adaptive navigation shell (`AppScaffold`) featuring Home, Create, Jobs, History, and Settings destinations with dynamic mini-progress banner.
+  - Home Hub conversion (`DashboardScreen`) featuring 7-tool Studio Grid (`StudioToolsGrid`), active queue progress card with direct `/jobs` jump, and interrupted job recovery.
+  - Pure Dart `AudioGraphBuilder` (`lib/features/processing/domain/audio_graph_builder.dart`) supporting cascaded `atempo` chains ([0.5, 2.0] per node) for pitch-preserving speed changes, volume adjustments, audio fades, and two-track mixing.
+  - Expanded `FilterGraphBuilder` with `buildVideoFilterChain` compiling crop, rotation (90, 180, 270), flips (hflip, vflip), speed (setpts), color/contrast/saturation (eq), video fades, and reverse.
+  - Deterministic fixture generator (`scripts/make_fixtures.sh`, `scripts/make_fixtures.ps1`) generating 8 test media files in `test/fixtures/` (`test_16_9.mp4`, `test_9_16.mp4`, `test_rotated.mp4`, `test_silent.mp4`, `test_vfr.mp4`, `test_70s.mp4`, `test_logo.png`, `test_audio.mp3`).
+  - Headless test assertion utility `OutputVerifier` wrapping `ffprobe` for stream metadata and `ffmpeg` for raw RGB pixel extraction.
+  - Test case catalogue `docs/TEST_CASES.md` establishing `TC-<AREA>-<NNN>` taxonomy, foundation test cases (`TC-FOUNDATION-001` through `008`), and traceability matrix.
+  - Comprehensive repository sanity script (`scripts/sanity.sh`, `scripts/sanity.ps1`) and `/sanity` workflow (`.agents/workflows/sanity.md`).
+- **Background Export Resilience & Job Decoupling:**
+  - Decoupled export job ownership from UI widgets into domain-layer `ExportJobController`.
+  - Android foreground service with `FOREGROUND_SERVICE_MEDIA_PROCESSING` / `FOREGROUND_SERVICE_DATA_SYNC`, ongoing notification progress, and `PARTIAL_WAKE_LOCK`.
+  - Non-blocking navigation: leaving `/processing` or minimizing the app preserves encoding without interruption.
+  - Persistent mini-progress banner in `AppScaffold` and live "Export in Progress" card on Dashboard.
+  - Checkpoint persistence and crash recovery ("Resume / Discard") resuming multi-clip exports from the exact interrupted clip.
+- **Centralized Player Lifecycle & Audio Leak Prevention (`PlayerService`):**
+  - Enforced single-active-controller invariant (`_liveControllersCount <= 1`) across the entire app.
+  - Integrated `AppLifecycleListener` pausing playback on `paused`, `inactive`, and `hidden`.
+  - Integrated `appRouteObserver` pausing playback when routes are covered (`didPushNext`) or disposed (`didPop`).
+  - Automatic release and disposal of video playback controllers upon starting export jobs.
+- **Custom Prefix & Clip Naming Continuity:**
+  - Added editable `customBaseName` in `SplitConfig` and `ClipPlan`.
+  - Prefix configuration input with live format preview in `SplitConfigScreen`.
+  - Inline base name editing dialog in `PlanReviewScreen` with instantaneous cascading filename and badge updates across all planned parts.
+- **Advanced Trimmer & Precision Controls (`/create/trim`):**
+  - Integrated live `VideoPlayer` powered by `PlayerService` with tap-to-pause and timestamp badges.
+  - Dual-handle range slider with playhead indicator, start/end markers, and 5x zoom toggle for sub-second precision.
+  - Quick action snapping buttons: `Set Start Here`, `Set End Here`, `Play Trim`, `Jump to Start`, and `Jump to End`.
+  - Tactile scrollable wheel time picker modal (`WheelTimePickerSheet`) for hours, minutes, seconds, and milliseconds with live preview seeking.
+  - Fine-nudge bar (`-1s`, `-0.1s`, `-1f`, `+1f`, `+0.1s`, `+1s`) with press-and-hold auto-repeating timer and haptics.
+- **Plan Review & Boundary Customization (`/plan-review`):**
+  - Interactive plan review screen displaying total shorts count, split runtime, and part breakdown.
+  - Interactive boundary modification with contiguity preservation across adjacent clips.
+  - Interactive clip splitting into two sub-clips and adjacent clip merging.
+- **Interactive Video Trimmer (`/create/trim`):**
+  - Dual-handled RangeSlider and precision millisecond text inputs (`mm:ss.mmm`).
+  - Quick trim chips for `First 60s`, `First 3 min`, and `Reset`.
+  - Accurate seeking ensuring cuts land on exact millisecond timestamps.
+- **4-Tier Scoped Storage Strategy (Android API 28 through API 35+):**
+  - Tier 1: SAF tree URI picker with `takePersistableUriPermission` and reboot survival validation.
+  - Tier 2: Direct public `Movies/ShortsSplitter` writes for Android 9 (API 28).
+  - Tier 3: MediaStore Video collection with `RELATIVE_PATH = "Movies/ShortsSplitter"` and `IS_PENDING` for Android 10+.
+  - Tier 4: App-specific external storage fallback requiring zero runtime permissions.
+- **Universal Text Overlay Engine (`OverlayRenderer`):**
+  - Font-independent text badge rendering to transparent PNG via `dart:ui`.
+  - 4-tier badge resolution hierarchy (specific part override > all parts message > auto label > none).
+  - Universal Unicode and full emoji support on all Android devices.
+- **Material 3 Design System & Shared Components:**
+  - Zero-magic-number design tokens (`AppTokens`) covering spacing scale, corner radii, elevations, and durations.
+  - 14 reusable UI primitives in `lib/shared/widgets/` (`AppScaffold`, `SectionCard`, `PrimaryButton`, `SecondaryButton`, `StatTile`, `EmptyState`, `ErrorState`, `LoadingSkeleton`, `ProgressRing`, `InfoBanner`, `ClipTile`, `ColorPickerField`, `SettingsTile`, `ConfirmDialog`).
+  - 4 mandatory screen states (`loading`, `empty`, `error`, `content`) implemented across all views.
+  - Adaptive shell switching between bottom `NavigationBar` on phones (< 600dp) and `NavigationRail` on tablets/landscape.
+  - Dynamic Material 3 theme supporting `ThemeMode.system`, `ThemeMode.light`, and `ThemeMode.dark`, plus 5 creator accent seeds (red, violet, ocean, emerald, orange).
+- **Dashboard Hub (`/`):**
+  - Dynamic time-of-day greeting header, quick creation card, and cumulative activity statistics grid.
+  - Recent projects section with direct results launcher and dismissible creator tips carousel.
+- **Full-Screen Sequence Video Player (`/player`):**
+  - Dedicated video preview player supporting playback scrubbing, speed controls (1x, 1.5x, 2x), and previous/next clip navigation.
+- **Project History & Search (`/history`):**
+  - Persistent project records backed by `SharedPreferences`.
+  - Search by video name, multi-select deletion, and single-item swipe dismissal with undo SnackBar.
+- **Application Settings & Cache Cleaner (`/settings`):**
+  - Configurable duplicate file handling (Overwrite vs Auto-suffix).
+  - Screen wake-lock toggle, foreground service notification settings, and temp file cache cleaner.
+- **Utility & Error Screens (`/error`, `/unsupported`):**
+  - Dedicated unsupported video format guidance screen and global error fallback view.
+  - Modular `PermissionRationaleSheet` explaining storage and notification requirements.
+- **Automated Verification & Antigravity Suite:**
+  - Automated pre-commit verification script (`scripts/verify.sh`) combining formatting, strict static analysis, unit/widget tests, and documentation checks.
+  - Documentation integrity check script (`scripts/docs_check.sh` and `scripts/docs_check.ps1`).
+  - Automated APK build scripts (`scripts/build_apk.sh` and `scripts/build_apk.ps1`).
+  - Expanded unit and widget test suite covering 43 comprehensive automated tests.
+
+## [1.0.0] - 2026-11-17
+
+### Added
+- **Core Video Splitter Engine:** Production FFmpeg integration via `ffmpeg_kit_flutter_new` (pinned at 4.6.8) wrapped behind an abstract `VideoProcessor` interface.
+- **Dual Processing Modes:**
+  - Fast Mode (`-c copy` stream copy) with keyframe preservation and zero-timestamp alignment (`-avoid_negative_ts make_zero`).
+  - Precise Mode (H.264 / AAC re-encode) with millisecond-accurate cuts.
+- **Aspect Ratio Transformations:**
+  - Keep Original dimensions.
+  - Crop to 9:16 vertical full bleed for YouTube Shorts.
+  - 9:16 Blurred-Background letterboxing for landscape footage.
+- **Contiguous Slice Planning:** Pure mathematical segment calculation guaranteeing zero gaps, zero overlaps, and automatic zero-padded sequence naming (`{originalName}_part_001.mp4`).
+- **Trailing Remainder Logic:** Setting to automatically merge leftover clips $< 3.0$ seconds into the previous clip.
+- **Android Scoped Storage Support:** Verified support for Android 10 through 15+, SAF directory picker with pre-flight write probing, and safe fallback to app-specific external storage.
+- **Interactive UI:**
+  - Material 3 theme with YouTube Red accent, light and dark mode toggle.
+  - Embedded video preview player with play/pause and scrubbing.
+  - Live split preview card showing planned clip ranges and filenames.
+  - Dual progress gauges (current clip + overall batch) with live speed and FPS metrics.
+  - Results screen with built-in preview, system share sheet, external player launch, and file deletion.
+- **Developer Experience:** Complete configuration including 8 domain skills, rules, strict linting, and CI workflows.

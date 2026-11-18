@@ -1,0 +1,52 @@
+{
+  "permissions": {
+    "allow": [
+      "flutter pub *",
+      "flutter analyze *",
+      "flutter test *",
+      "flutter run *",
+      "flutter build *",
+      "flutter doctor *",
+      "flutter clean *",
+      "dart format *",
+      "dart run build_runner *",
+      "dart fix *",
+      "git status*",
+      "git diff*",
+      "git log*",
+      "git add *",
+      "git commit *",
+      "git checkout -b *",
+      "ls *",
+      "cat *",
+      "grep *",
+      "find *"
+    ],
+    "deny": [
+      ".env*",
+      "*.jks",
+      "*.keystore",
+      "*key.properties*",
+      "*local.properties*",
+      "rm -rf *",
+      "git push --force*",
+      "git push * --force*",
+      "git reset --hard*"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "condition": "*.dart",
+        "command": "dart format \"$FILE\""
+      }
+    ],
+    "Stop": [
+      {
+        "command": "flutter analyze"
+      }
+    ]
+  }
+}
+

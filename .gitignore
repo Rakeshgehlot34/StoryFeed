@@ -1,0 +1,84 @@
+# ==============================================================================
+# ShortsSplitter Git Ignore Rules
+# ==============================================================================
+
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ / Android Studio
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Visual Studio Code
+.vscode/
+
+# Flutter / Dart / Pub build artifacts
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+/dist/
+*.apk
+
+# Android Studio / Gradle outputs
+/android/app/debug
+/android/app/profile
+/android/app/release
+.gradle/
+android/.gradle/
+android/build/
+android/app/build/
+
+# iOS CocoaPods & Build artifacts
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+ios/Flutter/app.flx
+ios/Flutter/app.zip
+ios/Flutter/flutter_assets/
+ios/ServiceDefinitions.json
+
+# Secrets, Keystores, & Local Environment Files (NEVER COMMIT)
+*.jks
+*.keystore
+key.properties
+android/key.properties
+local.properties
+android/local.properties
+.env*
+
+# Symbolication & Obfuscation
+app.*.symbols
+app.*.map.json
+
+# Code Generation Output (can be regenerated with build_runner)
+*.g.dart
+*.freezed.dart
+
+# Widget Preview
+.widget_preview/
+
+# Generated Test Fixtures (regenerated via scripts/make_fixtures.sh)
+test/fixtures/*.mp4
+test/fixtures/*.mp3
+test/fixtures/*.png

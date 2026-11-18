@@ -1,0 +1,57 @@
+# ==============================================================================
+# ShortsSplitter Static Analysis & Quality Configuration
+#
+# JUSTIFICATION: We use `package:flutter_lints/flutter.yaml` as our foundation
+# because it is maintained directly by the official Flutter SDK team, guaranteeing
+# zero version lockstep skew across Flutter releases. We augment it below with
+# strict type checking (casts, inference, raw types) and high-rigor production rules.
+# ==============================================================================
+
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+
+  errors:
+    missing_required_param: error
+    missing_return: error
+    todo: ignore
+    invalid_annotation_target: ignore
+
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+
+linter:
+  rules:
+    # Strict Async & Concurrency
+    - unawaited_futures
+
+    # Clean Architecture & Code Hygiene
+    - avoid_print
+    - always_declare_return_types
+    - cancel_subscriptions
+    - close_sinks
+    - prefer_const_constructors
+    - prefer_const_constructors_in_immutables
+    - prefer_const_declarations
+    - prefer_const_literals_to_create_immutables
+    - prefer_final_locals
+    - prefer_final_fields
+    - prefer_final_in_for_each
+    - require_trailing_commas
+    - unnecessary_late
+    - unnecessary_nullable_for_final_variable_declarations
+    - use_super_parameters
+    - avoid_unnecessary_containers
+    - sized_box_for_whitespace
