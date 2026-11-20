@@ -27,7 +27,9 @@ void main() {
       }
     });
 
-    test('compiles and executes 1-pass edit with trim, speed, canvas scaling, and watermark', () async {
+    test(
+        'compiles and executes 1-pass edit with trim, speed, canvas scaling, and watermark',
+        () async {
       // 1. Probe input fixture
       final sourceProbe = await OutputVerifier.probe(fixtureVideo);
       expect(sourceProbe.hasVideo, isTrue);

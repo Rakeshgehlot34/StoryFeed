@@ -12,8 +12,8 @@ final outputRepositoryProvider = Provider<OutputRepository>((ref) {
 
 final duplicateHandlingProvider =
     AsyncNotifierProvider<DuplicateHandlingNotifier, DuplicateHandling>(
-      DuplicateHandlingNotifier.new,
-    );
+  DuplicateHandlingNotifier.new,
+);
 
 class DuplicateHandlingNotifier extends AsyncNotifier<DuplicateHandling> {
   @override
@@ -31,8 +31,8 @@ class DuplicateHandlingNotifier extends AsyncNotifier<DuplicateHandling> {
 
 final outputDirectoryProvider =
     AsyncNotifierProvider<OutputDirectoryNotifier, String>(
-      OutputDirectoryNotifier.new,
-    );
+  OutputDirectoryNotifier.new,
+);
 
 class OutputDirectoryNotifier extends AsyncNotifier<String> {
   @override
@@ -80,8 +80,8 @@ class OutputDirectoryNotifier extends AsyncNotifier<String> {
 
 final exportedClipsProvider =
     AsyncNotifierProvider<ExportedClipsNotifier, List<ExportedClip>>(
-      ExportedClipsNotifier.new,
-    );
+  ExportedClipsNotifier.new,
+);
 
 class ExportedClipsNotifier extends AsyncNotifier<List<ExportedClip>> {
   @override

@@ -107,15 +107,15 @@ class ScreenshotItem {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'timestampSeconds': timestampSeconds,
-    'outputFileName': outputFileName,
-    'tempFilePath': tempFilePath,
-    'savedPath': savedPath,
-    'width': width,
-    'height': height,
-    'fileSizeBytes': fileSizeBytes,
-  };
+        'id': id,
+        'timestampSeconds': timestampSeconds,
+        'outputFileName': outputFileName,
+        'tempFilePath': tempFilePath,
+        'savedPath': savedPath,
+        'width': width,
+        'height': height,
+        'fileSizeBytes': fileSizeBytes,
+      };
 
   factory ScreenshotItem.fromJson(Map<String, dynamic> json) {
     return ScreenshotItem(
@@ -179,9 +179,8 @@ class ScreenshotConfig {
 
   /// Calculates the list of timestamps to capture according to current mode and settings.
   List<double> calculatePlannedTimestamps() {
-    final effectiveEnd = endSeconds > startSeconds
-        ? endSeconds
-        : videoDurationSeconds;
+    final effectiveEnd =
+        endSeconds > startSeconds ? endSeconds : videoDurationSeconds;
     final range = effectiveEnd - startSeconds;
 
     if (range <= 0) {
@@ -196,11 +195,10 @@ class ScreenshotConfig {
         if (customTimestamps.isEmpty) {
           return [startSeconds.clamp(0.0, videoDurationSeconds)];
         }
-        final filtered =
-            customTimestamps
-                .where((t) => t >= startSeconds && t <= effectiveEnd)
-                .toList()
-              ..sort();
+        final filtered = customTimestamps
+            .where((t) => t >= startSeconds && t <= effectiveEnd)
+            .toList()
+          ..sort();
         return filtered.isEmpty
             ? [startSeconds.clamp(0.0, videoDurationSeconds)]
             : filtered;
@@ -317,22 +315,22 @@ class ScreenshotConfig {
   }
 
   Map<String, dynamic> toJson() => {
-    'videoPath': videoPath,
-    'videoTitle': videoTitle,
-    'videoDurationSeconds': videoDurationSeconds,
-    'videoWidth': videoWidth,
-    'videoHeight': videoHeight,
-    'format': format.name,
-    'jpegQuality': jpegQuality,
-    'mode': mode.name,
-    'intervalType': intervalType.name,
-    'intervalSeconds': intervalSeconds,
-    'frameCount': frameCount,
-    'startSeconds': startSeconds,
-    'endSeconds': endSeconds,
-    'customTimestamps': customTimestamps,
-    'customBaseName': customBaseName,
-  };
+        'videoPath': videoPath,
+        'videoTitle': videoTitle,
+        'videoDurationSeconds': videoDurationSeconds,
+        'videoWidth': videoWidth,
+        'videoHeight': videoHeight,
+        'format': format.name,
+        'jpegQuality': jpegQuality,
+        'mode': mode.name,
+        'intervalType': intervalType.name,
+        'intervalSeconds': intervalSeconds,
+        'frameCount': frameCount,
+        'startSeconds': startSeconds,
+        'endSeconds': endSeconds,
+        'customTimestamps': customTimestamps,
+        'customBaseName': customBaseName,
+      };
 
   factory ScreenshotConfig.fromJson(Map<String, dynamic> json) {
     return ScreenshotConfig(
@@ -359,8 +357,7 @@ class ScreenshotConfig {
       frameCount: json['frameCount'] as int? ?? 10,
       startSeconds: (json['startSeconds'] as num?)?.toDouble() ?? 0.0,
       endSeconds: (json['endSeconds'] as num?)?.toDouble(),
-      customTimestamps:
-          (json['customTimestamps'] as List<dynamic>?)
+      customTimestamps: (json['customTimestamps'] as List<dynamic>?)
               ?.map((e) => (e as num).toDouble())
               .toList() ??
           const [],

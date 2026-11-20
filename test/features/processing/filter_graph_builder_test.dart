@@ -23,16 +23,18 @@ void main() {
       );
 
       expect(result.simpleFilter, isNotNull);
+      expect(result.simpleFilter, contains('scale=1080:608'));
       expect(
         result.simpleFilter,
-        contains('scale=1080:1920:force_original_aspect_ratio=decrease'),
-      );
-      expect(
-        result.simpleFilter,
-        contains('pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=0xFFFFFF'),
+        contains('pad=1080:1920:0:656:color=0xFFFFFF'),
       );
       expect(result.simpleFilter, contains('setsar=1'));
       expect(result.additionalInputArgs, isEmpty);
+      expect(result.fitLayout, isNotNull);
+      expect(result.fitLayout!.width, equals(1080));
+      expect(result.fitLayout!.height, equals(608));
+      expect(result.fitLayout!.topBand, equals(656));
+      expect(result.fitLayout!.bottomBand, equals(656));
     });
 
     test(
@@ -56,7 +58,9 @@ void main() {
       },
     );
 
-    test('3. Blurred video background generates 2-stream filter_complex graph with fast downscaled blur', () {
+    test(
+        '3. Blurred video background generates 2-stream filter_complex graph with fast downscaled blur',
+        () {
       final result = FilterGraphBuilder.build(
         sourceWidth: 1920,
         sourceHeight: 1080,
@@ -70,15 +74,10 @@ void main() {
         result.filterComplex,
         contains('boxblur=5:1,scale=1080:1920:flags=bicubic[bg]'),
       );
+      expect(result.filterComplex, contains('[0:v]scale=1080:608[fg]'));
       expect(
         result.filterComplex,
-        contains(
-          '[0:v]scale=1080:1920:force_original_aspect_ratio=decrease[fg]',
-        ),
-      );
-      expect(
-        result.filterComplex,
-        contains('[bg][fg]overlay=(W-w)/2:(H-h)/2,setsar=1[outv]'),
+        contains('[bg][fg]overlay=0:656,setsar=1[outv]'),
       );
       expect(result.outputVideoMap, equals('[outv]'));
     });
@@ -105,15 +104,10 @@ void main() {
             '[1:v]scale=1080:1080:force_original_aspect_ratio=increase,crop=1080:1080[bg]',
           ),
         );
+        expect(result.filterComplex, contains('[0:v]scale=1080:608[fg]'));
         expect(
           result.filterComplex,
-          contains(
-            '[0:v]scale=1080:1080:force_original_aspect_ratio=decrease[fg]',
-          ),
-        );
-        expect(
-          result.filterComplex,
-          contains('[bg][fg]overlay=(W-w)/2:(H-h)/2:shortest=1,setsar=1[outv]'),
+          contains('[bg][fg]overlay=0:236:shortest=1,setsar=1[outv]'),
         );
       },
     );
@@ -170,7 +164,9 @@ void main() {
       );
     });
 
-    test('7. buildVideoFilterChain compiles crop, rotation, flip, speed, color eq, fades, and reverse', () {
+    test(
+        '7. buildVideoFilterChain compiles crop, rotation, flip, speed, color eq, fades, and reverse',
+        () {
       final filter = FilterGraphBuilder.buildVideoFilterChain(
         cropX: 10,
         cropY: 20,

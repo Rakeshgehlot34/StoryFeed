@@ -50,13 +50,28 @@ class OverlayRenderer {
     final textWidth = paragraph.maxIntrinsicWidth;
     final textHeight = paragraph.height;
 
-    // Position text horizontally centered, vertically aligned to safe fraction
-    final targetY = height * overlaySpec.position.yOffsetFraction;
-    final targetX = (width - textWidth) / 2.0;
-
     // Background pill/box padding
     const horizontalPadding = 24.0;
     const verticalPadding = 12.0;
+
+    // Calculate vertical position honoring safe areas
+    final targetY = (height * overlaySpec.position.yOffsetFraction).clamp(
+      verticalPadding + 16.0,
+      height - textHeight - verticalPadding - 16.0,
+    );
+
+    // Calculate horizontal position honoring alignment presets
+    double targetX;
+    if (overlaySpec.position == OverlayPosition.topLeft ||
+        overlaySpec.position == OverlayPosition.bottomLeft) {
+      targetX = horizontalPadding + 16.0;
+    } else if (overlaySpec.position == OverlayPosition.topRight ||
+        overlaySpec.position == OverlayPosition.bottomRight) {
+      targetX = width - textWidth - horizontalPadding - 16.0;
+    } else {
+      // topCenter, center, bottomCenter
+      targetX = (width - textWidth) / 2.0;
+    }
 
     final boxRect = ui.Rect.fromLTWH(
       targetX - horizontalPadding,

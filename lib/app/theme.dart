@@ -33,11 +33,14 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
   Future<void> setThemeMode(ThemeMode mode) async {
     state = mode;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(AppConstants.prefKeyThemeMode, switch (mode) {
-      ThemeMode.light => 'light',
-      ThemeMode.dark => 'dark',
-      ThemeMode.system => 'system',
-    });
+    await prefs.setString(
+      AppConstants.prefKeyThemeMode,
+      switch (mode) {
+        ThemeMode.light => 'light',
+        ThemeMode.dark => 'dark',
+        ThemeMode.system => 'system',
+      },
+    );
   }
 
   void toggleTheme() {
@@ -52,8 +55,8 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
 /// Provider for managing user-selected accent color seed.
 final accentColorProvider =
     NotifierProvider<AccentColorNotifier, AppAccentColor>(
-      AccentColorNotifier.new,
-    );
+  AccentColorNotifier.new,
+);
 
 class AccentColorNotifier extends Notifier<AppAccentColor> {
   @override
@@ -105,9 +108,8 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: isDark
-          ? colorScheme.surface
-          : colorScheme.surfaceContainerLowest,
+      scaffoldBackgroundColor:
+          isDark ? colorScheme.surface : colorScheme.surfaceContainerLowest,
       appBarTheme: AppBarTheme(
         centerTitle: false,
         elevation: AppTokens.elevationNone,
@@ -135,7 +137,7 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           elevation: AppTokens.elevationNone,
-          minimumSize: const Size.fromHeight(AppTokens.minTouchTarget),
+          minimumSize: const Size(0, AppTokens.minTouchTarget),
           padding: const EdgeInsets.symmetric(
             horizontal: AppTokens.spaceXl,
             vertical: AppTokens.spaceMd,
@@ -145,7 +147,7 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          minimumSize: const Size.fromHeight(AppTokens.minTouchTarget),
+          minimumSize: const Size(0, AppTokens.minTouchTarget),
           padding: const EdgeInsets.symmetric(
             horizontal: AppTokens.spaceXl,
             vertical: AppTokens.spaceMd,
@@ -155,7 +157,7 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size.fromHeight(AppTokens.minTouchTarget),
+          minimumSize: const Size(0, AppTokens.minTouchTarget),
           padding: const EdgeInsets.symmetric(
             horizontal: AppTokens.spaceXl,
             vertical: AppTokens.spaceMd,

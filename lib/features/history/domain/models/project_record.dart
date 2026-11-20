@@ -46,19 +46,20 @@ class ProjectRecord {
     bool? isFilesAvailable,
     int? processedShortsCount,
     List<String>? outputFilePaths,
-  }) => ProjectRecord(
-    id: id,
-    videoName: videoName,
-    baseName: baseName,
-    createdAt: createdAt,
-    totalDurationSeconds: totalDurationSeconds,
-    totalShortsCount: totalShortsCount,
-    processedShortsCount: processedShortsCount ?? this.processedShortsCount,
-    canvasFormat: canvasFormat,
-    outputFilePaths: outputFilePaths ?? this.outputFilePaths,
-    thumbnailPath: thumbnailPath,
-    isFilesAvailable: isFilesAvailable ?? this.isFilesAvailable,
-  );
+  }) =>
+      ProjectRecord(
+        id: id,
+        videoName: videoName,
+        baseName: baseName,
+        createdAt: createdAt,
+        totalDurationSeconds: totalDurationSeconds,
+        totalShortsCount: totalShortsCount,
+        processedShortsCount: processedShortsCount ?? this.processedShortsCount,
+        canvasFormat: canvasFormat,
+        outputFilePaths: outputFilePaths ?? this.outputFilePaths,
+        thumbnailPath: thumbnailPath,
+        isFilesAvailable: isFilesAvailable ?? this.isFilesAvailable,
+      );
 
   String get formattedDuration =>
       Formatters.formatSeconds(totalDurationSeconds);

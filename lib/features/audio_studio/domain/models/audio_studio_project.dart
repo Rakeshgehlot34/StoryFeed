@@ -8,14 +8,14 @@ enum AudioStudioExportMode { videoWithAudio, extractedAudio }
 
 extension AudioStudioExportModeExtension on AudioStudioExportMode {
   String get displayName => switch (this) {
-    AudioStudioExportMode.videoWithAudio => 'Video with Mixed Audio',
-    AudioStudioExportMode.extractedAudio => 'Audio Track Only',
-  };
+        AudioStudioExportMode.videoWithAudio => 'Video with Mixed Audio',
+        AudioStudioExportMode.extractedAudio => 'Audio Track Only',
+      };
 
   String get shortName => switch (this) {
-    AudioStudioExportMode.videoWithAudio => 'Video',
-    AudioStudioExportMode.extractedAudio => 'Audio Track',
-  };
+        AudioStudioExportMode.videoWithAudio => 'Video',
+        AudioStudioExportMode.extractedAudio => 'Audio Track',
+      };
 }
 
 /// Represents an individual audio layer (Music or Voice-over).
@@ -41,29 +41,29 @@ class AudioTrack {
   });
 
   Map<String, dynamic> toJson() => {
-    'type': type.name,
-    'sourcePath': sourcePath,
-    'title': title,
-    'volume': volume,
-    'startTimeSeconds': startTimeSeconds,
-    'durationSeconds': durationSeconds,
-    'loop': loop,
-    'isMuted': isMuted,
-  };
+        'type': type.name,
+        'sourcePath': sourcePath,
+        'title': title,
+        'volume': volume,
+        'startTimeSeconds': startTimeSeconds,
+        'durationSeconds': durationSeconds,
+        'loop': loop,
+        'isMuted': isMuted,
+      };
 
   factory AudioTrack.fromJson(Map<String, dynamic> json) => AudioTrack(
-    type: AudioTrackType.values.firstWhere(
-      (e) => e.name == json['type'],
-      orElse: () => AudioTrackType.music,
-    ),
-    sourcePath: json['sourcePath'] as String? ?? '',
-    title: json['title'] as String? ?? 'Track',
-    volume: (json['volume'] as num?)?.toDouble() ?? 1.0,
-    startTimeSeconds: (json['startTimeSeconds'] as num?)?.toDouble() ?? 0.0,
-    durationSeconds: (json['durationSeconds'] as num?)?.toDouble() ?? 0.0,
-    loop: json['loop'] as bool? ?? false,
-    isMuted: json['isMuted'] as bool? ?? false,
-  );
+        type: AudioTrackType.values.firstWhere(
+          (e) => e.name == json['type'],
+          orElse: () => AudioTrackType.music,
+        ),
+        sourcePath: json['sourcePath'] as String? ?? '',
+        title: json['title'] as String? ?? 'Track',
+        volume: (json['volume'] as num?)?.toDouble() ?? 1.0,
+        startTimeSeconds: (json['startTimeSeconds'] as num?)?.toDouble() ?? 0.0,
+        durationSeconds: (json['durationSeconds'] as num?)?.toDouble() ?? 0.0,
+        loop: json['loop'] as bool? ?? false,
+        isMuted: json['isMuted'] as bool? ?? false,
+      );
 
   AudioTrack copyWith({
     AudioTrackType? type,
@@ -74,16 +74,17 @@ class AudioTrack {
     double? durationSeconds,
     bool? loop,
     bool? isMuted,
-  }) => AudioTrack(
-    type: type ?? this.type,
-    sourcePath: sourcePath ?? this.sourcePath,
-    title: title ?? this.title,
-    volume: volume ?? this.volume,
-    startTimeSeconds: startTimeSeconds ?? this.startTimeSeconds,
-    durationSeconds: durationSeconds ?? this.durationSeconds,
-    loop: loop ?? this.loop,
-    isMuted: isMuted ?? this.isMuted,
-  );
+  }) =>
+      AudioTrack(
+        type: type ?? this.type,
+        sourcePath: sourcePath ?? this.sourcePath,
+        title: title ?? this.title,
+        volume: volume ?? this.volume,
+        startTimeSeconds: startTimeSeconds ?? this.startTimeSeconds,
+        durationSeconds: durationSeconds ?? this.durationSeconds,
+        loop: loop ?? this.loop,
+        isMuted: isMuted ?? this.isMuted,
+      );
 }
 
 /// Comprehensive specification for mixing multi-track audio.
@@ -118,8 +119,7 @@ class AudioStudioConfig {
     final hasOriginal = !isOriginalMuted && originalVolume > 0.01;
     final hasMusic =
         musicTrack != null && !musicTrack!.isMuted && musicTrack!.volume > 0.01;
-    final hasVoiceover =
-        voiceoverTrack != null &&
+    final hasVoiceover = voiceoverTrack != null &&
         !voiceoverTrack!.isMuted &&
         voiceoverTrack!.volume > 0.01;
     return hasOriginal || hasMusic || hasVoiceover;
@@ -133,18 +133,18 @@ class AudioStudioConfig {
   }
 
   Map<String, dynamic> toJson() => {
-    'videoPath': videoPath,
-    'videoDurationSeconds': videoDurationSeconds,
-    'originalVolume': originalVolume,
-    'isOriginalMuted': isOriginalMuted,
-    'musicTrack': musicTrack?.toJson(),
-    'voiceoverTrack': voiceoverTrack?.toJson(),
-    'enableDucking': enableDucking,
-    'duckingAttenuation': duckingAttenuation,
-    'exportMode': exportMode.name,
-    'audioFormat': audioFormat.name,
-    'customFileName': customFileName,
-  };
+        'videoPath': videoPath,
+        'videoDurationSeconds': videoDurationSeconds,
+        'originalVolume': originalVolume,
+        'isOriginalMuted': isOriginalMuted,
+        'musicTrack': musicTrack?.toJson(),
+        'voiceoverTrack': voiceoverTrack?.toJson(),
+        'enableDucking': enableDucking,
+        'duckingAttenuation': duckingAttenuation,
+        'exportMode': exportMode.name,
+        'audioFormat': audioFormat.name,
+        'customFileName': customFileName,
+      };
 
   factory AudioStudioConfig.fromJson(Map<String, dynamic> json) =>
       AudioStudioConfig(
@@ -189,19 +189,20 @@ class AudioStudioConfig {
     AudioStudioExportMode? exportMode,
     AudioOutputFormat? audioFormat,
     String? customFileName,
-  }) => AudioStudioConfig(
-    videoPath: videoPath ?? this.videoPath,
-    videoDurationSeconds: videoDurationSeconds ?? this.videoDurationSeconds,
-    originalVolume: originalVolume ?? this.originalVolume,
-    isOriginalMuted: isOriginalMuted ?? this.isOriginalMuted,
-    musicTrack: clearMusicTrack ? null : (musicTrack ?? this.musicTrack),
-    voiceoverTrack: clearVoiceoverTrack
-        ? null
-        : (voiceoverTrack ?? this.voiceoverTrack),
-    enableDucking: enableDucking ?? this.enableDucking,
-    duckingAttenuation: duckingAttenuation ?? this.duckingAttenuation,
-    exportMode: exportMode ?? this.exportMode,
-    audioFormat: audioFormat ?? this.audioFormat,
-    customFileName: customFileName ?? this.customFileName,
-  );
+  }) =>
+      AudioStudioConfig(
+        videoPath: videoPath ?? this.videoPath,
+        videoDurationSeconds: videoDurationSeconds ?? this.videoDurationSeconds,
+        originalVolume: originalVolume ?? this.originalVolume,
+        isOriginalMuted: isOriginalMuted ?? this.isOriginalMuted,
+        musicTrack: clearMusicTrack ? null : (musicTrack ?? this.musicTrack),
+        voiceoverTrack: clearVoiceoverTrack
+            ? null
+            : (voiceoverTrack ?? this.voiceoverTrack),
+        enableDucking: enableDucking ?? this.enableDucking,
+        duckingAttenuation: duckingAttenuation ?? this.duckingAttenuation,
+        exportMode: exportMode ?? this.exportMode,
+        audioFormat: audioFormat ?? this.audioFormat,
+        customFileName: customFileName ?? this.customFileName,
+      );
 }

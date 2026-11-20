@@ -72,12 +72,10 @@ class EditorFilterCompiler {
       brightness: brightness,
       contrast: contrast,
       saturation: saturation,
-      fadeInSeconds: project.fade.fadeInSeconds > 0
-          ? project.fade.fadeInSeconds
-          : null,
-      fadeOutSeconds: project.fade.fadeOutSeconds > 0
-          ? project.fade.fadeOutSeconds
-          : null,
+      fadeInSeconds:
+          project.fade.fadeInSeconds > 0 ? project.fade.fadeInSeconds : null,
+      fadeOutSeconds:
+          project.fade.fadeOutSeconds > 0 ? project.fade.fadeOutSeconds : null,
       totalDurationSeconds: project.outputDuration,
       reverse: project.reverse,
     );
@@ -86,8 +84,8 @@ class EditorFilterCompiler {
     final (canvasWidth, canvasHeight) = project.canvas.aspectRatio.dimensions;
     final hasCanvasChange =
         project.canvas.aspectRatio != TargetAspectRatio.original &&
-        canvasWidth > 0 &&
-        canvasHeight > 0;
+            canvasWidth > 0 &&
+            canvasHeight > 0;
 
     String currentVideoLabel = '[0:v]';
     final complexFilterStages = <String>[];
@@ -109,8 +107,7 @@ class EditorFilterCompiler {
         );
         currentVideoLabel = '[v_canvas]';
       } else if (project.canvas.fitMode == CanvasFitMode.fitWithBlur) {
-        final blurBg =
-            '$currentVideoLabel split=2[v_fg_in][v_bg_in];'
+        final blurBg = '$currentVideoLabel split=2[v_fg_in][v_bg_in];'
             '[v_bg_in]scale=$cw:$ch:force_original_aspect_ratio=increase,crop=$cw:$ch,'
             'boxblur=luma_radius=min(h\\,w)/20:luma_power=2[bg_blurred];'
             '[v_fg_in]scale=$cw:$ch:force_original_aspect_ratio=decrease[fg_scaled];'
@@ -285,7 +282,7 @@ class EditorFilterCompiler {
   }
 
   static (double brightness, double contrast, double saturation)
-  _resolveColorGrading(ColorFilterSpec spec) {
+      _resolveColorGrading(ColorFilterSpec spec) {
     if (spec.preset == ColorFilterPreset.bw) {
       return (spec.brightness, spec.contrast, 0.0);
     } else if (spec.preset == ColorFilterPreset.vibrant) {

@@ -31,8 +31,15 @@ class AppConstants {
   static const String prefKeyBackgroundType = 'pref_background_type';
   static const String prefKeyBackgroundColorHex = 'pref_background_color_hex';
   static const String prefKeyOverlayAutoLabel = 'pref_overlay_auto_label';
+  static const String prefKeyOverlayPartLabelMode =
+      'pref_overlay_part_label_mode';
   static const String prefKeyOverlayTemplate = 'pref_overlay_template';
   static const String prefKeyOverlayPosition = 'pref_overlay_position';
+  static const String prefKeyVerticalPosition = 'pref_vertical_position';
+  static const String prefKeyVerticalOffsetFraction =
+      'pref_vertical_offset_fraction';
+  static const String prefKeySinglePartFileNameMode =
+      'pref_single_part_file_name_mode';
   static const String prefKeyCropToFill = 'pref_crop_to_fill';
   static const String prefKeyKeepScreenAwake = 'pref_keep_screen_awake';
   static const String prefKeyShowNotification = 'pref_show_notification';

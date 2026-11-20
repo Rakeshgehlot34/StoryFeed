@@ -31,14 +31,52 @@ import 'constants.dart';
 /// Route observer for monitoring route push/pop to enforce media playback lifecycles.
 final appRouteObserver = RouteObserver<ModalRoute<void>>();
 
+/// A [ChangeNotifier] that notifies GoRouter to re-evaluate redirects whenever
+/// a Riverpod [ProviderListenable] emits a new value.
+class _ProviderChangeNotifier<T> extends ChangeNotifier {
+  _ProviderChangeNotifier(ProviderSubscription<T> subscription)
+      : _subscription = subscription;
+
+  final ProviderSubscription<T> _subscription;
+
+  static _ProviderChangeNotifier<T> watch<T>(
+    Ref ref,
+    ProviderListenable<T> provider,
+  ) {
+    late _ProviderChangeNotifier<T> notifier;
+    final sub = ref.listen(provider, (_, __) => notifier.notifyListeners());
+    notifier = _ProviderChangeNotifier<T>(sub);
+    return notifier;
+  }
+
+  @override
+  void dispose() {
+    _subscription.close();
+    super.dispose();
+  }
+}
+
 /// Centralized GoRouter provider for declarative navigation using AppRoutes constants.
 final routerProvider = Provider<GoRouter>((ref) {
+  final refreshNotifier = _ProviderChangeNotifier.watch(
+    ref,
+    onboardingControllerProvider,
+  );
+  ref.onDispose(refreshNotifier.dispose);
+
   return GoRouter(
     initialLocation: AppRoutes.home,
+    refreshListenable: refreshNotifier,
     observers: [appRouteObserver],
     redirect: (context, state) {
       final onboardingAsync = ref.read(onboardingControllerProvider);
-      final isOnboardingCompleted = onboardingAsync.valueOrNull ?? true;
+
+      // While the onboarding state is still loading, do not redirect — wait
+      // for it to resolve so we never land on onboarding without a back stack.
+      if (onboardingAsync.isLoading) return null;
+
+      // On error, treat as not completed so the user sees onboarding.
+      final isOnboardingCompleted = onboardingAsync.valueOrNull ?? false;
       final isOnboardingRoute = state.uri.path == AppRoutes.onboarding;
 
       if (!isOnboardingCompleted && !isOnboardingRoute) {
@@ -192,8 +230,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final extra = state.extra;
           if (extra is Map<String, dynamic>) {
-            final clips =
-                (extra['clips'] as List<dynamic>?)
+            final clips = (extra['clips'] as List<dynamic>?)
                     ?.whereType<ExportedClip>()
                     .toList() ??
                 const [];

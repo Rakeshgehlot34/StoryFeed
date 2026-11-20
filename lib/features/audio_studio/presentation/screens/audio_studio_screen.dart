@@ -91,7 +91,8 @@ class _AudioStudioScreenState extends ConsumerState<AudioStudioScreen> {
       return EmptyState(
         icon: Icons.graphic_eq_rounded,
         title: 'No Video Selected',
-        message: 'Select a video to adjust audio volume, replace audio, record microphone voice-overs, and mix background tracks.',
+        message:
+            'Select a video to adjust audio volume, replace audio, record microphone voice-overs, and mix background tracks.',
         actionLabel: 'Choose Video',
         onAction: () => _pickVideo(context),
       );
@@ -181,9 +182,8 @@ class _AudioStudioScreenState extends ConsumerState<AudioStudioScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final config = state.config;
-    final totalDur = config.videoDurationSeconds > 0
-        ? config.videoDurationSeconds
-        : 1.0;
+    final totalDur =
+        config.videoDurationSeconds > 0 ? config.videoDurationSeconds : 1.0;
 
     return Container(
       padding: const EdgeInsets.all(AppTokens.spaceMd),
@@ -244,9 +244,9 @@ class _AudioStudioScreenState extends ConsumerState<AudioStudioScreen> {
               color: Colors.purple,
               startFraction:
                   (config.voiceoverTrack!.startTimeSeconds / totalDur).clamp(
-                    0.0,
-                    1.0,
-                  ),
+                0.0,
+                1.0,
+              ),
               widthFraction: (config.voiceoverTrack!.durationSeconds / totalDur)
                   .clamp(0.05, 1.0),
               volume: config.voiceoverTrack!.volume,
@@ -591,7 +591,8 @@ class _AudioStudioScreenState extends ConsumerState<AudioStudioScreen> {
           ),
           if (config.enableDucking)
             const InfoBanner(
-              message: 'Audio ducking utilizes hardware sidechain compression for studio-grade broadcast ducking.',
+              message:
+                  'Audio ducking utilizes hardware sidechain compression for studio-grade broadcast ducking.',
               type: InfoBannerType.info,
             ),
         ],

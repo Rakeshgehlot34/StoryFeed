@@ -24,20 +24,20 @@ class InfoBanner extends StatelessWidget {
 
     final (bgColor, fgColor, icon) = switch (type) {
       InfoBannerType.info => (
-        colorScheme.primaryContainer.withValues(alpha: 0.6),
-        colorScheme.onPrimaryContainer,
-        Icons.info_outline_rounded,
-      ),
+          colorScheme.primaryContainer.withValues(alpha: 0.6),
+          colorScheme.onPrimaryContainer,
+          Icons.info_outline_rounded,
+        ),
       InfoBannerType.warning => (
-        colorScheme.errorContainer.withValues(alpha: 0.4),
-        colorScheme.onErrorContainer,
-        Icons.warning_amber_rounded,
-      ),
+          colorScheme.errorContainer.withValues(alpha: 0.4),
+          colorScheme.onErrorContainer,
+          Icons.warning_amber_rounded,
+        ),
       InfoBannerType.error => (
-        colorScheme.errorContainer,
-        colorScheme.onErrorContainer,
-        Icons.error_outline_rounded,
-      ),
+          colorScheme.errorContainer,
+          colorScheme.onErrorContainer,
+          Icons.error_outline_rounded,
+        ),
     };
 
     return Container(

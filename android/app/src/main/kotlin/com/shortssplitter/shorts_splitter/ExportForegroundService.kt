@@ -107,8 +107,9 @@ class ExportForegroundService : Service() {
 
         val notification = buildNotification(title, message, progress)
 
+        acquireWakeLock()
+
         if (!isRunning) {
-            acquireWakeLock()
             startForegroundWithType(notification)
             isRunning = true
         } else {
@@ -116,20 +117,22 @@ class ExportForegroundService : Service() {
             notificationManager.notify(NOTIFICATION_ID, notification)
         }
 
-        return START_NOT_STICKY
+        return START_STICKY
     }
 
     private fun acquireWakeLock() {
         try {
+            val powerManager = getSystemService(Context.POWER_SERVICE) as? PowerManager
             if (wakeLock == null) {
-                val powerManager = getSystemService(Context.POWER_SERVICE) as? PowerManager
                 wakeLock = powerManager?.newWakeLock(
                     PowerManager.PARTIAL_WAKE_LOCK,
                     "ShortsSplitter:ExportWakeLock"
                 )?.apply {
                     setReferenceCounted(false)
-                    acquire(60 * 60 * 1000L) // 1-hour max timeout safety
                 }
+            }
+            if (wakeLock?.isHeld != true) {
+                wakeLock?.acquire(6 * 60 * 60 * 1000L) // 6-hour timeout for long exports
             }
         } catch (_: Exception) {}
     }
@@ -206,6 +209,8 @@ class ExportForegroundService : Service() {
             .setProgress(100, progress.coerceIn(0, 100), progress <= 0)
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Cancel", cancelPendingIntent)
             .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setCategory(NotificationCompat.CATEGORY_PROGRESS)
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .build()
     }
 

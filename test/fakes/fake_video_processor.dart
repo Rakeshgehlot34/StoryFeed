@@ -7,6 +7,7 @@ import 'package:shorts_splitter/features/editor/domain/models/edit_project.dart'
 import 'package:shorts_splitter/features/merge/domain/models/merge_project.dart';
 import 'package:shorts_splitter/features/output/domain/clip_writer.dart';
 import 'package:shorts_splitter/features/output/domain/models/storage_strategy.dart';
+import 'package:shorts_splitter/features/processing/domain/models/part_progress_state.dart';
 import 'package:shorts_splitter/features/processing/domain/models/processing_progress.dart';
 import 'package:shorts_splitter/features/processing/domain/models/video_metadata.dart';
 import 'package:shorts_splitter/features/processing/domain/video_processor.dart';
@@ -77,6 +78,16 @@ class FakeVideoProcessor implements VideoProcessor {
         final fakePath = '$outputDirectoryPath/${seg.formattedName}';
         outputPaths.add(fakePath);
 
+        final partMap = <int, PartProgressState>{};
+        for (int k = 0; k < total; k++) {
+          final pIndex = segments[k].index;
+          partMap[pIndex] = PartProgressState(
+            partIndex: pIndex,
+            progress: k <= i ? 1.0 : 0.0,
+            stageLabel: k <= i ? 'Completed' : 'Queued',
+          );
+        }
+
         controller.add(
           ProcessingProgress(
             status: ProcessingStatus.processing,
@@ -86,6 +97,7 @@ class FakeVideoProcessor implements VideoProcessor {
             currentClipProgress: 1.0,
             overallProgress: (i + 1) / total,
             outputPaths: List.unmodifiable(outputPaths),
+            partProgressMap: partMap,
           ),
         );
       }
@@ -394,8 +406,7 @@ class FakeVideoProcessor implements VideoProcessor {
     int jpegQuality = 90,
     String? outputFilePath,
   }) async {
-    final fakePath =
-        outputFilePath ??
+    final fakePath = outputFilePath ??
         '/fake_storage/fake_screenshot_${timestampSeconds.toStringAsFixed(1)}${format.extension}';
     return fakePath;
   }

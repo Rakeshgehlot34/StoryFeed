@@ -111,10 +111,10 @@ class _ModeOptionCard extends StatelessWidget {
           color: isSelected
               ? colorScheme.primaryContainer.withValues(alpha: 0.3)
               : (isEnabled
-                    ? colorScheme.surface
-                    : colorScheme.surfaceContainerHighest.withValues(
-                        alpha: 0.2,
-                      )),
+                  ? colorScheme.surface
+                  : colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.2,
+                    )),
           border: Border.all(color: borderColor, width: isSelected ? 2 : 1),
           borderRadius: BorderRadius.circular(12),
         ),
@@ -129,8 +129,8 @@ class _ModeOptionCard extends StatelessWidget {
                   color: isSelected
                       ? colorScheme.primary
                       : (isEnabled
-                            ? colorScheme.onSurfaceVariant
-                            : colorScheme.outline),
+                          ? colorScheme.onSurfaceVariant
+                          : colorScheme.outline),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -141,8 +141,8 @@ class _ModeOptionCard extends StatelessWidget {
                       color: isSelected
                           ? colorScheme.primary
                           : (isEnabled
-                                ? colorScheme.onSurface
-                                : colorScheme.outline),
+                              ? colorScheme.onSurface
+                              : colorScheme.outline),
                     ),
                   ),
                 ),

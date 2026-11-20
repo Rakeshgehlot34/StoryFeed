@@ -4,6 +4,7 @@ import '../../../../core/utils/formatters.dart';
 import 'background_spec.dart';
 import 'canvas_spec.dart';
 import 'clip_plan.dart';
+import 'fit_layout.dart';
 import 'overlay_spec.dart';
 import 'plan_validator.dart';
 import 'trim_range.dart';
@@ -25,6 +26,10 @@ class PlanCalculator {
     required double sourceDurationSeconds,
     double trailingThresholdSeconds =
         AppConstants.trailingClipMergeThresholdSeconds,
+    VerticalPosition verticalPosition = VerticalPosition.center,
+    double verticalOffsetFraction = 0.0,
+    SinglePartFileNameMode singlePartFileNameMode =
+        SinglePartFileNameMode.keepPartSuffix,
   }) {
     PlanValidator.validateTrimRange(trimRange, sourceDurationSeconds);
 
@@ -50,8 +55,7 @@ class PlanCalculator {
       // Trailing remainder can only be merged if it doesn't violate the 180s hard cap
       final canMergeWithoutExceedingCap =
           (target + remainder) <= AppConstants.maxClipDurationSeconds;
-      final shouldMerge =
-          mergeShortTrailingClip &&
+      final shouldMerge = mergeShortTrailingClip &&
           remainder > 0.05 &&
           remainder < trailingThresholdSeconds &&
           fullClipCount >= 1 &&
@@ -82,11 +86,10 @@ class PlanCalculator {
     for (int i = 0; i < totalParts; i++) {
       final raw = rawSegments[i];
       final partIndex = i + 1;
-      final fileName = Formatters.formatClipFileName(
-        baseName,
-        partIndex,
-        totalParts,
-      );
+      final fileName = (totalParts == 1 &&
+              singlePartFileNameMode == SinglePartFileNameMode.originalNameOnly)
+          ? '$baseName.mp4'
+          : Formatters.formatClipFileName(baseName, partIndex, totalParts);
       final resolvedText = overlaySpec.resolveText(
         partIndex: partIndex,
         totalParts: totalParts,
@@ -114,6 +117,9 @@ class PlanCalculator {
       baseName: baseName,
       sourceDurationSeconds: sourceDurationSeconds,
       trimRange: trimRange,
+      verticalPosition: verticalPosition,
+      verticalOffsetFraction: verticalOffsetFraction,
+      singlePartFileNameMode: singlePartFileNameMode,
     );
 
     PlanValidator.validatePlan(plan);
@@ -128,6 +134,8 @@ class PlanCalculator {
     required double newBoundaryTime,
     required String baseName,
     required OverlaySpec overlaySpec,
+    SinglePartFileNameMode singlePartFileNameMode =
+        SinglePartFileNameMode.keepPartSuffix,
   }) {
     if (boundaryIndex < 0 || boundaryIndex >= items.length - 1) {
       throw const PlanValidationException('Invalid boundary index.');
@@ -169,7 +177,12 @@ class PlanCalculator {
     updated[boundaryIndex] = prev.copyWith(endSeconds: newBoundaryTime);
     updated[boundaryIndex + 1] = next.copyWith(startSeconds: newBoundaryTime);
 
-    return _rebuildItemMetadata(updated, baseName, overlaySpec);
+    return _rebuildItemMetadata(
+      updated,
+      baseName,
+      overlaySpec,
+      singlePartFileNameMode,
+    );
   }
 
   /// Merges part [index] with its successor [index + 1].
@@ -178,6 +191,8 @@ class PlanCalculator {
     required int index,
     required String baseName,
     required OverlaySpec overlaySpec,
+    SinglePartFileNameMode singlePartFileNameMode =
+        SinglePartFileNameMode.keepPartSuffix,
   }) {
     if (index < 0 || index >= items.length - 1) {
       throw const PlanValidationException('Cannot merge last clip with next.');
@@ -201,13 +216,19 @@ class PlanCalculator {
       formattedName: current.formattedName,
       customMessage: current.customMessage ?? next.customMessage,
       isMergedTrailing: true,
+      partLabelOverride: current.partLabelOverride,
     );
 
     final updated = List<ClipPlanItem>.from(items);
     updated.removeAt(index + 1);
     updated[index] = merged;
 
-    return _rebuildItemMetadata(updated, baseName, overlaySpec);
+    return _rebuildItemMetadata(
+      updated,
+      baseName,
+      overlaySpec,
+      singlePartFileNameMode,
+    );
   }
 
   /// Splits part [index] into two separate contiguous clips at [splitTime].
@@ -217,6 +238,8 @@ class PlanCalculator {
     required double splitTime,
     required String baseName,
     required OverlaySpec overlaySpec,
+    SinglePartFileNameMode singlePartFileNameMode =
+        SinglePartFileNameMode.keepPartSuffix,
   }) {
     if (index < 0 || index >= items.length) {
       throw const PlanValidationException('Invalid clip index to split.');
@@ -239,6 +262,7 @@ class PlanCalculator {
       endSeconds: splitTime,
       formattedName: target.formattedName,
       customMessage: target.customMessage,
+      partLabelOverride: target.partLabelOverride,
     );
 
     final right = ClipPlanItem(
@@ -253,7 +277,12 @@ class PlanCalculator {
     updated.insert(index, right);
     updated.insert(index, left);
 
-    return _rebuildItemMetadata(updated, baseName, overlaySpec);
+    return _rebuildItemMetadata(
+      updated,
+      baseName,
+      overlaySpec,
+      singlePartFileNameMode,
+    );
   }
 
   /// Updates specific part custom overlay message.
@@ -279,6 +308,37 @@ class PlanCalculator {
         totalParts: items.length,
         baseName: baseName,
         specificPartOverride: customMessage,
+        perPartOverride: target.partLabelOverride,
+      ),
+    );
+
+    return updated;
+  }
+
+  /// Updates specific part label override (Use Project Default, Show, Hide).
+  static List<ClipPlanItem> updatePartLabelOverride({
+    required List<ClipPlanItem> items,
+    required int index,
+    required PartLabelOverride override,
+    required String baseName,
+    required OverlaySpec overlaySpec,
+  }) {
+    if (index < 0 || index >= items.length) {
+      throw const PlanValidationException(
+        'Invalid clip index for label override update.',
+      );
+    }
+
+    final updated = List<ClipPlanItem>.from(items);
+    final target = updated[index];
+    updated[index] = target.copyWith(
+      partLabelOverride: override,
+      resolvedMessage: overlaySpec.resolveText(
+        partIndex: target.index,
+        totalParts: items.length,
+        baseName: baseName,
+        specificPartOverride: target.customMessage,
+        perPartOverride: override,
       ),
     );
 
@@ -290,8 +350,15 @@ class PlanCalculator {
     required List<ClipPlanItem> items,
     required String newBaseName,
     required OverlaySpec overlaySpec,
+    SinglePartFileNameMode singlePartFileNameMode =
+        SinglePartFileNameMode.keepPartSuffix,
   }) {
-    return _rebuildItemMetadata(items, newBaseName, overlaySpec);
+    return _rebuildItemMetadata(
+      items,
+      newBaseName,
+      overlaySpec,
+      singlePartFileNameMode,
+    );
   }
 
   /// Re-resolves messages and filenames for all items.
@@ -299,6 +366,7 @@ class PlanCalculator {
     List<ClipPlanItem> rawItems,
     String baseName,
     OverlaySpec overlaySpec,
+    SinglePartFileNameMode singlePartFileNameMode,
   ) {
     final total = rawItems.length;
     final result = <ClipPlanItem>[];
@@ -306,12 +374,16 @@ class PlanCalculator {
     for (int i = 0; i < total; i++) {
       final partIndex = i + 1;
       final raw = rawItems[i];
-      final name = Formatters.formatClipFileName(baseName, partIndex, total);
+      final name = (total == 1 &&
+              singlePartFileNameMode == SinglePartFileNameMode.originalNameOnly)
+          ? '$baseName.mp4'
+          : Formatters.formatClipFileName(baseName, partIndex, total);
       final text = overlaySpec.resolveText(
         partIndex: partIndex,
         totalParts: total,
         baseName: baseName,
         specificPartOverride: raw.customMessage,
+        perPartOverride: raw.partLabelOverride,
       );
 
       result.add(
@@ -323,6 +395,7 @@ class PlanCalculator {
           customMessage: raw.customMessage,
           resolvedMessage: text,
           isMergedTrailing: raw.isMergedTrailing,
+          partLabelOverride: raw.partLabelOverride,
         ),
       );
     }

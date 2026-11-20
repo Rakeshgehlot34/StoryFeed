@@ -139,8 +139,8 @@ class OutputVerifier {
       if (sideData != null && sideData.isNotEmpty) {
         for (final sd in sideData) {
           if (sd is Map<String, dynamic> && sd['rotation'] != null) {
-            rotation = (double.tryParse(sd['rotation'].toString()) ?? 0)
-                .toInt();
+            rotation =
+                (double.tryParse(sd['rotation'].toString()) ?? 0).toInt();
           }
         }
       }
@@ -179,21 +179,25 @@ class OutputVerifier {
     required int x,
     required int y,
   }) async {
-    final result = await Process.run('ffmpeg', [
-      '-ss',
-      timestamp.toStringAsFixed(3),
-      '-i',
-      filePath,
-      '-vframes',
-      '1',
-      '-vf',
-      'crop=2:2:$x:$y',
-      '-f',
-      'rawvideo',
-      '-pix_fmt',
-      'rgb24',
-      '-',
-    ], stdoutEncoding: null);
+    final result = await Process.run(
+      'ffmpeg',
+      [
+        '-ss',
+        timestamp.toStringAsFixed(3),
+        '-i',
+        filePath,
+        '-vframes',
+        '1',
+        '-vf',
+        'crop=2:2:$x:$y',
+        '-f',
+        'rawvideo',
+        '-pix_fmt',
+        'rgb24',
+        '-',
+      ],
+      stdoutEncoding: null,
+    );
 
     if (result.exitCode != 0) {
       throw ProcessException(

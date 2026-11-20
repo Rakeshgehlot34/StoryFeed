@@ -67,9 +67,8 @@ class AudioStudioState {
           ? null
           : (recordedVoiceoverPath ?? this.recordedVoiceoverPath),
       isLoading: isLoading ?? this.isLoading,
-      errorMessage: clearErrorMessage
-          ? null
-          : (errorMessage ?? this.errorMessage),
+      errorMessage:
+          clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
     );
   }
 }
@@ -80,8 +79,8 @@ final audioRecordingServiceProvider = Provider<AudioRecordingService>((ref) {
 
 final audioStudioControllerProvider =
     NotifierProvider<AudioStudioController, AudioStudioState>(
-      AudioStudioController.new,
-    );
+  AudioStudioController.new,
+);
 
 class AudioStudioController extends Notifier<AudioStudioState> {
   Timer? _recordingTimer;

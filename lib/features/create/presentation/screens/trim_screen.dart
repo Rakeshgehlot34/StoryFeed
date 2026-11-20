@@ -439,15 +439,15 @@ class _TrimScreenState extends ConsumerState<TrimScreen> with RouteAware {
                         type: InfoBannerType.error,
                       )
                     : !_isValidDuration
-                    ? const InfoBanner(
-                        message: AppStrings.valRangeMin1s,
-                        type: InfoBannerType.error,
-                      )
-                    : InfoBanner(
-                        message:
-                            'Selected range will produce ~$estimatedShorts Shorts (${targetClipDuration}s preset).',
-                        type: InfoBannerType.info,
-                      ),
+                        ? const InfoBanner(
+                            message: AppStrings.valRangeMin1s,
+                            type: InfoBannerType.error,
+                          )
+                        : InfoBanner(
+                            message:
+                                'Selected range will produce ~$estimatedShorts Shorts (${targetClipDuration}s preset).',
+                            type: InfoBannerType.info,
+                          ),
               ),
               const SizedBox(height: AppTokens.spaceXl),
 

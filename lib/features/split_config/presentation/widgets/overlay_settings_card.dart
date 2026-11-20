@@ -32,32 +32,72 @@ class OverlaySettingsCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Auto Part Labels'),
-              subtitle: Text(
-                'Overlays sequentially numbered label on clips.',
+            Text(
+              'Part Numbering Label',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              overlaySpec.partLabelMode.description,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<PartLabelMode>(
+                segments: const [
+                  ButtonSegment<PartLabelMode>(
+                    value: PartLabelMode.auto,
+                    label: Text('Auto'),
+                    icon: Icon(Icons.auto_awesome, size: 16),
+                  ),
+                  ButtonSegment<PartLabelMode>(
+                    value: PartLabelMode.always,
+                    label: Text('Always'),
+                    icon: Icon(Icons.check_circle_outline, size: 16),
+                  ),
+                  ButtonSegment<PartLabelMode>(
+                    value: PartLabelMode.never,
+                    label: Text('Never'),
+                    icon: Icon(Icons.block_outlined, size: 16),
+                  ),
+                ],
+                selected: {overlaySpec.partLabelMode},
+                onSelectionChanged: (newSelection) {
+                  onOverlayChanged(
+                    overlaySpec.copyWith(partLabelMode: newSelection.first),
+                  );
+                },
+              ),
+            ),
+            if (overlaySpec.partLabelMode != PartLabelMode.never) ...[
+              const SizedBox(height: 16),
+              _buildTemplateInput(context),
+              const SizedBox(height: 16),
+              const Divider(height: 1),
+              const SizedBox(height: 16),
+              Text(
+                'Overlay Safe Position',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Guarantees text remains inside YouTube Shorts & Reels safe zones.',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
-              value: overlaySpec.autoLabel,
-              onChanged: (val) {
-                onOverlayChanged(overlaySpec.copyWith(autoLabel: val));
-              },
-            ),
-            if (overlaySpec.autoLabel) ...[
               const SizedBox(height: 8),
-              _buildTemplateInput(context),
+              _buildPositionSelector(),
+              const SizedBox(height: 16),
+              _buildTimingSwitch(theme, colorScheme),
             ],
-            const SizedBox(height: 12),
-            const Divider(height: 1),
-            const SizedBox(height: 12),
-            Text('Overlay Safe Position', style: theme.textTheme.labelMedium),
-            const SizedBox(height: 8),
-            _buildPositionSelector(),
-            const SizedBox(height: 12),
-            _buildTimingSwitch(theme, colorScheme),
           ],
         ),
       ),
@@ -83,6 +123,7 @@ class OverlaySettingsCard extends StatelessWidget {
   Widget _buildPositionSelector() {
     return Wrap(
       spacing: 8,
+      runSpacing: 8,
       children: OverlayPosition.values.map((pos) {
         final isSelected = overlaySpec.position == pos;
         return ChoiceChip(

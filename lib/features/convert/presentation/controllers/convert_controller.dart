@@ -46,9 +46,8 @@ class ConvertState {
       config: config ?? this.config,
       isLoading: isLoading ?? this.isLoading,
       estimatedSizeBytes: estimatedSizeBytes ?? this.estimatedSizeBytes,
-      errorMessage: clearErrorMessage
-          ? null
-          : (errorMessage ?? this.errorMessage),
+      errorMessage:
+          clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
     );
   }
 }

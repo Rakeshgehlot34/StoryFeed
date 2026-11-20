@@ -113,6 +113,8 @@ class FFmpegVideoProcessor implements VideoProcessor {
       double fps = 30.0;
       final int bitrate = int.tryParse(mediaInfo.getBitrate() ?? '0') ?? 0;
       bool hasAudio = false;
+      int rotation = 0;
+      double sar = 1.0;
 
       final streams = mediaInfo.getStreams();
       for (final stream in streams) {
@@ -132,6 +134,34 @@ class FFmpegVideoProcessor implements VideoProcessor {
           } else if (rFrameRate != null) {
             fps = double.tryParse(rFrameRate) ?? 30.0;
           }
+
+          final allProps = stream.getAllProperties();
+          if (allProps != null) {
+            final tags = allProps['tags'];
+            if (tags is Map) {
+              final rotateStr = tags['rotate']?.toString();
+              if (rotateStr != null) {
+                rotation = int.tryParse(rotateStr) ?? 0;
+              }
+            }
+            final sideDataList = allProps['side_data_list'];
+            if (sideDataList is List) {
+              for (final sd in sideDataList) {
+                if (sd is Map && sd['rotation'] != null) {
+                  rotation =
+                      int.tryParse(sd['rotation'].toString()) ?? rotation;
+                }
+              }
+            }
+            final sarStr = stream.getSampleAspectRatio() ??
+                allProps['sample_aspect_ratio']?.toString();
+            if (sarStr != null && sarStr.contains(':')) {
+              final parts = sarStr.split(':');
+              final num = double.tryParse(parts[0]) ?? 1.0;
+              final den = double.tryParse(parts[1]) ?? 1.0;
+              if (den > 0) sar = num / den;
+            }
+          }
         }
       }
 
@@ -144,6 +174,8 @@ class FFmpegVideoProcessor implements VideoProcessor {
         bitrate: bitrate,
         format: mediaInfo.getFormat() ?? 'mp4',
         hasAudio: hasAudio,
+        rotation: rotation,
+        sar: sar,
       );
       _metadataCache[videoPath] = metadata;
       return metadata;
@@ -222,8 +254,7 @@ class FFmpegVideoProcessor implements VideoProcessor {
             }
           }
 
-          final activeWriter =
-              clipWriter ??
+          final activeWriter = clipWriter ??
               await ClipWriterFactory.resolveWriter(
                 preferredSafUri: outputDirectoryPath.startsWith('content://')
                     ? outputDirectoryPath
@@ -243,9 +274,7 @@ class FFmpegVideoProcessor implements VideoProcessor {
           );
 
           // High-Performance Single-Pass Stream Copy Optimization
-          final canUseSinglePass =
-              mode == SplitMode.fast &&
-              plan == null &&
+          final canUseSinglePass = mode == SplitMode.fast &&
               aspectRatio == AspectRatioOption.original &&
               totalClips > 1 &&
               segments.first.startSeconds < 0.05 &&
@@ -304,9 +333,9 @@ class FFmpegVideoProcessor implements VideoProcessor {
                     ProcessingProgress(
                       status: ProcessingStatus.processing,
                       currentClipIndex: (prog * totalClips).ceil().clamp(
-                        1,
-                        totalClips,
-                      ),
+                            1,
+                            totalClips,
+                          ),
                       totalClips: totalClips,
                       currentClipName: 'Single-pass splitting...',
                       currentClipProgress: prog,
@@ -328,13 +357,64 @@ class FFmpegVideoProcessor implements VideoProcessor {
                 final genFile = File(genPath);
                 if (await genFile.exists() && await genFile.length() > 0) {
                   final segment = segments[i];
+
+                  String effectiveGenPath = genPath;
+                  // Strictly enforce Domain Invariant #1 (Hard 180s Cap)
+                  try {
+                    final probeSession =
+                        await FFprobeKit.getMediaInformation(genPath);
+                    final mediaInfo = probeSession.getMediaInformation();
+                    final dur =
+                        double.tryParse(mediaInfo?.getDuration() ?? '') ??
+                            segment.durationSeconds;
+                    if (dur > AppConstants.maxClipDurationSeconds) {
+                      AppLogger.warning(
+                        'Single-pass segment ${segment.formattedName} exceeded 180s ($dur s). Clamping to 180.0s.',
+                      );
+                      final clampedPath = p.join(
+                        tempCacheDir.path,
+                        'clamped_seg_${i}_${DateTime.now().millisecondsSinceEpoch}.mp4',
+                      );
+                      _trackedTempFiles.add(clampedPath);
+                      final clampSuccess = await _executeSession(
+                        [
+                          '-y',
+                          '-i',
+                          genPath,
+                          '-t',
+                          AppConstants.maxClipDurationSeconds
+                              .toStringAsFixed(3),
+                          '-c:v',
+                          'libx264',
+                          '-preset',
+                          'ultrafast',
+                          '-c:a',
+                          'copy',
+                          '-movflags',
+                          '+faststart',
+                          clampedPath,
+                        ],
+                        AppConstants.maxClipDurationSeconds.toDouble(),
+                        (_) {},
+                      );
+                      if (clampSuccess &&
+                          await File(clampedPath).exists() &&
+                          await File(clampedPath).length() > 0) {
+                        _safeDelete(genPath);
+                        effectiveGenPath = clampedPath;
+                      }
+                    }
+                  } catch (e) {
+                    AppLogger.warning('Segment duration check error: $e');
+                  }
+
                   final destUri = await activeWriter.writeClip(
-                    sourceTempFile: genFile,
+                    sourceTempFile: File(effectiveGenPath),
                     fileName: segment.formattedName,
                     duplicateHandling: duplicateHandling,
                   );
                   outputPaths.add(destUri);
-                  _safeDelete(genPath);
+                  _safeDelete(effectiveGenPath);
                   controller.add(
                     ProcessingProgress(
                       status: ProcessingStatus.processing,
@@ -415,9 +495,9 @@ class FFmpegVideoProcessor implements VideoProcessor {
             // Render text overlay to PNG if resolved message exists
             String? tempOverlayPng;
             final planItem = plan?.items.cast<ClipPlanItem?>().firstWhere(
-              (item) => item?.index == segment.index,
-              orElse: () => null,
-            );
+                  (item) => item?.index == segment.index,
+                  orElse: () => null,
+                );
 
             if (planItem?.resolvedMessage != null &&
                 planItem!.resolvedMessage!.isNotEmpty &&
@@ -475,7 +555,82 @@ class FFmpegVideoProcessor implements VideoProcessor {
               return;
             }
 
-            final tempFile = File(tempClipPath);
+            // Emit "Saving..." at 100% clip progress so UI does not freeze or
+            // appear to reset while FFprobe verification and file-copy run.
+            if (!controller.isClosed) {
+              controller.add(
+                ProcessingProgress(
+                  status: ProcessingStatus.processing,
+                  currentClipIndex: i + 1,
+                  totalClips: totalClips,
+                  currentClipName: clipName,
+                  currentClipProgress: 1.0,
+                  overallProgress: (i + 1.0) / totalClips,
+                  outputPaths: List.unmodifiable(outputPaths),
+                ),
+              );
+            }
+
+            String finalTempClipPath = tempClipPath;
+
+            // Probe actual duration to strictly enforce Domain Invariant #1 (Hard 180s Cap)
+            try {
+              final probeSession =
+                  await FFprobeKit.getMediaInformation(tempClipPath);
+              final mediaInfo = probeSession.getMediaInformation();
+              final rawDuration = mediaInfo?.getDuration();
+              final probedDuration =
+                  double.tryParse(rawDuration ?? '') ?? segment.durationSeconds;
+
+              // If fast stream copy overshot due to keyframe snapping (e.g. 183s-187s),
+              // clamp it precisely to 180.000s so it NEVER exceeds the 3:00 YouTube Shorts limit.
+              if (probedDuration > AppConstants.maxClipDurationSeconds) {
+                AppLogger.warning(
+                  'Clip $clipName duration (${probedDuration.toStringAsFixed(2)}s) exceeded 180s hard cap. Clamping precisely to 180.0s.',
+                );
+                final clampedTempPath = p.join(
+                  tempCacheDir.path,
+                  'clamped_${segment.index}_${DateTime.now().millisecondsSinceEpoch}.mp4',
+                );
+                _trackedTempFiles.add(clampedTempPath);
+
+                final clampArgs = [
+                  '-y',
+                  '-i',
+                  tempClipPath,
+                  '-t',
+                  AppConstants.maxClipDurationSeconds.toStringAsFixed(3),
+                  '-c:v',
+                  'libx264',
+                  '-preset',
+                  'ultrafast',
+                  '-c:a',
+                  'copy',
+                  '-movflags',
+                  '+faststart',
+                  clampedTempPath,
+                ];
+
+                final clampSuccess = await _executeSession(
+                  clampArgs,
+                  AppConstants.maxClipDurationSeconds.toDouble(),
+                  (_) {},
+                );
+
+                if (clampSuccess &&
+                    await File(clampedTempPath).exists() &&
+                    await File(clampedTempPath).length() > 0) {
+                  _safeDelete(tempClipPath);
+                  finalTempClipPath = clampedTempPath;
+                }
+              }
+            } catch (e) {
+              AppLogger.warning(
+                'Duration verification warning for $clipName: $e',
+              );
+            }
+
+            final tempFile = File(finalTempClipPath);
             if (!await tempFile.exists() || await tempFile.length() == 0) {
               throw VideoProcessingException(
                 'Encoded clip $clipName is empty or missing.',
@@ -489,7 +644,7 @@ class FFmpegVideoProcessor implements VideoProcessor {
             );
 
             outputPaths.add(finalDestinationUri);
-            _safeDelete(tempClipPath);
+            _safeDelete(finalTempClipPath);
           }
 
           controller.add(
@@ -640,8 +795,7 @@ class FFmpegVideoProcessor implements VideoProcessor {
     Duration? timeout,
   }) async {
     final completer = Completer<bool>();
-    final timeoutDuration =
-        timeout ??
+    final timeoutDuration = timeout ??
         Duration(seconds: (totalDuration * 3 + 30).clamp(30.0, 300.0).toInt());
 
     final session = await FFmpegKit.executeWithArgumentsAsync(
@@ -715,6 +869,10 @@ class FFmpegVideoProcessor implements VideoProcessor {
         canvasSpec: plan.canvasSpec,
         backgroundSpec: plan.backgroundSpec,
         cropToFill: plan.cropToFill,
+        rotationDegrees: sourceMeta.rotation,
+        sar: sourceMeta.sar,
+        verticalPosition: plan.verticalPosition,
+        verticalOffsetFraction: plan.verticalOffsetFraction,
         overlayPngPath: overlayPngPath,
         displayWholeClip: plan.overlaySpec.displayWholeClip,
         displayDurationSeconds: plan.overlaySpec.displayDurationSeconds,
@@ -795,12 +953,10 @@ class FFmpegVideoProcessor implements VideoProcessor {
     final startStr = segment.startSeconds.toStringAsFixed(3);
     final durationStr = segment.durationSeconds.toStringAsFixed(3);
 
-    // Fast mode check: only allowed if no visual transforms and no overlay
-    final canUseFastCopy =
-        mode == SplitMode.fast &&
-        plan == null &&
-        aspectRatio == AspectRatioOption.original &&
-        overlayPngPath == null;
+    // Fast mode: stream copy without re-encoding.
+    // ONLY valid when no canvas/filter plan is active — a plan means 9:16 scaling
+    // or background fill is required, which stream-copy physically cannot do.
+    final canUseFastCopy = mode == SplitMode.fast && plan == null;
 
     if (canUseFastCopy) {
       return [
@@ -840,6 +996,10 @@ class FFmpegVideoProcessor implements VideoProcessor {
         canvasSpec: plan.canvasSpec,
         backgroundSpec: plan.backgroundSpec,
         cropToFill: plan.cropToFill,
+        rotationDegrees: sourceMeta.rotation,
+        sar: sourceMeta.sar,
+        verticalPosition: plan.verticalPosition,
+        verticalOffsetFraction: plan.verticalOffsetFraction,
         overlayPngPath: overlayPngPath,
         displayWholeClip: plan.overlaySpec.displayWholeClip,
         displayDurationSeconds: plan.overlaySpec.displayDurationSeconds,
@@ -970,8 +1130,7 @@ class FFmpegVideoProcessor implements VideoProcessor {
             );
           }
 
-          final activeWriter =
-              clipWriter ??
+          final activeWriter = clipWriter ??
               await ClipWriterFactory.resolveWriter(
                 preferredSafUri: outputDirectoryPath.startsWith('content://')
                     ? outputDirectoryPath
@@ -1175,8 +1334,7 @@ class FFmpegVideoProcessor implements VideoProcessor {
             );
           }
 
-          final activeWriter =
-              clipWriter ??
+          final activeWriter = clipWriter ??
               await ClipWriterFactory.resolveWriter(
                 preferredSafUri: outputDirectoryPath.startsWith('content://')
                     ? outputDirectoryPath
@@ -1460,8 +1618,7 @@ class FFmpegVideoProcessor implements VideoProcessor {
             );
           }
 
-          final activeWriter =
-              clipWriter ??
+          final activeWriter = clipWriter ??
               await ClipWriterFactory.resolveWriter(
                 preferredSafUri: outputDirectoryPath.startsWith('content://')
                     ? outputDirectoryPath
@@ -1674,8 +1831,7 @@ class FFmpegVideoProcessor implements VideoProcessor {
             ),
           );
 
-          final activeWriter =
-              clipWriter ??
+          final activeWriter = clipWriter ??
               await ClipWriterFactory.resolveWriter(
                 preferredSafUri: outputDirectoryPath.startsWith('content://')
                     ? outputDirectoryPath
@@ -1763,8 +1919,8 @@ class FFmpegVideoProcessor implements VideoProcessor {
 
           final baseName =
               resolvedConfig.customFileName?.trim().isNotEmpty == true
-              ? resolvedConfig.customFileName!.trim()
-              : '${p.basenameWithoutExtension(resolvedInputPath)}_audio';
+                  ? resolvedConfig.customFileName!.trim()
+                  : '${p.basenameWithoutExtension(resolvedInputPath)}_audio';
           final outputFileName = '$baseName$ext';
 
           final finalUri = await activeWriter.writeClip(
@@ -1830,8 +1986,7 @@ class FFmpegVideoProcessor implements VideoProcessor {
     _isCancelled = false;
     final tempDir = await getTemporaryDirectory();
     final ext = format.extension;
-    final outputPath =
-        outputFilePath ??
+    final outputPath = outputFilePath ??
         p.join(
           tempDir.path,
           'screenshot_${DateTime.now().millisecondsSinceEpoch}_${(timestampSeconds * 1000).round()}$ext',
@@ -1898,8 +2053,7 @@ class FFmpegVideoProcessor implements VideoProcessor {
         }
 
         try {
-          final effectiveWriter =
-              clipWriter ??
+          final effectiveWriter = clipWriter ??
               await ClipWriterFactory.resolveWriter(
                 preferredSafUri: outputDirectoryPath,
               );
@@ -2076,8 +2230,7 @@ class FFmpegVideoProcessor implements VideoProcessor {
 
           final resolvedConfig = config.copyWith(clips: resolvedClips);
 
-          final activeWriter =
-              clipWriter ??
+          final activeWriter = clipWriter ??
               await ClipWriterFactory.resolveWriter(
                 preferredSafUri: outputDirectoryPath.startsWith('content://')
                     ? outputDirectoryPath

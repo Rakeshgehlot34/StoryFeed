@@ -132,6 +132,65 @@ void main() {
       }
     });
 
+    test('selectNotConverted selects only unprocessed/raw parts', () {
+      var modified = PartSelectionHelpers.updateStatus(
+        testItems,
+        1,
+        ClipProcessingStatus.processed,
+      );
+      modified = PartSelectionHelpers.updateStatus(
+        modified,
+        3,
+        ClipProcessingStatus.processed,
+      );
+
+      final notConverted = PartSelectionHelpers.selectNotConverted(modified);
+      expect(notConverted[0].isSelected, isFalse);
+      expect(notConverted[1].isSelected, isTrue);
+      expect(notConverted[2].isSelected, isFalse);
+      expect(notConverted[3].isSelected, isTrue);
+    });
+
+    test('selectFailed selects only failed parts', () {
+      final modified = PartSelectionHelpers.updateStatus(
+        testItems,
+        5,
+        ClipProcessingStatus.failed,
+        failureReason: 'FFmpeg transcode error',
+      );
+
+      final failed = PartSelectionHelpers.selectFailed(modified);
+      for (final item in failed) {
+        if (item.index == 5) {
+          expect(item.isSelected, isTrue);
+        } else {
+          expect(item.isSelected, isFalse);
+        }
+      }
+    });
+
+    test('selectNextN selects exactly the next N unfinished parts', () {
+      var modified = PartSelectionHelpers.updateStatus(
+        testItems,
+        1,
+        ClipProcessingStatus.processed,
+      );
+      modified = PartSelectionHelpers.updateStatus(
+        modified,
+        2,
+        ClipProcessingStatus.processed,
+      );
+
+      final next3 = PartSelectionHelpers.selectNextN(modified, 3);
+      // Items 1 and 2 are processed, so items 3, 4, 5 are selected
+      expect(next3[0].isSelected, isFalse);
+      expect(next3[1].isSelected, isFalse);
+      expect(next3[2].isSelected, isTrue);
+      expect(next3[3].isSelected, isTrue);
+      expect(next3[4].isSelected, isTrue);
+      expect(next3[5].isSelected, isFalse);
+    });
+
     test('updateStatus updates specific item and preserves others', () {
       final updated = PartSelectionHelpers.updateStatus(
         testItems,

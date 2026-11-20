@@ -99,7 +99,9 @@ void main() {
       expect(() => shortTrim.validate(), returnsNormally);
     });
 
-    test('reverse invariant: throws PlanValidationException when reverse requested on > 15s clip', () {
+    test(
+        'reverse invariant: throws PlanValidationException when reverse requested on > 15s clip',
+        () {
       final longTrim = baseProject.copyWith(
         trim: const TrimConfig(startSeconds: 0.0, endSeconds: 25.0),
         reverse: true,

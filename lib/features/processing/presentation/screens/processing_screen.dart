@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/constants.dart';
 import '../../../../app/theme/app_tokens.dart';
+import '../../../../core/utils/formatters.dart';
 import '../../../../shared/services/app_messenger.dart';
 import '../../../../shared/widgets/confirm_dialog.dart';
 import '../../../../shared/widgets/progress_ring.dart';
@@ -66,7 +67,8 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
     final shouldCancel = await ConfirmDialog.show(
       context: context,
       title: 'Cancel Video Split?',
-      message: 'Video processing is in progress. Cancelling will stop encoding and delete partial files.',
+      message:
+          'Video processing is in progress. Cancelling will stop encoding and delete partial files.',
       confirmLabel: 'Cancel Split',
       cancelLabel: 'Keep Processing',
       isDestructive: true,
@@ -79,24 +81,31 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
     return false;
   }
 
-  String _formatElapsed() {
-    final s = _stopwatch.elapsed.inSeconds;
-    final m = s ~/ 60;
-    final sec = s % 60;
-    return '${m.toString().padLeft(2, '0')}:${sec.toString().padLeft(2, '0')}';
+  String _formatElapsed(ProcessingProgress progress) {
+    final d = progress.elapsed > Duration.zero
+        ? progress.elapsed
+        : _stopwatch.elapsed;
+    return Formatters.formatDuration(d);
   }
 
-  String _formatRemaining(double progress) {
-    if (progress <= 0.05) return 'Estimating...';
-    final elapsedMs = _stopwatch.elapsedMilliseconds;
-    final totalEstimatedMs = elapsedMs / progress;
-    final remainingMs = (totalEstimatedMs - elapsedMs)
-        .clamp(0, 3600000)
-        .toInt();
-    final remSec = remainingMs ~/ 1000;
-    final m = remSec ~/ 60;
-    final s = remSec % 60;
-    return '~${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+  String _formatRemaining(ProcessingProgress progress) {
+    if (progress.status == ProcessingStatus.completed) return 'Done';
+    if (progress.eta != null && progress.eta! > Duration.zero) {
+      return '~${Formatters.formatDuration(progress.eta!)}';
+    }
+    if (progress.overallProgress > 0.005) {
+      final elapsedMs = progress.elapsed.inMilliseconds > 0
+          ? progress.elapsed.inMilliseconds
+          : _stopwatch.elapsedMilliseconds;
+      if (elapsedMs > 1500) {
+        final remainingMs =
+            ((elapsedMs / progress.overallProgress) - elapsedMs).round();
+        if (remainingMs > 0 && remainingMs < 86400000) {
+          return '~${Formatters.formatDuration(Duration(milliseconds: remainingMs))}';
+        }
+      }
+    }
+    return 'Estimating...';
   }
 
   @override
@@ -184,10 +193,10 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildTimeStat('Elapsed', _formatElapsed()),
+              _buildTimeStat('Elapsed', _formatElapsed(progress)),
               _buildTimeStat(
                 'Remaining',
-                _formatRemaining(progress.overallProgress),
+                _formatRemaining(progress),
               ),
               if (progress.fps > 0)
                 _buildTimeStat(
@@ -218,6 +227,9 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
     ColorScheme colorScheme,
     ProcessingProgress progress,
   ) {
+    final clipPercent =
+        (progress.currentClipProgress * 100).clamp(0, 100).toInt();
+
     return Container(
       padding: const EdgeInsets.all(AppTokens.spaceMd),
       decoration: BoxDecoration(
@@ -231,29 +243,68 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Icon(Icons.movie_creation_outlined, size: 18),
-              const SizedBox(width: AppTokens.spaceSm),
-              Expanded(
-                child: Text(
-                  progress.currentClipName,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'monospace',
-                    fontSize: 13,
+              Row(
+                children: [
+                  Icon(
+                    Icons.movie_creation_outlined,
+                    size: 18,
+                    color: colorScheme.primary,
                   ),
-                  overflow: TextOverflow.ellipsis,
+                  const SizedBox(width: AppTokens.spaceSm),
+                  Text(
+                    progress.totalClips > 0
+                        ? 'Clip ${progress.currentClipIndex} of ${progress.totalClips}'
+                        : 'Current Clip',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '$clipPercent%',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: colorScheme.onPrimaryContainer,
+                  ),
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 6),
+          Text(
+            progress.currentClipName.isNotEmpty
+                ? progress.currentClipName
+                : 'Processing...',
+            style: TextStyle(
+              fontSize: 12,
+              fontFamily: 'monospace',
+              color: colorScheme.onSurfaceVariant,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
           const SizedBox(height: AppTokens.spaceSm),
-          LinearProgressIndicator(
-            value: progress.currentClipProgress > 0
-                ? progress.currentClipProgress
-                : null,
-            minHeight: 6,
-            borderRadius: BorderRadius.circular(3),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: progress.currentClipProgress > 0
+                  ? progress.currentClipProgress
+                  : (progress.isProcessing ? null : 0.0),
+              minHeight: 8,
+              backgroundColor: colorScheme.surfaceContainerHighest,
+            ),
           ),
         ],
       ),

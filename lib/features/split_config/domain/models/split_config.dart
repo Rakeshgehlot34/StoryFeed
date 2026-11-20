@@ -1,6 +1,7 @@
 import '../../../../app/constants.dart';
 import 'background_spec.dart';
 import 'canvas_spec.dart';
+import 'fit_layout.dart';
 import 'overlay_spec.dart';
 import 'trim_range.dart';
 
@@ -34,6 +35,9 @@ class SplitConfig {
   final bool mergeShortTrailingClip;
   final TrimRange? trimRange;
   final String? customBaseName;
+  final VerticalPosition verticalPosition;
+  final double verticalOffsetFraction; // -0.20 to +0.20
+  final SinglePartFileNameMode singlePartFileNameMode;
 
   const SplitConfig({
     this.targetDurationSeconds = AppConstants.defaultClipDurationSeconds,
@@ -45,6 +49,9 @@ class SplitConfig {
     this.mergeShortTrailingClip = true,
     this.trimRange,
     this.customBaseName,
+    this.verticalPosition = VerticalPosition.center,
+    this.verticalOffsetFraction = 0.0,
+    this.singlePartFileNameMode = SinglePartFileNameMode.keepPartSuffix,
   });
 
   /// Compatibility getter for legacy aspect ratio enum.
@@ -58,11 +65,16 @@ class SplitConfig {
     return AspectRatioOption.original;
   }
 
-  /// When visual transforms (canvas formatting, crop, background fill, or text overlay)
-  /// or precise trim timestamps are active, FFmpeg MUST re-encode.
+  /// When visual transforms (canvas formatting, crop, background fill, overlay,
+  /// or precise trim timestamps) are active, FFmpeg MUST re-encode.
+  /// Also true whenever the output canvas is not the native source format
+  /// (e.g. 9:16 vertical requires scaling/padding the source).
   bool get requiresReencode =>
       mode == SplitMode.precise ||
       cropToFill ||
+      // 9:16 Shorts or 1:1 Square always need scaling → cannot stream-copy
+      canvasSpec.format == CanvasFormat.shorts916 ||
+      canvasSpec.format == CanvasFormat.square11 ||
       backgroundSpec is! SolidColorBackgroundSpec ||
       overlaySpec.autoLabel ||
       overlaySpec.allPartsMessage != null ||
@@ -78,6 +90,9 @@ class SplitConfig {
     bool? mergeShortTrailingClip,
     TrimRange? trimRange,
     String? customBaseName,
+    VerticalPosition? verticalPosition,
+    double? verticalOffsetFraction,
+    SinglePartFileNameMode? singlePartFileNameMode,
   }) {
     return SplitConfig(
       targetDurationSeconds:
@@ -91,6 +106,11 @@ class SplitConfig {
           mergeShortTrailingClip ?? this.mergeShortTrailingClip,
       trimRange: trimRange ?? this.trimRange,
       customBaseName: customBaseName ?? this.customBaseName,
+      verticalPosition: verticalPosition ?? this.verticalPosition,
+      verticalOffsetFraction:
+          verticalOffsetFraction ?? this.verticalOffsetFraction,
+      singlePartFileNameMode:
+          singlePartFileNameMode ?? this.singlePartFileNameMode,
     );
   }
 }

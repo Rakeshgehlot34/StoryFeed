@@ -70,22 +70,22 @@ class ScreenshotState {
 
 final screenshotControllerProvider =
     StateNotifierProvider<ScreenshotController, ScreenshotState>((ref) {
-      return ScreenshotController(ref);
-    });
+  return ScreenshotController(ref);
+});
 
 class ScreenshotController extends StateNotifier<ScreenshotState> {
   final Ref ref;
 
   ScreenshotController(this.ref)
-    : super(
-        const ScreenshotState(
-          config: ScreenshotConfig(
-            videoPath: '',
-            videoTitle: '',
-            videoDurationSeconds: 0.0,
+      : super(
+          const ScreenshotState(
+            config: ScreenshotConfig(
+              videoPath: '',
+              videoTitle: '',
+              videoDurationSeconds: 0.0,
+            ),
           ),
-        ),
-      );
+        );
 
   /// Initializes the controller with a newly selected video.
   Future<void> setVideo(PickedVideo video) async {
@@ -308,8 +308,8 @@ class ScreenshotController extends StateNotifier<ScreenshotState> {
     final targets = state.selectedFrameIds.isEmpty
         ? state.capturedSessionFrames.where((f) => !f.isSaved).toList()
         : state.capturedSessionFrames
-              .where((f) => state.selectedFrameIds.contains(f.id) && !f.isSaved)
-              .toList();
+            .where((f) => state.selectedFrameIds.contains(f.id) && !f.isSaved)
+            .toList();
 
     if (targets.isEmpty) return 0;
 
@@ -390,9 +390,8 @@ class ScreenshotController extends StateNotifier<ScreenshotState> {
       } catch (_) {}
     }
 
-    final updated = state.capturedSessionFrames
-        .where((f) => f.id != id)
-        .toList();
+    final updated =
+        state.capturedSessionFrames.where((f) => f.id != id).toList();
     final updatedSelection = Set<String>.from(state.selectedFrameIds)
       ..remove(id);
 

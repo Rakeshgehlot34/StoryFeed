@@ -87,23 +87,21 @@ ffmpeg -y -ss 00:01:15.500 -to 00:02:15.500 -i input.mp4 \
 ```
 
 ### Recipe 3: 9:16 Solid Color Letterbox
-Scales video to fit inside a `1080x1920` vertical canvas, padding top and bottom with solid color (e.g. black `#000000` or white `#FFFFFF`):
+Uses `FitLayout` precalculated integer coordinates to scale video and pad top/bottom with solid color with zero filter default reliance:
 ```bash
-ffmpeg -y -ss 0.0 -t 60.0 -i input.mp4 \
-  -vf "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=black" \
-  -c:v libx264 -preset faster -crf 22 -pix_fmt yuv420p \
+ffmpeg -y -ss 0.0 -i input.mp4 -t 60.0 \
+  -vf "scale=1080:608,pad=1080:1920:0:656:color=white,setsar=1" \
+  -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p \
   -c:a aac -b:a 192k output_part_001.mp4
 ```
 
 ### Recipe 4: 9:16 Blurred-Background Letterbox
-Splits the source into two streams: one scaled and blurred to fill the 9:16 canvas, and one scaled to fit overlaid on top:
+Downscales a 10% copy (`108x192`), applies fast `boxblur=5:1`, upscales to canvas (`1080x1920:flags=bicubic`), and overlays the foreground video at exact `FitLayout` coordinates:
 ```bash
-ffmpeg -y -ss 0.0 -t 60.0 -i input.mp4 \
-  -filter_graph "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=20:5[bg]; \
-                 [0:v]scale=1080:1920:force_original_aspect_ratio=decrease[fg]; \
-                 [bg][fg]overlay=(W-w)/2:(H-h)/2[outv]" \
+ffmpeg -y -ss 0.0 -i input.mp4 -t 60.0 \
+  -filter_complex "[0:v]scale=108:192:force_original_aspect_ratio=increase,crop=108:192,boxblur=5:1,scale=1080:1920:flags=bicubic[bg];[0:v]scale=1080:608[fg];[bg][fg]overlay=0:656,setsar=1[outv]" \
   -map "[outv]" -map 0:a? \
-  -c:v libx264 -preset faster -crf 22 -pix_fmt yuv420p \
+  -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p \
   -c:a aac -b:a 192k output_part_001.mp4
 ```
 

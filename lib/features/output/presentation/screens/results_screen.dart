@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,20 +9,23 @@ import 'package:share_plus/share_plus.dart';
 import '../../../../app/constants.dart';
 import '../../../../app/constants/app_strings.dart';
 import '../../../../app/theme/app_tokens.dart';
+import '../../../../shared/services/app_messenger.dart';
 import '../../../../shared/widgets/clip_tile.dart';
 import '../../../../shared/widgets/confirm_dialog.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/error_state.dart';
 import '../../../../shared/widgets/loading_skeleton.dart';
-import '../../../../shared/widgets/primary_button.dart';
 import '../../../../shared/widgets/secondary_button.dart';
 import '../../../plan_review/domain/models/clip_processing_state.dart';
 import '../../../plan_review/presentation/controllers/part_items_controller.dart';
 import '../../../plan_review/presentation/controllers/plan_controller.dart';
+import '../../../processing/domain/export_job_controller.dart';
+import '../../../processing/presentation/controllers/processing_controller.dart';
 import '../../../split_config/presentation/controllers/split_config_controller.dart';
 import '../../../video_picker/presentation/controllers/video_picker_controller.dart';
 import '../../domain/models/exported_clip.dart';
 import '../controllers/output_controller.dart';
+import '../widgets/convert_to_shorts_dialog.dart';
 
 /// Screen presenting exported clips with sharing, full preview, storage actions,
 /// and selective indicators for unprocessed clips in the plan.
@@ -71,8 +76,7 @@ class ResultsScreen extends ConsumerWidget {
             dirPath,
             notifier,
             planParts: partItems,
-            totalPlanParts:
-                plan?.totalParts ??
+            totalPlanParts: plan?.totalParts ??
                 (partItems.isNotEmpty ? partItems.length : clips.length),
           );
         },
@@ -171,9 +175,8 @@ class ResultsScreen extends ConsumerWidget {
                 child: SecondaryButton(
                   icon: Icons.folder_open_outlined,
                   label: 'Open Folder',
-                  onPressed: dirPath.isNotEmpty
-                      ? () => OpenFilex.open(dirPath)
-                      : null,
+                  onPressed:
+                      dirPath.isNotEmpty ? () => OpenFilex.open(dirPath) : null,
                 ),
               ),
               const SizedBox(width: AppTokens.spaceMd),
@@ -187,6 +190,71 @@ class ResultsScreen extends ConsumerWidget {
             ],
           ),
         ),
+        if (clips.isNotEmpty) ...[
+          Container(
+            margin: const EdgeInsets.symmetric(
+              horizontal: AppTokens.spaceLg,
+              vertical: AppTokens.spaceSm,
+            ),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTokens.spaceMd,
+              vertical: AppTokens.spaceSm,
+            ),
+            decoration: BoxDecoration(
+              color: colorScheme.primaryContainer.withValues(alpha: 0.35),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: colorScheme.primary.withValues(alpha: 0.4),
+              ),
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: colorScheme.primary,
+                  radius: 16,
+                  child: const Icon(
+                    Icons.auto_awesome_rounded,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Convert to 9:16 Shorts',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                      Text(
+                        'Format into 9:16 vertical canvas with part labels ({n}/{total}) and background blur.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                  ),
+                  icon: const Icon(Icons.movie_filter_rounded, size: 16),
+                  label: const Text('Convert'),
+                  onPressed: () =>
+                      _showConvertToShortsDialog(context, ref, clips),
+                ),
+              ],
+            ),
+          ),
+        ],
         const Divider(height: 1),
         Expanded(
           child: _buildClipsList(
@@ -204,6 +272,21 @@ class ResultsScreen extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (!isPartial && clips.isNotEmpty) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: FilledButton.icon(
+                      icon: const Icon(Icons.auto_awesome_rounded),
+                      label: Text(
+                        'Convert ${clips.length == 1 ? 'Clip' : 'All ${clips.length} Clips'} to 9:16 Shorts',
+                      ),
+                      onPressed: () =>
+                          _showConvertToShortsDialog(context, ref, clips),
+                    ),
+                  ),
+                  const SizedBox(height: AppTokens.spaceSm),
+                ],
                 if (isPartial) ...[
                   SizedBox(
                     width: double.infinity,
@@ -219,9 +302,9 @@ class ResultsScreen extends ConsumerWidget {
                 SizedBox(
                   width: double.infinity,
                   height: 48,
-                  child: PrimaryButton(
-                    label: 'Done • Create Another',
-                    icon: Icons.add_circle_outline_rounded,
+                  child: OutlinedButton.icon(
+                    label: const Text('Done • Create Another'),
+                    icon: const Icon(Icons.add_circle_outline_rounded),
                     onPressed: () => _createAnother(context, ref),
                   ),
                 ),
@@ -255,6 +338,12 @@ class ResultsScreen extends ConsumerWidget {
               AppRoutes.player,
               extra: {'clips': clips, 'initialIndex': index},
             ),
+            onConvert: () => _showConvertToShortsDialog(
+              context,
+              ref,
+              clips,
+              initialSelectedPartIndex: clip.partIndex,
+            ),
             onDelete: () => _confirmDelete(context, clip, notifier),
           );
         },
@@ -283,6 +372,12 @@ class ResultsScreen extends ConsumerWidget {
                 'initialIndex': clipIndex >= 0 ? clipIndex : 0,
               },
             ),
+            onConvert: () => _showConvertToShortsDialog(
+              context,
+              ref,
+              clips,
+              initialSelectedPartIndex: exportedClip.partIndex,
+            ),
             onDelete: () => _confirmDelete(context, exportedClip, notifier),
           );
         }
@@ -291,6 +386,47 @@ class ResultsScreen extends ConsumerWidget {
         return _buildUnprocessedPartCard(context, ref, partItem);
       },
     );
+  }
+
+  Future<void> _showConvertToShortsDialog(
+    BuildContext context,
+    WidgetRef ref,
+    List<ExportedClip> clips, {
+    int? initialSelectedPartIndex,
+  }) async {
+    if (clips.isEmpty) {
+      AppMessenger.showInfo(context, 'No clips available to convert.');
+      return;
+    }
+
+    final params = await showDialog<ConvertToShortsParams>(
+      context: context,
+      builder: (ctx) => ConvertToShortsDialog(
+        clips: clips,
+        initialSelectedPartIndex: initialSelectedPartIndex,
+      ),
+    );
+
+    if (params == null || params.selectedPartIndices.isEmpty) return;
+
+    final activeRecord = ref.read(exportJobControllerProvider).activeRecord;
+    final projectId =
+        activeRecord?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
+    final plan = ref.read(planReviewControllerProvider);
+
+    final success = await ref
+        .read(processingControllerProvider.notifier)
+        .startStage2Conversion(
+          projectId: projectId,
+          selectedPartIndices: params.selectedPartIndices,
+          config: params.config,
+          replaceStrategy: params.replaceStrategy,
+          plan: plan,
+        );
+
+    if (context.mounted && success) {
+      unawaited(context.push(AppRoutes.processing));
+    }
   }
 
   Widget _buildUnprocessedPartCard(

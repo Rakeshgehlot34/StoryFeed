@@ -5,8 +5,8 @@ import 'plan_controller.dart';
 
 final partItemsControllerProvider =
     NotifierProvider<PartItemsController, List<PartItem>>(
-      PartItemsController.new,
-    );
+  PartItemsController.new,
+);
 
 /// Riverpod controller managing the selection and processing state of each planned clip part.
 class PartItemsController extends Notifier<List<PartItem>> {
@@ -61,6 +61,18 @@ class PartItemsController extends Notifier<List<PartItem>> {
 
   void invertSelection() {
     _update(PartSelectionHelpers.invertSelection(state));
+  }
+
+  void selectNotConverted() {
+    _update(PartSelectionHelpers.selectNotConverted(state));
+  }
+
+  void selectFailed() {
+    _update(PartSelectionHelpers.selectFailed(state));
+  }
+
+  void selectNextN(int count) {
+    _update(PartSelectionHelpers.selectNextN(state, count));
   }
 
   void selectRange(int startPartIndex, int endPartIndex) {

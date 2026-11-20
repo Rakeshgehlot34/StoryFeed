@@ -231,8 +231,7 @@ class PerfTrace {
     }
 
     final avgSpeed = speedCount > 0 ? (totalSpeedSum / speedCount) : 0.0;
-    final totalAllStages =
-        totalPrepMs +
+    final totalAllStages = totalPrepMs +
         totalProbeMs +
         totalFfmpegMs +
         totalCopyMs +

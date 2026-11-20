@@ -72,7 +72,9 @@ void main() {
       expect(filter, isNull);
     });
 
-    test('8. buildAudioMixFilterComplex creates two-channel volume and amix filter', () {
+    test(
+        '8. buildAudioMixFilterComplex creates two-channel volume and amix filter',
+        () {
       final complex = AudioGraphBuilder.buildAudioMixFilterComplex(
         track1Tag: '0:a',
         track2Tag: '1:a',

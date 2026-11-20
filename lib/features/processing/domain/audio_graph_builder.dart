@@ -51,9 +51,8 @@ class AudioGraphBuilder {
   static String _formatTempo(double val) {
     final fixed = val.toStringAsFixed(3);
     if (fixed.contains('.')) {
-      final trimmed = fixed
-          .replaceAll(RegExp(r'0+$'), '')
-          .replaceAll(RegExp(r'\.$'), '');
+      final trimmed =
+          fixed.replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
       return trimmed.contains('.') ? trimmed : '$trimmed.0';
     }
     return '$fixed.0';

@@ -15,6 +15,9 @@ import '../../../video_picker/presentation/controllers/video_picker_controller.d
 final planReviewControllerProvider =
     NotifierProvider<PlanReviewController, ClipPlan?>(PlanReviewController.new);
 
+/// Compatibility alias
+final clipPlanProvider = planReviewControllerProvider;
+
 class PlanReviewController extends Notifier<ClipPlan?> {
   @override
   ClipPlan? build() {
@@ -40,6 +43,9 @@ class PlanReviewController extends Notifier<ClipPlan?> {
       overlaySpec: config.overlaySpec,
       cropToFill: config.cropToFill,
       sourceDurationSeconds: totalSec,
+      verticalPosition: config.verticalPosition,
+      verticalOffsetFraction: config.verticalOffsetFraction,
+      singlePartFileNameMode: config.singlePartFileNameMode,
     );
   }
 
@@ -53,6 +59,7 @@ class PlanReviewController extends Notifier<ClipPlan?> {
       newBoundaryTime: newTime,
       baseName: current.baseName,
       overlaySpec: current.overlaySpec,
+      singlePartFileNameMode: current.singlePartFileNameMode,
     );
 
     state = current.copyWith(items: updatedItems);
@@ -67,6 +74,7 @@ class PlanReviewController extends Notifier<ClipPlan?> {
       index: partIndex,
       baseName: current.baseName,
       overlaySpec: current.overlaySpec,
+      singlePartFileNameMode: current.singlePartFileNameMode,
     );
 
     state = current.copyWith(items: updatedItems);
@@ -82,6 +90,7 @@ class PlanReviewController extends Notifier<ClipPlan?> {
       splitTime: splitTime,
       baseName: current.baseName,
       overlaySpec: current.overlaySpec,
+      singlePartFileNameMode: current.singlePartFileNameMode,
     );
 
     state = current.copyWith(items: updatedItems);
@@ -95,6 +104,62 @@ class PlanReviewController extends Notifier<ClipPlan?> {
       items: current.items,
       index: partIndex,
       customMessage: message,
+      baseName: current.baseName,
+      overlaySpec: current.overlaySpec,
+    );
+
+    state = current.copyWith(items: updatedItems);
+  }
+
+  void updatePartDetails(
+    int indexZeroBased, {
+    String? customMessage,
+    PartLabelOverride? override,
+  }) {
+    final current = state;
+    if (current == null ||
+        indexZeroBased < 0 ||
+        indexZeroBased >= current.items.length) {
+      return;
+    }
+
+    var items = current.items;
+    if (override != null) {
+      items = PlanCalculator.updatePartLabelOverride(
+        items: items,
+        index: indexZeroBased,
+        override: override,
+        baseName: current.baseName,
+        overlaySpec: current.overlaySpec,
+      );
+    }
+    items = PlanCalculator.updatePartMessage(
+      items: items,
+      index: indexZeroBased,
+      customMessage: customMessage,
+      baseName: current.baseName,
+      overlaySpec: current.overlaySpec,
+    );
+
+    state = current.copyWith(items: items);
+  }
+
+  void setPartLabelOverride(int partIndex, PartLabelOverride override) {
+    final current = state;
+    if (current == null) return;
+
+    final targetIdx = current.items.indexWhere(
+      (it) => it.index == partIndex || it.index == partIndex + 1,
+    );
+    final idx = (targetIdx != -1)
+        ? targetIdx
+        : (partIndex >= 0 && partIndex < current.items.length ? partIndex : -1);
+    if (idx == -1) return;
+
+    final updatedItems = PlanCalculator.updatePartLabelOverride(
+      items: current.items,
+      index: idx,
+      override: override,
       baseName: current.baseName,
       overlaySpec: current.overlaySpec,
     );
@@ -116,6 +181,7 @@ class PlanReviewController extends Notifier<ClipPlan?> {
       items: current.items,
       newBaseName: sanitized,
       overlaySpec: current.overlaySpec,
+      singlePartFileNameMode: current.singlePartFileNameMode,
     );
 
     state = current.copyWith(baseName: sanitized, items: updatedItems);
@@ -140,6 +206,9 @@ class PlanReviewController extends Notifier<ClipPlan?> {
       overlaySpec: config.overlaySpec,
       cropToFill: config.cropToFill,
       sourceDurationSeconds: totalSec,
+      verticalPosition: config.verticalPosition,
+      verticalOffsetFraction: config.verticalOffsetFraction,
+      singlePartFileNameMode: config.singlePartFileNameMode,
     );
   }
 
@@ -179,6 +248,7 @@ class PlanReviewController extends Notifier<ClipPlan?> {
         totalParts: current.items.length,
         baseName: current.baseName,
         specificPartOverride: item.customMessage,
+        perPartOverride: item.partLabelOverride,
       );
       updatedItems.add(item.copyWith(resolvedMessage: text));
     }
@@ -186,6 +256,10 @@ class PlanReviewController extends Notifier<ClipPlan?> {
     state = current.copyWith(overlaySpec: spec, items: updatedItems);
 
     final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      AppConstants.prefKeyOverlayPartLabelMode,
+      spec.partLabelMode.name,
+    );
     await prefs.setBool(AppConstants.prefKeyOverlayAutoLabel, spec.autoLabel);
     await prefs.setString(AppConstants.prefKeyOverlayTemplate, spec.template);
     await prefs.setString(

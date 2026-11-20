@@ -10,6 +10,81 @@ import 'storage_bridge.dart';
 class PermissionUtils {
   PermissionUtils._();
 
+  /// Requests all core app permissions (Videos/Photos/Storage, Notifications, Microphone)
+  /// on first launch or during onboarding.
+  static Future<Map<Permission, PermissionStatus>> requestAllAppPermissions({
+    BuildContext? context,
+  }) async {
+    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+      return {};
+    }
+
+    final permissionsToRequest = <Permission>[];
+
+    if (Platform.isAndroid) {
+      final sdkInt = await StorageBridge.getSdkInt();
+      if (sdkInt >= 33) {
+        // API 33+ (Android 13+): Granular media — shows as "Photos and videos" in App Info
+        permissionsToRequest.add(Permission.videos);
+        permissionsToRequest.add(Permission.photos);
+        // API 34+ (Android 14+): Partial / selected-only access toggle in App Info.
+        // Must be requested alongside videos/photos so the system shows the
+        // "Allow access to media" dialog with a "Select photos and videos" option.
+        if (sdkInt >= 34) {
+          permissionsToRequest.add(Permission.mediaLibrary);
+        }
+        permissionsToRequest.add(Permission.notification);
+      } else {
+        // API 28–32 (Android 9–12): Legacy "Storage" group — shows as "Storage" in App Info
+        permissionsToRequest.add(Permission.storage);
+      }
+      permissionsToRequest.add(Permission.microphone);
+    } else if (Platform.isIOS) {
+      permissionsToRequest.add(Permission.photos);
+      permissionsToRequest.add(Permission.notification);
+      permissionsToRequest.add(Permission.microphone);
+    }
+
+    if (permissionsToRequest.isEmpty) return {};
+    final result = await permissionsToRequest.request();
+
+    if (context != null && context.mounted) {
+      final isPermanentlyDenied =
+          result.values.any((s) => s.isPermanentlyDenied);
+      if (isPermanentlyDenied) {
+        final sdkInt = await StorageBridge.getSdkInt();
+        final name = (Platform.isAndroid && sdkInt >= 33)
+            ? 'Photos and Videos'
+            : 'Storage';
+        if (context.mounted) {
+          await showSettingsDialog(
+            context: context,
+            permissionName: name,
+          );
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /// Checks whether media/storage permission is granted.
+  static Future<bool> hasMediaOrStoragePermission() async {
+    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+      return true;
+    }
+    if (!Platform.isAndroid) return true;
+
+    final sdkInt = await StorageBridge.getSdkInt();
+    if (sdkInt >= 33) {
+      final videoStatus = await Permission.videos.status;
+      return videoStatus.isGranted || videoStatus.isLimited;
+    } else {
+      final storageStatus = await Permission.storage.status;
+      return storageStatus.isGranted;
+    }
+  }
+
   /// Requests notification permission lazily before starting background export on Android 13+ (API 33+).
   static Future<bool> requestNotificationPermissionIfNeeded(
     BuildContext? context,
@@ -43,6 +118,27 @@ class PermissionUtils {
       );
     }
     return result.isGranted;
+  }
+
+  /// Prompts user to exempt app from battery optimizations for long background exports.
+  static Future<bool> requestBatteryOptimizationExemptionIfNeeded(
+    BuildContext? context,
+  ) async {
+    if (!Platform.isAndroid) return true;
+    final isIgnored = await StorageBridge.isIgnoringBatteryOptimizations();
+    if (isIgnored) return true;
+
+    if (context != null && context.mounted) {
+      final shouldProceed = await showRationaleDialog(
+        context: context,
+        title: 'Background Export Optimization',
+        message:
+            'To prevent Android from freezing long video exports when your screen is turned off or when switching apps, please allow unrestricted background activity.',
+      );
+      if (!shouldProceed) return false;
+    }
+
+    return StorageBridge.requestIgnoreBatteryOptimizations();
   }
 
   /// Lazily requests video reading permission based on Android SDK level.
@@ -88,7 +184,8 @@ class PermissionUtils {
           final proceed = await showRationaleDialog(
             context: context,
             title: 'Storage Access Required',
-            message: 'ShortsSplitter requires storage access to read videos from your device.',
+            message:
+                'ShortsSplitter requires storage access to read videos from your device.',
           );
           if (!proceed) return false;
         }
@@ -136,6 +233,25 @@ class PermissionUtils {
       await showSettingsDialog(context: context, permissionName: 'Storage');
     }
     return result.isGranted;
+  }
+
+  /// Verifies all necessary storage and media permissions before launching an export.
+  static Future<bool> ensureExportStoragePermissions(
+    BuildContext context,
+    String outputDir,
+  ) async {
+    if (!Platform.isAndroid) return true;
+
+    final sdkInt = await StorageBridge.getSdkInt();
+
+    // On Android 9 (API 28), direct public storage write requires WRITE_EXTERNAL_STORAGE
+    if (sdkInt == 28 && !outputDir.startsWith('content://')) {
+      if (!context.mounted) return false;
+      final hasWrite = await requestApi28WritePermissionIfNeeded(context);
+      return hasWrite;
+    }
+
+    return true;
   }
 
   /// Displays a Material 3 rationale dialog explaining why a permission is requested.

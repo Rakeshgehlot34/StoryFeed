@@ -28,7 +28,9 @@ void main() {
 
     const compiler = ConvertFilterCompiler();
 
-    test('converts video to MP4 H.264 with 720p downscaling and compressed bitrate', () async {
+    test(
+        'converts video to MP4 H.264 with 720p downscaling and compressed bitrate',
+        () async {
       final sourceProbe = await OutputVerifier.probe(fixtureVideo);
       expect(sourceProbe.hasVideo, isTrue);
 

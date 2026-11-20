@@ -54,9 +54,8 @@ void main() {
         final state = container.read(jobQueueControllerProvider);
         expect(state.jobs.length, equals(2));
         // At most one job should ever be in running state
-        final runningJobs = state.jobs
-            .where((j) => j.status == JobStatus.running)
-            .toList();
+        final runningJobs =
+            state.jobs.where((j) => j.status == JobStatus.running).toList();
         expect(runningJobs.length, lessThanOrEqualTo(1));
       },
     );

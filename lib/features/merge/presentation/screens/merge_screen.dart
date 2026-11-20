@@ -53,9 +53,7 @@ class _MergeScreenState extends ConsumerState<MergeScreen> {
       builder: (ctx) => MergeTrimDialog(
         clip: clip,
         onSave: (start, end) {
-          ref
-              .read(mergeControllerProvider.notifier)
-              .updateClipTrim(
+          ref.read(mergeControllerProvider.notifier).updateClipTrim(
                 id: clip.id,
                 startTrimSeconds: start,
                 endTrimSeconds: end,
@@ -110,9 +108,8 @@ class _MergeScreenState extends ConsumerState<MergeScreen> {
         ],
       ),
       body: _buildBody(context, mergeState, controller),
-      bottomNavigationBar: hasClips
-          ? _buildBottomBar(context, mergeState)
-          : null,
+      bottomNavigationBar:
+          hasClips ? _buildBottomBar(context, mergeState) : null,
     );
   }
 
@@ -136,7 +133,8 @@ class _MergeScreenState extends ConsumerState<MergeScreen> {
       return EmptyState(
         icon: Icons.call_merge_rounded,
         title: 'No Videos Selected',
-        message: 'Select two or more video clips to reorder, normalize canvas, and merge into one continuous video.',
+        message:
+            'Select two or more video clips to reorder, normalize canvas, and merge into one continuous video.',
         actionLabel: 'Select Videos',
         onAction: _pickVideos,
       );
@@ -152,7 +150,9 @@ class _MergeScreenState extends ConsumerState<MergeScreen> {
           children: [
             Text(
               'Clips Sequence (${state.clipCount})',
-              style: Theme.of(context).textTheme.titleSmall
+              style: Theme.of(context)
+                  .textTheme
+                  .titleSmall
                   ?.copyWith(fontWeight: FontWeight.bold),
             ),
             TextButton.icon(
@@ -195,7 +195,9 @@ class _MergeScreenState extends ConsumerState<MergeScreen> {
         color: Theme.of(context).colorScheme.surface,
         border: Border(
           top: BorderSide(
-            color: Theme.of(context).colorScheme.outlineVariant
+            color: Theme.of(context)
+                .colorScheme
+                .outlineVariant
                 .withValues(alpha: 0.3),
           ),
         ),

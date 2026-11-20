@@ -37,7 +37,9 @@ void main() {
       expect(plan.items[2].formattedName, 'long_webinar_part_003.mp4');
     });
 
-    test('merges short trailing remainder (< 3.0s) into penultimate clip when enabled', () {
+    test(
+        'merges short trailing remainder (< 3.0s) into penultimate clip when enabled',
+        () {
       const config = CustomSplitConfig(
         mode: CustomSplitMode.byDuration,
         targetDurationSeconds: 30.0,

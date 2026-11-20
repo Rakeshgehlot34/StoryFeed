@@ -30,15 +30,26 @@ class _SplitSummaryCardState extends State<SplitSummaryCard> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    final totalSeconds = widget.totalDuration.inMilliseconds / 1000.0;
+    final totalVideoSeconds = widget.totalDuration.inMilliseconds / 1000.0;
+    final trimStart = widget.config.trimRange?.startSeconds ?? 0.0;
+    final trimEnd = widget.config.trimRange?.endSeconds ?? totalVideoSeconds;
+    final activeDuration = (trimEnd - trimStart).clamp(0.0, totalVideoSeconds);
+    final isTrimmed = widget.config.trimRange != null &&
+        (trimStart > 0.05 || (totalVideoSeconds - trimEnd).abs() > 0.05);
+
     final segments = ClipSegment.calculateSegments(
-      totalDurationSeconds: totalSeconds,
+      totalDurationSeconds: activeDuration,
+      startOffsetSeconds: trimStart,
       targetClipDurationSeconds: widget.config.targetDurationSeconds,
       mergeShortTrailingClip: widget.config.mergeShortTrailingClip,
       baseName: widget.baseName,
     );
 
-    final summaryText = _buildSummaryText(totalSeconds, segments);
+    final summaryText = _buildSummaryText(
+      activeDuration,
+      segments,
+      isTrimmed: isTrimmed,
+    );
 
     return Card(
       color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
@@ -205,27 +216,33 @@ class _SplitSummaryCardState extends State<SplitSummaryCard> {
     );
   }
 
-  String _buildSummaryText(double totalSeconds, List<ClipSegment> segments) {
+  String _buildSummaryText(
+    double totalSeconds,
+    List<ClipSegment> segments, {
+    bool isTrimmed = false,
+  }) {
     if (segments.isEmpty) return 'No clips planned.';
 
     final totalFormatted = Formatters.formatSeconds(totalSeconds);
     final count = segments.length;
     final targetSec = widget.config.targetDurationSeconds;
+    final prefix =
+        isTrimmed ? 'Trimmed $totalFormatted' : 'Video $totalFormatted';
 
     if (count == 1) {
       final clipSec = segments.first.durationSeconds.round();
-      return 'Video $totalFormatted → 1 clip of ${clipSec}s';
+      return '$prefix → 1 clip of ${clipSec}s';
     }
 
     final lastSegment = segments.last;
     final lastSec = lastSegment.durationSeconds.round();
 
     if (lastSegment.isMergedTrailing) {
-      return 'Video $totalFormatted → $count clips of ${targetSec}s (last clip extended to ${lastSec}s)';
+      return '$prefix → $count clips of ${targetSec}s (last clip extended to ${lastSec}s)';
     } else if (lastSec != targetSec) {
-      return 'Video $totalFormatted → $count clips of ${targetSec}s (last clip ${lastSec}s)';
+      return '$prefix → $count clips of ${targetSec}s (last clip ${lastSec}s)';
     } else {
-      return 'Video $totalFormatted → $count clips of ${targetSec}s';
+      return '$prefix → $count clips of ${targetSec}s';
     }
   }
 }

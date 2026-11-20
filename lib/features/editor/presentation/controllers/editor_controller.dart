@@ -14,7 +14,8 @@ class EditorState {
   final EditProject? project;
   final String? previewPath;
   final bool isPreviewLoading;
-  final int activeToolIndex; // 0: Trim, 1: Canvas, 2: Speed, 3: Color, 4: Overlay, 5: Effects
+  final int
+      activeToolIndex; // 0: Trim, 1: Canvas, 2: Speed, 3: Color, 4: Overlay, 5: Effects
   final String? errorMessage;
 
   const EditorState({
@@ -44,9 +45,8 @@ class EditorState {
       previewPath: clearPreviewPath ? null : (previewPath ?? this.previewPath),
       isPreviewLoading: isPreviewLoading ?? this.isPreviewLoading,
       activeToolIndex: activeToolIndex ?? this.activeToolIndex,
-      errorMessage: clearErrorMessage
-          ? null
-          : (errorMessage ?? this.errorMessage),
+      errorMessage:
+          clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
     );
   }
 }
@@ -205,7 +205,8 @@ class EditorController extends Notifier<EditorState> {
 
     if (reverse && !curr.isReverseAllowed) {
       state = state.copyWith(
-        errorMessage: 'Reverse playback requires clip duration <= 15s. Trim the video first.',
+        errorMessage:
+            'Reverse playback requires clip duration <= 15s. Trim the video first.',
       );
       return;
     }

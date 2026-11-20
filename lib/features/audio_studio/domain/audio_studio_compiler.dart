@@ -39,8 +39,7 @@ class AudioStudioCompiler {
     }
 
     // Case 1: All audio is completely muted or no tracks active
-    final includeOriginal =
-        hasSourceAudio &&
+    final includeOriginal = hasSourceAudio &&
         !config.isOriginalMuted &&
         config.originalVolume > 0.01;
     final includeMusic = music != null && !music.isMuted && music.volume > 0.01;

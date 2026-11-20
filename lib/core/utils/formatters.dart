@@ -61,7 +61,7 @@ class Formatters {
       } else if (parts.length == 2) {
         final min = int.tryParse(parts[0]);
         final sec = double.tryParse(parts[1]);
-        if (min != null && sec != null && sec >= 0 && sec < 60) {
+        if (min != null && sec != null && sec >= 0 && sec <= 60) {
           return (min * 60) + sec;
         }
       } else if (parts.length == 3) {
@@ -72,9 +72,9 @@ class Formatters {
             min != null &&
             sec != null &&
             min >= 0 &&
-            min < 60 &&
+            min <= 60 &&
             sec >= 0 &&
-            sec < 60) {
+            sec <= 60) {
           return (hr * 3600) + (min * 60) + sec;
         }
       }

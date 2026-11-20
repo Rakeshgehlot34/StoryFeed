@@ -42,11 +42,17 @@ class OutputLocationValidator {
     } else {
       final dir = Directory(outputDirectoryPath);
       if (!dir.existsSync()) {
+        try {
+          dir.createSync(recursive: true);
+        } catch (_) {}
+      }
+      if (!dir.existsSync()) {
         issues.add(
           const ValidationIssue(
             code: 'OUTPUT_DIR_NOT_FOUND',
             fieldId: 'output_directory',
-            message: 'Chosen output directory does not exist',
+            message:
+                'Chosen output directory does not exist or is not accessible',
             severity: ValidationSeverity.error,
             actionLabel: 'Choose Folder',
           ),

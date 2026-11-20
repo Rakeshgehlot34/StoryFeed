@@ -241,9 +241,8 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
           IconButton(
             iconSize: 44,
             icon: const Icon(Icons.skip_next_rounded, color: Colors.white),
-            onPressed: _currentIndex < widget.clips.length - 1
-                ? _nextClip
-                : null,
+            onPressed:
+                _currentIndex < widget.clips.length - 1 ? _nextClip : null,
           ),
         ],
       ),
@@ -269,11 +268,11 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
           children: [
             Slider(
               value: position.inMilliseconds.toDouble().clamp(
-                0.0,
-                duration.inMilliseconds.toDouble() > 0
-                    ? duration.inMilliseconds.toDouble()
-                    : 1.0,
-              ),
+                    0.0,
+                    duration.inMilliseconds.toDouble() > 0
+                        ? duration.inMilliseconds.toDouble()
+                        : 1.0,
+                  ),
               min: 0.0,
               max: duration.inMilliseconds > 0
                   ? duration.inMilliseconds.toDouble()

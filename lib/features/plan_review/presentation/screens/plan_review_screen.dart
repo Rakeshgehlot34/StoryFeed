@@ -16,10 +16,14 @@ import '../../../../shared/services/app_messenger.dart';
 import '../../../../shared/widgets/info_banner.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../output/presentation/controllers/output_controller.dart';
+import '../../../processing/domain/filter_graph_builder.dart';
 import '../../../processing/presentation/controllers/processing_controller.dart';
+import '../../../split_config/domain/models/background_spec.dart';
 import '../../../split_config/domain/models/clip_plan.dart';
 import '../../../split_config/domain/models/plan_validator.dart';
+import '../../../split_config/domain/models/split_config.dart';
 import '../../../split_config/presentation/controllers/split_config_controller.dart';
+import '../../../video_picker/domain/models/picked_video.dart';
 import '../../../video_picker/presentation/controllers/video_picker_controller.dart';
 import '../../domain/models/clip_processing_state.dart';
 import '../controllers/part_items_controller.dart';
@@ -27,9 +31,11 @@ import '../controllers/plan_controller.dart';
 import '../widgets/edit_boundary_dialog.dart';
 import '../widgets/overlay_live_preview.dart';
 import '../widgets/part_message_dialog.dart';
+import '../widgets/part_preview_dialog.dart';
 import '../widgets/plan_header_card.dart';
 import '../widgets/plan_part_tile.dart';
 import '../widgets/split_part_dialog.dart';
+import '../widgets/workflow_choice_dialog.dart';
 
 class PlanReviewScreen extends ConsumerStatefulWidget {
   const PlanReviewScreen({super.key});
@@ -57,63 +63,105 @@ class _PlanReviewScreenState extends ConsumerState<PlanReviewScreen> {
 
     final video = ref.read(videoPickerControllerProvider).valueOrNull;
     final config = ref.read(splitConfigControllerProvider);
-    final outputDir = await ref.read(outputDirectoryProvider.future);
+    final rawOutputDir = await ref.read(outputDirectoryProvider.future);
     final processingProgress = ref.read(processingControllerProvider);
     final partItems = ref.read(partItemsControllerProvider);
 
     if (!mounted) return;
 
-    // 1. Validate Video
+    // 1. Validate Video with Explicit Dialog
     final videoResult = _videoValidator.validate(video);
     if (!videoResult.isValid) {
       final issue = videoResult.firstError!;
-      AppMessenger.showIssue(
-        context,
-        issue,
-        onAction: () => context.go(AppRoutes.home),
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          icon: Icon(
+            Icons.video_library_outlined,
+            size: 38,
+            color: Theme.of(ctx).colorScheme.error,
+          ),
+          title: const Text('Source Video Required'),
+          content: Text(issue.message),
+          actions: [
+            FilledButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                context.go(AppRoutes.home);
+              },
+              child: const Text('Select Video'),
+            ),
+          ],
+        ),
       );
       setState(() => _inlineError = issue.message);
       _scrollToError();
       return;
     }
 
-    // 2. Validate Plan
+    // 2. Validate Plan with Explicit Dialog
     final planResult = _planValidator.validate(plan);
     if (!planResult.isValid) {
       final issue = planResult.firstError!;
-      AppMessenger.showIssue(context, issue);
-      setState(() => _inlineError = issue.message);
-      _scrollToError();
-      return;
-    }
-
-    // 3. Validate Output Location & SAF
-    final isSafValid = outputDir.startsWith('content://')
-        ? await StorageBridge.isPersistedUriValid(outputDir)
-        : true;
-    if (!mounted) return;
-
-    final outputResult = _outputValidator.validate(
-      outputDirectoryPath: outputDir,
-      isSafPermissionValid: isSafValid,
-    );
-    if (!outputResult.isValid) {
-      final issue = outputResult.firstError!;
-      AppMessenger.showIssue(
-        context,
-        issue,
-        onAction: () async {
-          await ref
-              .read(outputDirectoryProvider.notifier)
-              .pickAndSetDirectory();
-        },
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          icon: Icon(
+            Icons.warning_amber_rounded,
+            size: 38,
+            color: Theme.of(ctx).colorScheme.error,
+          ),
+          title: const Text('Split Plan Issue'),
+          content: Text(issue.message),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Review Boundaries'),
+            ),
+          ],
+        ),
       );
       setState(() => _inlineError = issue.message);
       _scrollToError();
       return;
     }
 
-    // 4. Validate Parts Selection & Storage for selected parts
+    // 3. Ensure Output Folder & SAF Permissions with Interactive Dialog
+    final outputDir = await _ensureValidOutputDirectoryWithDialog(
+      context,
+      rawOutputDir,
+    );
+    if (outputDir == null) {
+      if (mounted) {
+        setState(
+          () => _inlineError =
+              'Export stopped: A valid save folder is required to write clips.',
+        );
+        _scrollToError();
+      }
+      return;
+    }
+    if (!mounted) return;
+
+    // 4. Ensure Native Storage Permissions (Android 9 write permissions)
+    final hasStoragePerms =
+        await PermissionUtils.ensureExportStoragePermissions(
+      context,
+      outputDir,
+    );
+    if (!hasStoragePerms) {
+      if (mounted) {
+        setState(
+          () => _inlineError =
+              'Export stopped: Storage permission was not granted.',
+        );
+        _scrollToError();
+      }
+      return;
+    }
+    if (!mounted) return;
+
+    // 5. Validate Parts Selection & Storage for selected parts
     final freeBytes = await StorageBridge.getFreeDiskSpace();
     if (!mounted) return;
 
@@ -131,8 +179,36 @@ class _PlanReviewScreenState extends ConsumerState<PlanReviewScreen> {
     );
     if (!selectionResult.isValid) {
       final issue = selectionResult.firstError!;
-      if (mounted) {
-        AppMessenger.showIssue(context, issue);
+      final selectAll = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          icon: Icon(
+            Icons.checklist_rtl_rounded,
+            size: 38,
+            color: Theme.of(ctx).colorScheme.primary,
+          ),
+          title: const Text('No Clips Selected'),
+          content: Text(issue.message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Select All Clips'),
+            ),
+          ],
+        ),
+      );
+
+      if (selectAll == true && mounted) {
+        ref.read(partItemsControllerProvider.notifier).selectAll();
+        await _startCreatingShorts(
+          plan,
+          specificPartIndices: specificPartIndices,
+        );
+      } else if (mounted) {
         setState(() => _inlineError = issue.message);
         _scrollToError();
       }
@@ -142,13 +218,13 @@ class _PlanReviewScreenState extends ConsumerState<PlanReviewScreen> {
     final selectedItems = effectiveItems.where((i) => i.isSelected).toList();
     final selectedPartIndices = selectedItems.map((i) => i.index).toSet();
 
-    // 5. Preflight check
+    // 6. Preflight check
     final totalSelectedDuration = selectedItems.fold<double>(
       0.0,
       (acc, item) => acc + item.durationSeconds,
     );
-    final estimatedSize = (totalSelectedDuration * 2.5 * 1024 * 1024).toInt();
-    const minSafetyBytes = 150 * 1024 * 1024;
+    final estimatedSize = (totalSelectedDuration * 500 * 1024).toInt();
+    const minSafetyBytes = 50 * 1024 * 1024;
     final requiredBytes = estimatedSize + minSafetyBytes;
 
     final preflightResult = _preflightValidator.validate(
@@ -159,12 +235,63 @@ class _PlanReviewScreenState extends ConsumerState<PlanReviewScreen> {
     );
     if (!preflightResult.isValid) {
       final issue = preflightResult.firstError!;
-      if (mounted) {
-        AppMessenger.showIssue(context, issue);
-        setState(() => _inlineError = issue.message);
-        _scrollToError();
-      }
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          icon: Icon(
+            Icons.storage_rounded,
+            size: 38,
+            color: Theme.of(ctx).colorScheme.error,
+          ),
+          title: const Text('Cannot Start Export'),
+          content: Text(issue.message),
+          actions: [
+            if (issue.code == 'EXPORT_ALREADY_RUNNING')
+              FilledButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  context.push(AppRoutes.processing);
+                },
+                child: const Text('View Active Export'),
+              )
+            else
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('OK'),
+              ),
+          ],
+        ),
+      );
+      setState(() => _inlineError = issue.message);
+      _scrollToError();
       return;
+    }
+
+    // 7. Check if workflow choice is recommended for long plans
+    var effectiveConfig = config;
+    if (specificPartIndices == null &&
+        (plan.totalParts >= 20 || plan.totalPlannedDurationSeconds >= 1200)) {
+      final choice = await showDialog<SplitWorkflowType>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => WorkflowChoiceDialog(
+          totalParts: plan.totalParts,
+          totalDurationSeconds: plan.totalPlannedDurationSeconds,
+        ),
+      );
+      if (choice == null) {
+        setState(
+          () => _inlineError =
+              'Export paused: Please select a workflow mode to proceed.',
+        );
+        return;
+      }
+      if (choice == SplitWorkflowType.twoStage) {
+        // If user specifically requested precise mode in settings, preserve exact frame accuracy
+        if (config.mode != SplitMode.precise) {
+          effectiveConfig = config.copyWith(mode: SplitMode.fast);
+        }
+      }
     }
 
     // Acquire idempotency lock
@@ -175,7 +302,7 @@ class _PlanReviewScreenState extends ConsumerState<PlanReviewScreen> {
 
     try {
       if (!mounted) return;
-      // Check notification permission (warning only)
+      // 8. Notification permission check with explicit rationale
       final hasNotificationPerm =
           await PermissionUtils.requestNotificationPermissionIfNeeded(context);
       if (!hasNotificationPerm && mounted) {
@@ -187,24 +314,72 @@ class _PlanReviewScreenState extends ConsumerState<PlanReviewScreen> {
 
       if (!mounted) return;
 
-      // Navigate to processing screen immediately
-      unawaited(context.push(AppRoutes.processing));
-
-      // Launch export job for selected parts
-      final success = await ref
-          .read(processingControllerProvider.notifier)
-          .startSplit(
-            video: video!,
-            config: config,
-            outputDirectoryPath: outputDir,
-            plan: plan,
-            selectedPartIndices: selectedPartIndices,
-          );
-
-      if (!success && mounted) {
-        AppMessenger.showError(
+      // 9. Battery optimization exemption check
+      if (plan.totalPlannedDurationSeconds >= 600 || plan.totalParts >= 20) {
+        await PermissionUtils.requestBatteryOptimizationExemptionIfNeeded(
           context,
-          'Failed to start export: An export is already running or invalid.',
+        );
+      }
+
+      if (!mounted) return;
+
+      // 10. Launch export job for selected parts
+      final success =
+          await ref.read(processingControllerProvider.notifier).startSplit(
+                video: video!,
+                config: effectiveConfig,
+                outputDirectoryPath: outputDir,
+                plan: plan,
+                selectedPartIndices: selectedPartIndices,
+              );
+
+      if (!mounted) return;
+
+      if (success) {
+        unawaited(context.push(AppRoutes.processing));
+      } else {
+        await showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            icon: Icon(
+              Icons.error_outline_rounded,
+              size: 38,
+              color: Theme.of(ctx).colorScheme.error,
+            ),
+            title: const Text('Export Could Not Start'),
+            content: const Text(
+              'The export engine could not start. Please ensure another export is not already running and that your output storage is accessible.',
+            ),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        await showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            icon: Icon(
+              Icons.error_outline_rounded,
+              size: 38,
+              color: Theme.of(ctx).colorScheme.error,
+            ),
+            title: const Text('Export Error'),
+            content: Text(
+              'An unexpected error occurred while starting export: $e',
+            ),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
         );
       }
     } finally {
@@ -214,14 +389,142 @@ class _PlanReviewScreenState extends ConsumerState<PlanReviewScreen> {
     }
   }
 
-  void _scrollToError() {
-    if (_errorBannerKey.currentContext != null) {
-      Scrollable.ensureVisible(
-        _errorBannerKey.currentContext!,
-        duration: AppTokens.durationNormal,
-        curve: Curves.easeOut,
-      );
+  Future<String?> _ensureValidOutputDirectoryWithDialog(
+    BuildContext context,
+    String currentOutputDir,
+  ) async {
+    bool isSafValid = true;
+    if (currentOutputDir.startsWith('content://')) {
+      isSafValid = await StorageBridge.isPersistedUriValid(currentOutputDir);
     }
+
+    final outputResult = _outputValidator.validate(
+      outputDirectoryPath: currentOutputDir,
+      isSafPermissionValid: isSafValid,
+    );
+
+    if (outputResult.isValid) {
+      return currentOutputDir;
+    }
+
+    final issue = outputResult.firstError!;
+    if (!context.mounted) return null;
+    final shouldPick = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        icon: Icon(
+          Icons.folder_shared_outlined,
+          size: 40,
+          color: Theme.of(ctx).colorScheme.primary,
+        ),
+        title: const Text('Save Folder Access Required'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              issue.message,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'ShortsSplitter requires a designated folder with active write permissions to save your exported video clips.',
+              style: TextStyle(
+                fontSize: 13,
+                color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            icon: const Icon(Icons.folder_open_rounded),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            label: const Text('Choose Save Folder'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldPick == true && mounted) {
+      final success = await ref
+          .read(outputDirectoryProvider.notifier)
+          .pickAndSetDirectory();
+      if (success) {
+        final newDir = await ref.read(outputDirectoryProvider.future);
+        return newDir;
+      }
+    }
+
+    return null;
+  }
+
+  Future<void> _showPreviewClipDialog(
+    BuildContext context,
+    ClipPlanItem item,
+    ClipPlan plan,
+    PickedVideo? video,
+  ) async {
+    if (video == null) {
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          icon: const Icon(Icons.error_outline, size: 36),
+          title: const Text('Source Video Required'),
+          content: const Text(
+            'Please select a video file first to preview clips.',
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // Check media/video read permissions before previewing
+    final hasPerm =
+        await PermissionUtils.requestVideoReadPermissionIfNeeded(context);
+    if (!hasPerm) {
+      if (context.mounted) {
+        AppMessenger.showWarning(
+          context,
+          'Video permission required to preview video playback.',
+        );
+      }
+      return;
+    }
+
+    if (!context.mounted) return;
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => PartPreviewDialog(
+        video: video,
+        item: item,
+        plan: plan,
+      ),
+    );
+  }
+
+  void _scrollToError() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_errorBannerKey.currentContext != null) {
+        Scrollable.ensureVisible(
+          _errorBannerKey.currentContext!,
+          duration: AppTokens.durationNormal,
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   @override
@@ -230,6 +533,7 @@ class _PlanReviewScreenState extends ConsumerState<PlanReviewScreen> {
     final planNotifier = ref.read(planReviewControllerProvider.notifier);
     final partItems = ref.watch(partItemsControllerProvider);
     final partNotifier = ref.read(partItemsControllerProvider.notifier);
+    final video = ref.watch(videoPickerControllerProvider).valueOrNull;
 
     if (plan == null) {
       return Scaffold(
@@ -275,6 +579,28 @@ class _PlanReviewScreenState extends ConsumerState<PlanReviewScreen> {
                 _showEditBaseNameDialog(context, plan.baseName, planNotifier),
           ),
           const SizedBox(height: 16),
+          if (plan.totalParts == 1) ...[
+            const InfoBanner(
+              message: 'Your video fits in 1 short. No splitting needed!',
+              type: InfoBannerType.info,
+            ),
+            const SizedBox(height: 12),
+          ],
+          if (plan.totalParts == 1 &&
+              video != null &&
+              FilterGraphBuilder.matchesCanvasAspectRatio(
+                sourceWidth: video.width,
+                sourceHeight: video.height,
+                canvasSpec: plan.canvasSpec,
+              ) &&
+              plan.backgroundSpec.type == BackgroundType.solidColor &&
+              !plan.cropToFill) ...[
+            const InfoBanner(
+              message: 'Already Shorts-ready: Fast stream copy available.',
+              type: InfoBannerType.info,
+            ),
+            const SizedBox(height: 12),
+          ],
           if (_inlineError != null) ...[
             KeyedSubtree(
               key: _errorBannerKey,
@@ -317,9 +643,9 @@ class _PlanReviewScreenState extends ConsumerState<PlanReviewScreen> {
 
   Widget _buildLivePreviewSection(BuildContext context, ClipPlan plan) {
     final theme = Theme.of(context);
-    final firstPartMessage = plan.items.isNotEmpty
-        ? (plan.items.first.resolvedMessage ?? 'Part 1/${plan.totalParts}')
-        : null;
+    final video = ref.watch(videoPickerControllerProvider).valueOrNull;
+    final firstPartMessage =
+        plan.items.isNotEmpty ? plan.items.first.resolvedMessage : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -336,6 +662,19 @@ class _PlanReviewScreenState extends ConsumerState<PlanReviewScreen> {
           backgroundSpec: plan.backgroundSpec,
           overlaySpec: plan.overlaySpec,
           previewText: firstPartMessage,
+          sourceWidth: video?.width ?? 1920,
+          sourceHeight: video?.height ?? 1080,
+          verticalPosition: plan.verticalPosition,
+          verticalOffsetFraction: plan.verticalOffsetFraction,
+          cropToFill: plan.cropToFill,
+          onPreviewTap: plan.items.isNotEmpty && video != null
+              ? () => _showPreviewClipDialog(
+                    context,
+                    plan.items.first,
+                    plan,
+                    video,
+                  )
+              : null,
         ),
       ],
     );
@@ -435,6 +774,51 @@ class _PlanReviewScreenState extends ConsumerState<PlanReviewScreen> {
                 onPressed: () => partNotifier.invertSelection(),
                 child: const Text('Invert'),
               ),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_horiz_rounded, size: 20),
+                tooltip: 'Selection options',
+                onSelected: (val) {
+                  switch (val) {
+                    case 'not_converted':
+                      partNotifier.selectNotConverted();
+                      break;
+                    case 'failed':
+                      partNotifier.selectFailed();
+                      break;
+                    case 'next_10':
+                      partNotifier.selectNextN(10);
+                      break;
+                    case 'next_20':
+                      partNotifier.selectNextN(20);
+                      break;
+                    case 'range':
+                      _showSelectRangeDialog(context, totalCount, partNotifier);
+                      break;
+                  }
+                },
+                itemBuilder: (ctx) => const [
+                  PopupMenuItem(
+                    value: 'not_converted',
+                    child: Text('Select Not Converted'),
+                  ),
+                  PopupMenuItem(
+                    value: 'failed',
+                    child: Text('Select Failed'),
+                  ),
+                  PopupMenuItem(
+                    value: 'next_10',
+                    child: Text('Select Next 10'),
+                  ),
+                  PopupMenuItem(
+                    value: 'next_20',
+                    child: Text('Select Next 20'),
+                  ),
+                  PopupMenuItem(
+                    value: 'range',
+                    child: Text('Select Range...'),
+                  ),
+                ],
+              ),
             ],
           ),
         ],
@@ -449,6 +833,7 @@ class _PlanReviewScreenState extends ConsumerState<PlanReviewScreen> {
     List<PartItem> partItems,
     PartItemsController partNotifier,
   ) {
+    final video = ref.watch(videoPickerControllerProvider).valueOrNull;
     final tiles = <Widget>[];
     for (int i = 0; i < plan.items.length; i++) {
       final item = plan.items[i];
@@ -468,20 +853,31 @@ class _PlanReviewScreenState extends ConsumerState<PlanReviewScreen> {
           isSelected: partItem.isSelected,
           status: partItem.status,
           onToggleSelect: (_) => partNotifier.toggleSelect(item.index),
+          onPreview: video != null
+              ? () => _showPreviewClipDialog(context, item, plan, video)
+              : null,
           onRetry: () =>
               _startCreatingShorts(plan, specificPartIndices: {item.index}),
           onEditMessage: () => _showEditMessageDialog(context, item, notifier),
           onAdjustBoundary: isLast
               ? null
               : () => _showAdjustBoundaryDialog(
-                  context,
-                  item,
-                  nextItem!,
-                  i,
-                  notifier,
-                ),
+                    context,
+                    item,
+                    nextItem!,
+                    i,
+                    notifier,
+                  ),
           onMergeWithNext: isLast ? null : () => notifier.mergeWithNext(i),
           onSplitPart: () => _showSplitPartDialog(context, item, i, notifier),
+          onTrimToCap: isLast
+              ? null
+              : () => notifier.adjustBoundary(
+                    i,
+                    item.startSeconds + AppConstants.maxClipDurationSeconds,
+                  ),
+          onResplitPrecisely: () =>
+              _showSplitPartDialog(context, item, i, notifier),
         ),
       );
     }
@@ -503,6 +899,9 @@ class _PlanReviewScreenState extends ConsumerState<PlanReviewScreen> {
     final String buttonLabel;
     if (selectedCount == 0) {
       buttonLabel = 'Select parts to process';
+    } else if (plan.totalParts == 1 && selectedCount == 1) {
+      buttonLabel =
+          'Create 1 Short (${plan.totalPlannedDurationSeconds.toStringAsFixed(1)}s)';
     } else if (selectedCount == plan.totalParts) {
       buttonLabel =
           'Create ${plan.totalParts} Shorts (${plan.totalPlannedDurationSeconds.toStringAsFixed(1)}s)';
@@ -522,15 +921,66 @@ class _PlanReviewScreenState extends ConsumerState<PlanReviewScreen> {
         ),
       ),
       child: SafeArea(
-        child: SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: PrimaryButton(
-            icon: Icons.movie_creation_outlined,
-            isLoading: _isSubmitting,
-            label: _isSubmitting ? 'Starting Export...' : buttonLabel,
-            onPressed: _isSubmitting ? null : () => _startCreatingShorts(plan),
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_inlineError != null) ...[
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(
+                  color: colorScheme.errorContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.error_outline_rounded,
+                      size: 18,
+                      color: colorScheme.onErrorContainer,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _inlineError!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colorScheme.onErrorContainer,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        Icons.close,
+                        size: 16,
+                        color: colorScheme.onErrorContainer,
+                      ),
+                      padding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
+                      tooltip: 'Dismiss error',
+                      onPressed: () => setState(() => _inlineError = null),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: PrimaryButton(
+                icon: Icons.movie_creation_outlined,
+                isLoading: _isSubmitting,
+                label: _isSubmitting ? 'Starting Export...' : buttonLabel,
+                onPressed:
+                    _isSubmitting ? null : () => _startCreatingShorts(plan),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -545,8 +995,11 @@ class _PlanReviewScreenState extends ConsumerState<PlanReviewScreen> {
       context: context,
       builder: (ctx) => PartMessageDialog(
         item: item,
-        onSave: (customText) =>
-            notifier.updatePartMessage(item.index - 1, customText),
+        onSave: (customText, override) => notifier.updatePartDetails(
+          item.index - 1,
+          customMessage: customText,
+          override: override,
+        ),
       ),
     );
   }
@@ -672,6 +1125,55 @@ class _PlanReviewScreenState extends ConsumerState<PlanReviewScreen> {
 
     if (result != null && result.isNotEmpty) {
       notifier.updateBaseName(result);
+    }
+  }
+
+  Future<void> _showSelectRangeDialog(
+    BuildContext context,
+    int totalCount,
+    PartItemsController partNotifier,
+  ) async {
+    final startController = TextEditingController(text: '1');
+    final endController =
+        TextEditingController(text: totalCount > 10 ? '10' : '$totalCount');
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Select Range of Parts'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: startController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Start Part #'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: endController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'End Part #'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Select'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      final start = int.tryParse(startController.text) ?? 1;
+      final end = int.tryParse(endController.text) ?? totalCount;
+      partNotifier.selectRange(start, end);
     }
   }
 }

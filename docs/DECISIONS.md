@@ -173,3 +173,51 @@ Configure the repository for Google Antigravity using an authoritative `AGENTS.m
 ### Consequences
 - **Positive:** Enforces strict Definition of Done, automated verify gates, and zero-placeholder standards across all automated turns.
 - **Negative:** Requires keeping agent rules, skills, and documentation synchronized via the `/docs-sync` workflow.
+
+---
+
+## ADR 010: Pure FitLayout Domain Model as Single Source of Truth & Tri-State Part Labeling
+
+- **Status:** Accepted
+- **Date:** 2026-11-19
+
+### Context
+Previously, canvas padding and overlay positioning relied on dynamic FFmpeg expressions evaluated at transcode time (`(W-w)/2`, `(H-h)/2`), while the Flutter live preview used an approximate widget layout. Under certain aspect ratios and rotation metadata, this caused alignment drift between what the creator previewed and the exported video. Additionally, single-part plans unconditionally stamped "Part 1/1" badges at top-right without an option to suppress or control label visibility.
+
+### Decision
+1. Introduce `FitLayout` as a pure, zero-dependency domain model calculating exact integer-even pixel geometry (`x`, `y`, `width`, `height`, `topBand`, `bottomBand`) and normalized bounding coordinates. Both `OverlayLivePreview` and `FilterGraphBuilder` strictly derive their layout from `FitLayout`.
+2. Provide vertical positioning options (`Center` [default], `Top`, `Bottom`) and fine-tuning manual offset slider ($\pm 20\%$ of free space).
+3. Introduce `PartLabelMode` with tri-state selection:
+   - `Auto` (Default): Shows part label only when total parts $> 1$; suppresses auto label on single-part conversions.
+   - `Always`: Always stamps part label, including single-part plans.
+   - `Never`: Disables auto part numbering completely.
+4. Support per-part visibility override in `PartMessageDialog` (`Project Default`, `Show`, `Hide`) and single-clip export naming options (`Original name` vs `With suffix`).
+
+### Consequences
+- **Positive:** Exact 1:1 pixel parity between preview and export; perfect vertical and horizontal centering symmetry; zero redundant "Part 1/1" badges on single shorts; creator-controlled label visibility.
+- **Negative:** Filter graph builder replaces generic expressions with precalculated integer coordinates, requiring test updates to match exact pixel numbers.
+
+---
+
+## ADR 008: Embedded SQLite via Drift & Two-Stage Processing Pipeline
+
+### Status
+Accepted
+
+### Context
+Managing 100+ clip parts from 2-hour videos in SharedPreferences JSON lists suffered from $O(N)$ string deserialization bottlenecks, lacked foreign key cascade deletion, risked partial file corruption on process kill, and created flat folder clutter when exporting dozens of clips.
+
+### Decision
+1. **Adopt Drift SQLite (`drift: ^2.31.0`):** Define strongly-typed tables (`sources`, `projects`, `parts`, `jobs`, `job_events`, `app_settings`) with native cascade deletion (`ON DELETE CASCADE`) and compound performance indexes (`idx_parts_project_index`, `idx_projects_updated_at`).
+2. **Implement Non-Destructive Legacy Migration:** Automatically migrate SharedPreferences JSON history to SQLite in a single transaction while preserving the raw SharedPreferences data as a backup.
+3. **Two-Stage Workflow:**
+   - Stage 1: Ultra-fast stream-copy split (`-c copy`) into project subfolder (`<saveLocation>/<SourceName>/`). Probes actual cut points, records keyframe-snapped timestamps, and flags parts exceeding 180s.
+   - Stage 2: Selective transcode of user-chosen parts from the parts review screen.
+4. **Safe In-Place Replacement (`SafeClipReplacer`):** Write transcoded clip to temporary storage $\to$ verify integrity $\to$ write staged file beside target $\to$ verify $\to$ atomic delete of old file and rename staged to final name. Preserves original raw clip on any error.
+5. **Output Folder Layout Resolver:** Multi-part plans ($\ge 2$ parts) write into dedicated subfolder `<saveLocation>/<SourceName>/`; single-part outputs ($= 1$) write directly into root without wrapper folder.
+6. **Granular 4 Hz Progress Tracking:** Throttled monotonic progress tracker with per-row Riverpod selector `partProgressProvider(index)` using `.select()`, eliminating full-list rebuilds during transcoding.
+
+### Consequences
+- **Positive:** Sub-millisecond queries for thousands of parts; robust relational integrity; zero data loss during app crashes; uncluttered storage organization; immediate playback availability of raw parts while long encodes proceed.
+- **Negative:** Added `drift`, `drift_flutter`, and `sqlite3_flutter_libs` dependencies; required build_runner code generation for Drift companions.
+

@@ -698,6 +698,12 @@ Test cases in ShortsSplitter follow the deterministic numbering convention: `TC-
 | `TC-HIST-002` | Non-Blocking File Availability Check | `lib/features/history/domain/models/project_record.dart` | `test/features/history/history_screen_test.dart` | PASS |
 | `TC-HIST-003` | Stateful Tab Navigation Persistence | `lib/app/router.dart` | Widget tests | PASS |
 | `TC-HIST-004` | Partial Completion History Badge | `lib/features/history/presentation/widgets/history_project_card.dart` | `test/features/history/history_partial_test.dart` | PASS |
+| `TC-LAYOUT-001` | FitLayout Pure Geometry & Centering Symmetry | `lib/features/split_config/domain/models/fit_layout.dart` | `test/features/split_config/domain/models/fit_layout_test.dart` | PASS |
+| `TC-LAYOUT-002` | Vertical Position (Center, Top, Bottom) & Offset | `lib/features/split_config/domain/models/fit_layout.dart` | `test/features/split_config/domain/models/fit_layout_test.dart` | PASS |
+| `TC-LABEL-001` | Auto Part Label Suppression on Single-Clip Exports | `lib/features/split_config/domain/models/overlay_spec.dart` | `test/features/split_config/domain/models/overlay_spec_test.dart` | PASS |
+| `TC-LABEL-002` | Part Label Mode Tri-State (Auto, Always, Never) | `lib/features/split_config/domain/models/overlay_spec.dart` | `test/features/split_config/domain/models/overlay_spec_test.dart` | PASS |
+| `TC-LABEL-003` | Per-Part Label Visibility Override Dialog | `lib/features/plan_review/presentation/widgets/part_message_dialog.dart` | `test/features/plan_review/plan_review_single_part_test.dart` | PASS |
+| `TC-SINGLE-001` | Single-Part Export Naming Options | `lib/features/split_config/domain/models/plan_calculator.dart` | `test/features/split_config/plan_calculator_test.dart` | PASS |
 | `TC-PERF-001` | Single-Pass Stream-Copy Segment Muxer | `lib/features/processing/data/ffmpeg_video_processor.dart` | Benchmark runner | PASS |
 | `TC-PERF-002` | Downscaled 10% Background Blur | `lib/features/processing/domain/filter_graph_builder.dart` | Benchmark runner | PASS |
 | `TC-PERF-003` | Hardware Encoder with Mediacodec | `lib/features/processing/data/ffmpeg_video_processor.dart` | `scripts/check_16kb.sh` | PASS |

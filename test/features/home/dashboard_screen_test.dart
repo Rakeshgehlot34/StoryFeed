@@ -1,14 +1,22 @@
 import 'dart:convert';
 
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shorts_splitter/app/constants.dart';
+import 'package:shorts_splitter/core/database/app_database.dart';
 import 'package:shorts_splitter/features/history/domain/models/project_record.dart';
 import 'package:shorts_splitter/features/home/presentation/screens/dashboard_screen.dart';
 
+import '../../test_sqlite_helper.dart';
+
 void main() {
+  setUpAll(() {
+    setupTestSqlite();
+  });
+
   setUp(() {
     SharedPreferences.setMockInitialValues({});
   });
@@ -21,8 +29,15 @@ void main() {
       AppConstants.prefKeyProjectsHistory: <String>[],
     });
 
+    final inMemoryDb = AppDatabase(NativeDatabase.memory());
+
     await tester.pumpWidget(
-      const ProviderScope(child: MaterialApp(home: DashboardScreen())),
+      ProviderScope(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(inMemoryDb),
+        ],
+        child: const MaterialApp(home: DashboardScreen()),
+      ),
     );
 
     // Initial load
@@ -35,6 +50,8 @@ void main() {
     expect(find.text('Studio Tools'), findsOneWidget);
     expect(find.text('Shorts Maker'), findsOneWidget);
     expect(find.text('Custom Split'), findsOneWidget);
+
+    await inMemoryDb.close();
   });
 
   testWidgets('DashboardScreen renders populated stats and recent projects', (
@@ -68,8 +85,15 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
+    final inMemoryDb = AppDatabase(NativeDatabase.memory());
+
     await tester.pumpWidget(
-      const ProviderScope(child: MaterialApp(home: DashboardScreen())),
+      ProviderScope(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(inMemoryDb),
+        ],
+        child: const MaterialApp(home: DashboardScreen()),
+      ),
     );
 
     await tester.pump();
@@ -79,5 +103,7 @@ void main() {
     expect(find.text('4'), findsWidgets); // total shorts count in stats grid
     expect(find.text('vacation_trip.mp4'), findsOneWidget);
     expect(find.textContaining('4 clips'), findsOneWidget);
+
+    await inMemoryDb.close();
   });
 }

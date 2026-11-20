@@ -34,6 +34,7 @@ class ClipSegment {
     required int targetClipDurationSeconds,
     required bool mergeShortTrailingClip,
     required String baseName,
+    double startOffsetSeconds = 0.0,
     double trailingThresholdSeconds = 3.0,
   }) {
     if (totalDurationSeconds <= 0) return const [];
@@ -46,7 +47,7 @@ class ClipSegment {
       return [
         ClipSegment(
           index: 1,
-          startSeconds: 0.0,
+          startSeconds: startOffsetSeconds,
           durationSeconds: totalDurationSeconds,
           formattedName: name,
         ),
@@ -56,8 +57,7 @@ class ClipSegment {
     final fullClipCount = (totalDurationSeconds / target).floor();
     final remainder = totalDurationSeconds - (fullClipCount * target);
 
-    final shouldMerge =
-        mergeShortTrailingClip &&
+    final shouldMerge = mergeShortTrailingClip &&
         remainder > 0.05 &&
         remainder < trailingThresholdSeconds &&
         fullClipCount >= 1;
@@ -69,7 +69,7 @@ class ClipSegment {
     final segments = <ClipSegment>[];
 
     for (int i = 0; i < fullClipCount; i++) {
-      final start = i * target;
+      final start = startOffsetSeconds + (i * target);
       final isLastFullClip = (i == fullClipCount - 1);
 
       if (isLastFullClip && shouldMerge) {
@@ -105,7 +105,7 @@ class ClipSegment {
 
     // Add remainder clip if not merged
     if (remainder > 0.05 && !shouldMerge) {
-      final start = fullClipCount * target;
+      final start = startOffsetSeconds + (fullClipCount * target);
       segments.add(
         ClipSegment(
           index: fullClipCount + 1,
@@ -124,18 +124,18 @@ class ClipSegment {
   }
 
   Map<String, dynamic> toJson() => {
-    'index': index,
-    'startSeconds': startSeconds,
-    'durationSeconds': durationSeconds,
-    'formattedName': formattedName,
-    'isMergedTrailing': isMergedTrailing,
-  };
+        'index': index,
+        'startSeconds': startSeconds,
+        'durationSeconds': durationSeconds,
+        'formattedName': formattedName,
+        'isMergedTrailing': isMergedTrailing,
+      };
 
   factory ClipSegment.fromJson(Map<String, dynamic> json) => ClipSegment(
-    index: json['index'] as int,
-    startSeconds: (json['startSeconds'] as num).toDouble(),
-    durationSeconds: (json['durationSeconds'] as num).toDouble(),
-    formattedName: json['formattedName'] as String,
-    isMergedTrailing: json['isMergedTrailing'] as bool? ?? false,
-  );
+        index: json['index'] as int,
+        startSeconds: (json['startSeconds'] as num).toDouble(),
+        durationSeconds: (json['durationSeconds'] as num).toDouble(),
+        formattedName: json['formattedName'] as String,
+        isMergedTrailing: json['isMergedTrailing'] as bool? ?? false,
+      );
 }

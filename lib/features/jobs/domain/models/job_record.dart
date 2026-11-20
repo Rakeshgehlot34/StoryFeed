@@ -11,24 +11,24 @@ enum JobType {
 
 extension JobTypeExtension on JobType {
   String get displayName => switch (this) {
-    JobType.shortsSplit => 'Shorts Split',
-    JobType.customSplit => 'Custom Split',
-    JobType.editExport => 'Studio Edit',
-    JobType.convert => 'Format Convert',
-    JobType.audioStudio => 'Audio Studio',
-    JobType.screenshot => 'Screenshot Capture',
-    JobType.merge => 'Video Merge',
-  };
+        JobType.shortsSplit => 'Shorts Split',
+        JobType.customSplit => 'Custom Split',
+        JobType.editExport => 'Studio Edit',
+        JobType.convert => 'Format Convert',
+        JobType.audioStudio => 'Audio Studio',
+        JobType.screenshot => 'Screenshot Capture',
+        JobType.merge => 'Video Merge',
+      };
 
   String get iconAsset => switch (this) {
-    JobType.shortsSplit => 'split',
-    JobType.customSplit => 'custom_split',
-    JobType.editExport => 'edit',
-    JobType.convert => 'convert',
-    JobType.audioStudio => 'audio',
-    JobType.screenshot => 'screenshot',
-    JobType.merge => 'merge',
-  };
+        JobType.shortsSplit => 'split',
+        JobType.customSplit => 'custom_split',
+        JobType.editExport => 'edit',
+        JobType.convert => 'convert',
+        JobType.audioStudio => 'audio',
+        JobType.screenshot => 'screenshot',
+        JobType.merge => 'merge',
+      };
 }
 
 /// Execution status of a job in the queue.
@@ -105,9 +105,8 @@ class JobRecord {
       currentPart: currentPart ?? this.currentPart,
       totalParts: totalParts ?? this.totalParts,
       outputPaths: outputPaths ?? this.outputPaths,
-      errorMessage: clearErrorMessage
-          ? null
-          : (errorMessage ?? this.errorMessage),
+      errorMessage:
+          clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
       createdAt: createdAt,
       completedAt: completedAt ?? this.completedAt,
       payload: payload ?? this.payload,
@@ -115,22 +114,22 @@ class JobRecord {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'type': type.name,
-    'title': title,
-    'inputPath': inputPath,
-    'outputDirectory': outputDirectory,
-    'status': status.name,
-    'overallProgress': overallProgress,
-    'currentStepMessage': currentStepMessage,
-    'currentPart': currentPart,
-    'totalParts': totalParts,
-    'outputPaths': outputPaths,
-    'errorMessage': errorMessage,
-    'createdAt': createdAt.toIso8601String(),
-    'completedAt': completedAt?.toIso8601String(),
-    'payload': payload,
-  };
+        'id': id,
+        'type': type.name,
+        'title': title,
+        'inputPath': inputPath,
+        'outputDirectory': outputDirectory,
+        'status': status.name,
+        'overallProgress': overallProgress,
+        'currentStepMessage': currentStepMessage,
+        'currentPart': currentPart,
+        'totalParts': totalParts,
+        'outputPaths': outputPaths,
+        'errorMessage': errorMessage,
+        'createdAt': createdAt.toIso8601String(),
+        'completedAt': completedAt?.toIso8601String(),
+        'payload': payload,
+      };
 
   factory JobRecord.fromJson(Map<String, dynamic> json) {
     return JobRecord(

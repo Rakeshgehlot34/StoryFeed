@@ -8,6 +8,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Two-Stage Processing Pipeline for Long Videos:**
+  - Added `WorkflowChoiceDialog` on `PlanReviewScreen` recommending "Split first, convert later" for videos $> 20$ minutes or plans $> 20$ parts.
+  - Stage 1: Fast stream-copy segment split (`-c copy`) in a single FFmpeg pass, producing raw playable clips immediately. Probes actual cut points, records keyframe-snapped boundaries, and flags parts exceeding 180s with `hasCapViolation`.
+  - Stage 2: Selective transcode of user-chosen parts with full canvas formatting, background fill/blur, and labels.
+  - Added "Trim to 3:00" and "Re-split precisely" quick action buttons on parts exceeding the 180s cap.
+  - Extended selection tools with "Select Not Converted", "Select Failed", "Select Next 10/20", and "Select Range...".
+- **Safe In-Place Replacement Engine (`SafeClipReplacer`):**
+  - Staged temporary file write beside original (`.tmp.mp4`) with duration, stream, and size integrity verification.
+  - Atomic document deletion and rename across SAF and direct filesystem storage.
+  - Preserves original raw split part with full rollback on any failure.
+  - Supports user preference for "Replace" vs "Keep both (`..._short.mp4`)".
+- **Collision-Safe Output Folder Layout (`FolderLayoutResolver`):**
+  - Multi-part projects ($\ge 2$ parts) automatically grouped in dedicated subfolder: `<saveLocation>/<SourceName>/`.
+  - Single-part conversions ($= 1$ part) saved directly in root destination: `<saveLocation>/<SourceName>.mp4`.
+  - Native SAF folder creation and document management in `StorageBridge.kt` (`createSafDirectory`, `renameSafDocument`, `deleteSafDocument`).
+- **Embedded Typed Relational Database (Drift SQLite):**
+  - Created `AppDatabase` with typed tables: `Sources`, `Projects`, `Parts`, `Jobs`, `JobEvents`, and `AppSettings`.
+  - Native foreign key constraints with `ON DELETE CASCADE` and compound performance indexes.
+  - Deterministic source fingerprinting (`SourceFingerprint`) combining size, duration, and sampled 3x 64KB SHA-256 blocks.
+  - Non-destructive idempotent migration (`LegacyMigration`) migrating legacy SharedPreferences data to SQLite in a single transaction with automatic backup.
+  - Pure domain repository abstractions (`SourceRepository`, `ProjectRepository`, `PartRepository`, `JobRepository`, `DashboardStatsRepository`).
+  - Reactive SQL stats aggregation in `DashboardStatsRepository` and `DashboardController`.
+- **4 Hz Monotonic Progress Tracking & Selective Riverpod Providers:**
+  - `ProgressTracker` throttles high-frequency FFmpeg callbacks to 4 Hz (250ms), preventing UI thread jank.
+  - Enforces monotonic progress clamping (progress never jumps backward).
+  - Exposed granular per-row selector `partProgressProvider(int partIndex)` using Riverpod `.select()`, isolating row rebuilds.
+- **Single Source of Truth Layout Engine (`FitLayout`):**
+  - Created pure domain model `FitLayout` (`lib/features/split_config/domain/models/fit_layout.dart`) calculating integer-even pixel coordinates (`x`, `y`, `width`, `height`, `topBand`, `bottomBand`) and normalized bounding coordinates for both `OverlayLivePreview` and `FilterGraphBuilder`.
+  - Added vertical positioning options: `Center` (default, guaranteeing symmetric padding bands `topBand == bottomBand`), `Top` (pinned to top edge), and `Bottom` (pinned to bottom edge).
+  - Added fine-tuning manual vertical offset slider ($\pm 20\%$ of free space) with reset action.
+  - Added full canvas background coverage across solid color, custom image (cover & center-crop), and downscaled blur.
+- **Optional Part Label & Tri-State Mode (`PartLabelMode`):**
+  - Implemented `PartLabelMode`: `Auto` (default: shows label only when total parts $> 1$; suppresses auto label on single-part conversions), `Always` (shows label on all clips), and `Never` (disables auto label).
+  - Added per-part label visibility override dialog in `PartMessageDialog` (`Project Default`, `Show`, `Hide`) allowing granular control per clip.
+  - Added single-part export naming options (`originalNameOnly` -> `{baseName}.mp4` vs `keepPartSuffix` -> `{baseName}_part_001.mp4`).
+  - Added single-part friendly banner ("Your video fits in 1 short. No splitting needed!") and "Create 1 Short" button on `PlanReviewScreen`.
+  - Added "Already Shorts-ready: Fast stream copy available" badge when source video is 9:16 and $\le 180$s without edits.
+  - Added unit and widget tests: `fit_layout_test.dart` (12 tests), `overlay_spec_test.dart` (10 tests), `plan_review_single_part_test.dart` (3 tests). Total 302 tests passing.
 - **Android 16 (API 36) Targeting & 16 KB Page Alignment Compliance:**
   - Updated build toolchain to `compileSdk = 36`, `targetSdk = 36`, and `minSdk = 28` in `android/app/build.gradle.kts`.
   - Verified 16 KB memory page size alignment across all native shared libraries (`.so`) using `scripts/check_16kb.sh` and `zipalign -c -P 16 -v 4` (100% PASS).
@@ -32,6 +70,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Authored `docs/PERFORMANCE.md` with baseline vs post-optimization benchmark comparisons.
 
 ### Fixed
+- **Single-Short Layout Centering & Meaningless "Part 1/1" Badge:**
+  - Fixed video placement sitting at top-center instead of properly centered in output canvas by deriving explicit pad and overlay coordinates from `FitLayout`.
+  - Fixed unwanted "Part 1/1" text overlay being unconditionally stamped on single-part conversions by making part label optional and auto-suppressed for single-short plans.
+  - Fixed preview vs export discrepancy by synchronizing Flutter widget layout with FFmpeg filter graph coordinates.
+  - Fixed rotation metadata handling to properly recognize 90°/270° orientation tags and prevent false letterbox padding.
 - **Centralized Validation & Action Feedback:**
   - Implemented `ValidationResult` and `ValidationIssue` value objects along with pure domain validators (`SelectVideoValidator`, `TrimValidator`, `SplitSettingsValidator`, `BackgroundValidator`, `OverlayValidator`, `AudioValidator`, `OutputLocationValidator`, `ExportPreflightValidator`, `CustomSplitValidator`).
   - Added centralized `AppMessenger` service supporting error, warning, success, and info messages with deduplication (1500ms), floating Material 3 styling, auto-dismiss timers, action button callbacks, and screen reader announcements (`SemanticsService.announce`).

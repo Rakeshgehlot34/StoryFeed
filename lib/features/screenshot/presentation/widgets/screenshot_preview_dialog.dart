@@ -91,9 +91,12 @@ class ScreenshotPreviewDialog extends ConsumerWidget {
                       ),
                       tooltip: 'Share Image',
                       onPressed: () {
-                        Share.shareXFiles([
-                          XFile(currentItem.tempFilePath!),
-                        ], text: currentItem.outputFileName);
+                        Share.shareXFiles(
+                          [
+                            XFile(currentItem.tempFilePath!),
+                          ],
+                          text: currentItem.outputFileName,
+                        );
                       },
                     ),
                 ],
@@ -112,11 +115,11 @@ class ScreenshotPreviewDialog extends ConsumerWidget {
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) =>
                               const Center(
-                                child: Text(
-                                  'Failed to load image preview',
-                                  style: TextStyle(color: Colors.white70),
-                                ),
-                              ),
+                            child: Text(
+                              'Failed to load image preview',
+                              style: TextStyle(color: Colors.white70),
+                            ),
+                          ),
                         ),
                       ),
                     )
@@ -141,8 +144,7 @@ class ScreenshotPreviewDialog extends ConsumerWidget {
                     children: [
                       _MetadataChip(
                         icon: Icons.aspect_ratio_rounded,
-                        label:
-                            currentItem.width != null &&
+                        label: currentItem.width != null &&
                                 currentItem.height != null
                             ? '${currentItem.width}×${currentItem.height}'
                             : 'Native Res',

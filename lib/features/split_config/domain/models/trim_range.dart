@@ -6,11 +6,11 @@ class TrimRange {
   final double endSeconds;
 
   const TrimRange({required this.startSeconds, required this.endSeconds})
-    : assert(startSeconds >= 0.0, 'startSeconds must be non-negative'),
-      assert(
-        endSeconds > startSeconds,
-        'endSeconds must be strictly greater than startSeconds',
-      );
+      : assert(startSeconds >= 0.0, 'startSeconds must be non-negative'),
+        assert(
+          endSeconds > startSeconds,
+          'endSeconds must be strictly greater than startSeconds',
+        );
 
   double get durationSeconds => endSeconds - startSeconds;
 

@@ -97,7 +97,8 @@ class CustomSplitValidator {
         const ValidationIssue(
           code: 'CUSTOM_FINAL_SEGMENT_UNDER_1S',
           fieldId: 'split_points',
-          message: 'The final remaining clip is under 1.0 second. Adjust the last split point.',
+          message:
+              'The final remaining clip is under 1.0 second. Adjust the last split point.',
           severity: ValidationSeverity.error,
         ),
       );

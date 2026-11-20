@@ -19,8 +19,8 @@ enum CanvasAspectRatioPreset {
 
   double? get aspectRatio =>
       (targetWidth != null && targetHeight != null && targetHeight! > 0)
-      ? targetWidth! / targetHeight!
-      : null;
+          ? targetWidth! / targetHeight!
+          : null;
 }
 
 /// Fit mode for scaling videos into the target canvas.
@@ -134,17 +134,17 @@ class MergeClipItem {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'videoPath': videoPath,
-    'fileName': fileName,
-    'durationSeconds': durationSeconds,
-    'width': width,
-    'height': height,
-    'fps': fps,
-    'hasAudio': hasAudio,
-    'startTrimSeconds': startTrimSeconds,
-    'endTrimSeconds': endTrimSeconds,
-  };
+        'id': id,
+        'videoPath': videoPath,
+        'fileName': fileName,
+        'durationSeconds': durationSeconds,
+        'width': width,
+        'height': height,
+        'fps': fps,
+        'hasAudio': hasAudio,
+        'startTrimSeconds': startTrimSeconds,
+        'endTrimSeconds': endTrimSeconds,
+      };
 
   factory MergeClipItem.fromJson(Map<String, dynamic> json) {
     return MergeClipItem(
@@ -314,21 +314,20 @@ class MergeConfig {
   }
 
   Map<String, dynamic> toJson() => {
-    'clips': clips.map((c) => c.toJson()).toList(),
-    'canvasPreset': canvasPreset.name,
-    'customWidth': customWidth,
-    'customHeight': customHeight,
-    'fitMode': fitMode.name,
-    'transition': transition.name,
-    'transitionDurationSeconds': transitionDurationSeconds,
-    'method': method.name,
-    'customBaseName': customBaseName,
-  };
+        'clips': clips.map((c) => c.toJson()).toList(),
+        'canvasPreset': canvasPreset.name,
+        'customWidth': customWidth,
+        'customHeight': customHeight,
+        'fitMode': fitMode.name,
+        'transition': transition.name,
+        'transitionDurationSeconds': transitionDurationSeconds,
+        'method': method.name,
+        'customBaseName': customBaseName,
+      };
 
   factory MergeConfig.fromJson(Map<String, dynamic> json) {
     return MergeConfig(
-      clips:
-          (json['clips'] as List<dynamic>?)
+      clips: (json['clips'] as List<dynamic>?)
               ?.map((e) => MergeClipItem.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],

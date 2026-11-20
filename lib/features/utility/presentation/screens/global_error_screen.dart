@@ -24,7 +24,8 @@ class GlobalErrorScreen extends StatelessWidget {
             children: [
               Expanded(
                 child: ErrorState(
-                  message: errorMessage ?? 'An unexpected system error occurred. Your clips and preferences are safe.',
+                  message: errorMessage ??
+                      'An unexpected system error occurred. Your clips and preferences are safe.',
                   onRetry: onRetry,
                 ),
               ),

@@ -9,12 +9,14 @@ import '../../features/output/domain/models/exported_clip.dart';
 class ClipTile extends StatelessWidget {
   final ExportedClip clip;
   final VoidCallback? onPreview;
+  final VoidCallback? onConvert;
   final VoidCallback? onDelete;
 
   const ClipTile({
     super.key,
     required this.clip,
     this.onPreview,
+    this.onConvert,
     this.onDelete,
   });
 
@@ -72,6 +74,13 @@ class ClipTile extends StatelessWidget {
                 icon: const Icon(Icons.play_circle_outline),
                 tooltip: 'Preview clip',
                 onPressed: onPreview,
+              ),
+            if (onConvert != null)
+              IconButton(
+                icon: const Icon(Icons.auto_awesome_rounded),
+                tooltip: 'Convert to 9:16 Short',
+                color: colorScheme.primary,
+                onPressed: onConvert,
               ),
             IconButton(
               icon: const Icon(Icons.share_outlined),

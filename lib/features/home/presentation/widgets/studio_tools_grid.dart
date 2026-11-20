@@ -173,9 +173,8 @@ class StudioToolsGrid extends StatelessWidget {
                     backgroundColor: isPrimary
                         ? colorScheme.primary
                         : colorScheme.surfaceContainerHighest,
-                    foregroundColor: isPrimary
-                        ? colorScheme.onPrimary
-                        : colorScheme.primary,
+                    foregroundColor:
+                        isPrimary ? colorScheme.onPrimary : colorScheme.primary,
                     child: Icon(tool.icon, size: 20),
                   ),
                   Container(

@@ -24,23 +24,23 @@ class ExportedClip {
   String get formattedSize => Formatters.formatFileSize(sizeInBytes);
 
   Map<String, dynamic> toJson() => {
-    'path': path,
-    'fileName': fileName,
-    'partIndex': partIndex,
-    'totalParts': totalParts,
-    'durationMs': duration.inMilliseconds,
-    'sizeInBytes': sizeInBytes,
-    'createdAt': createdAt.toIso8601String(),
-  };
+        'path': path,
+        'fileName': fileName,
+        'partIndex': partIndex,
+        'totalParts': totalParts,
+        'durationMs': duration.inMilliseconds,
+        'sizeInBytes': sizeInBytes,
+        'createdAt': createdAt.toIso8601String(),
+      };
 
   factory ExportedClip.fromJson(Map<String, dynamic> json) => ExportedClip(
-    path: json['path'] as String,
-    fileName: json['fileName'] as String,
-    partIndex: json['partIndex'] as int,
-    totalParts: json['totalParts'] as int,
-    duration: Duration(milliseconds: json['durationMs'] as int? ?? 0),
-    sizeInBytes: json['sizeInBytes'] as int? ?? 0,
-    createdAt:
-        DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
-  );
+        path: json['path'] as String,
+        fileName: json['fileName'] as String,
+        partIndex: json['partIndex'] as int,
+        totalParts: json['totalParts'] as int,
+        duration: Duration(milliseconds: json['durationMs'] as int? ?? 0),
+        sizeInBytes: json['sizeInBytes'] as int? ?? 0,
+        createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
+            DateTime.now(),
+      );
 }

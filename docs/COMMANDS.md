@@ -94,13 +94,13 @@ flutter clean
 ## 2. Code Generation (build_runner)
 
 ```bash
-# Run Riverpod code generator once, overwriting conflicting outputs
+# Run Drift database schema and model generator once, overwriting conflicting outputs
 dart run build_runner build --delete-conflicting-outputs
-# Expected: Generates *.g.dart files with zero warnings
+# Expected: Generates lib/core/database/app_database.g.dart with zero warnings
 
 # Run code generator in continuous watch mode during development
 dart run build_runner watch --delete-conflicting-outputs
-# Expected: Rebuilds generated files automatically upon file save
+# Expected: Rebuilds generated database files automatically upon file save
 ```
 
 ---
@@ -257,6 +257,24 @@ Executes baseline performance benchmarks across stream-copy, precise re-encode, 
 Executes post-optimization benchmarks measuring single-pass segment muxing, libx264 ultrafast transcode, and downscaled background blur.
 ```bash
 ./scripts/run_post_benchmarks.sh
+```
+
+### `scripts/audit_layout.py`
+Executes automated layout and text overlay audit across 84 permutation combinations, saving extracted frames and geometry reports into `test/artifacts/layout_audit/`.
+```bash
+python3 scripts/audit_layout.py
+```
+
+### `scripts/verify_layout_and_labels.py`
+Validates `FitLayout` horizontal/vertical centering symmetry, vertical positions (Center, Top, Bottom), and optional Part Label behavior against test fixtures.
+```bash
+python3 scripts/verify_layout_and_labels.py
+```
+
+### `scripts/verify_long_video_split.py`
+Verifies end-to-end splitting of long video files (e.g. 10-minute 1080p fixtures) against planned clip segments, checking physical output files, contiguity, stream copy vs transcoding, and hard 180s cap invariants.
+```bash
+python3 scripts/verify_long_video_split.py
 ```
 
 ---

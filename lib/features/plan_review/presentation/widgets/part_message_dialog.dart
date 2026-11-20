@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../split_config/domain/models/clip_plan.dart';
+import '../../../split_config/domain/models/overlay_spec.dart';
 
-/// Dialog allowing the user to override text overlay message for a specific part.
+/// Dialog allowing the user to override text overlay message and visibility for a specific part.
 class PartMessageDialog extends StatefulWidget {
   final ClipPlanItem item;
-  final ValueChanged<String?> onSave;
+  final void Function(String? customMessage, PartLabelOverride override) onSave;
 
   const PartMessageDialog({
     super.key,
@@ -19,11 +20,13 @@ class PartMessageDialog extends StatefulWidget {
 
 class _PartMessageDialogState extends State<PartMessageDialog> {
   late final TextEditingController _controller;
+  late PartLabelOverride _override;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.item.customMessage ?? '');
+    _override = widget.item.partLabelOverride;
   }
 
   @override
@@ -54,21 +57,62 @@ class _PartMessageDialogState extends State<PartMessageDialog> {
     final colorScheme = theme.colorScheme;
 
     return AlertDialog(
-      title: Text('Part ${widget.item.index} Overlay Message'),
+      title: Text('Part ${widget.item.index} Overlay Label'),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Enter a custom overlay message for this part. Leave blank to inherit default auto label.',
+              'Label Visibility for this part:',
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            SegmentedButton<PartLabelOverride>(
+              segments: const [
+                ButtonSegment(
+                  value: PartLabelOverride.useProjectDefault,
+                  label: Text('Default'),
+                  tooltip: 'Inherit project setting',
+                ),
+                ButtonSegment(
+                  value: PartLabelOverride.show,
+                  label: Text('Show'),
+                  tooltip: 'Always show label on this part',
+                ),
+                ButtonSegment(
+                  value: PartLabelOverride.hide,
+                  label: Text('Hide'),
+                  tooltip: 'Never show label on this part',
+                ),
+              ],
+              selected: {_override},
+              onSelectionChanged: (set) {
+                if (set.isNotEmpty) {
+                  setState(() => _override = set.first);
+                }
+              },
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Custom Message (optional):',
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Overrides auto label. Leave blank to use auto template ({n}/{total}).',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             TextField(
               controller: _controller,
+              enabled: _override != PartLabelOverride.hide,
               decoration: InputDecoration(
                 labelText: 'Part Message',
                 hintText: 'e.g. Part {n}/{total}',
@@ -86,26 +130,28 @@ class _PartMessageDialogState extends State<PartMessageDialog> {
               ),
               onChanged: (_) => setState(() {}),
             ),
-            const SizedBox(height: 12),
-            Text('Quick Tokens:', style: theme.textTheme.labelSmall),
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 8,
-              children: [
-                ActionChip(
-                  label: const Text('{n}'),
-                  onPressed: () => _insertToken('{n}'),
-                ),
-                ActionChip(
-                  label: const Text('{total}'),
-                  onPressed: () => _insertToken('{total}'),
-                ),
-                ActionChip(
-                  label: const Text('{name}'),
-                  onPressed: () => _insertToken('{name}'),
-                ),
-              ],
-            ),
+            if (_override != PartLabelOverride.hide) ...[
+              const SizedBox(height: 12),
+              Text('Quick Tokens:', style: theme.textTheme.labelSmall),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 8,
+                children: [
+                  ActionChip(
+                    label: const Text('{n}'),
+                    onPressed: () => _insertToken('{n}'),
+                  ),
+                  ActionChip(
+                    label: const Text('{total}'),
+                    onPressed: () => _insertToken('{total}'),
+                  ),
+                  ActionChip(
+                    label: const Text('{name}'),
+                    onPressed: () => _insertToken('{name}'),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
@@ -117,7 +163,7 @@ class _PartMessageDialogState extends State<PartMessageDialog> {
         FilledButton(
           onPressed: () {
             final text = _controller.text.trim();
-            widget.onSave(text.isEmpty ? null : text);
+            widget.onSave(text.isEmpty ? null : text, _override);
             Navigator.of(context).pop();
           },
           child: const Text('Save'),

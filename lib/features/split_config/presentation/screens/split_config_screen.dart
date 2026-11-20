@@ -12,6 +12,7 @@ import '../../../../shared/widgets/info_banner.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../output/presentation/controllers/output_controller.dart';
 import '../../../video_picker/presentation/controllers/video_picker_controller.dart';
+import '../../domain/models/overlay_spec.dart';
 import '../controllers/split_config_controller.dart';
 import '../widgets/background_selector.dart';
 import '../widgets/canvas_selector.dart';
@@ -64,8 +65,7 @@ class _SplitConfigScreenState extends ConsumerState<SplitConfigScreen> {
       return;
     }
 
-    final trimDuration =
-        splitConfig.trimRange?.durationSeconds ??
+    final trimDuration = splitConfig.trimRange?.durationSeconds ??
         (video.duration.inMilliseconds / 1000.0);
 
     // 1. Validate Clip Duration & Settings
@@ -86,8 +86,7 @@ class _SplitConfigScreenState extends ConsumerState<SplitConfigScreen> {
       _durationError = settingsResult.errorForField('target_duration');
       _backgroundError = bgResult.firstError?.message;
       _overlayError = overlayResult.firstError?.message;
-      _bannerError =
-          settingsResult.firstError?.message ??
+      _bannerError = settingsResult.firstError?.message ??
           bgResult.firstError?.message ??
           overlayResult.firstError?.message;
     });
@@ -237,8 +236,12 @@ class _SplitConfigScreenState extends ConsumerState<SplitConfigScreen> {
           CanvasSelector(
             selectedCanvas: splitConfig.canvasSpec,
             cropToFill: splitConfig.cropToFill,
+            verticalPosition: splitConfig.verticalPosition,
+            verticalOffsetFraction: splitConfig.verticalOffsetFraction,
             onCanvasChanged: splitController.setCanvasSpec,
             onCropToFillChanged: splitController.setCropToFill,
+            onVerticalPositionChanged: splitController.setVerticalPosition,
+            onVerticalOffsetChanged: splitController.setVerticalOffset,
           ),
           const SizedBox(height: 20),
           KeyedSubtree(
@@ -328,7 +331,9 @@ class _SplitConfigScreenState extends ConsumerState<SplitConfigScreen> {
           _buildNamingCard(
             context,
             splitConfig.customBaseName ?? video.baseName,
+            splitConfig.singlePartFileNameMode,
             splitController.setCustomBaseName,
+            splitController.setSinglePartFileNameMode,
           ),
           const SizedBox(height: 20),
           _buildSectionHeader(
@@ -472,7 +477,9 @@ class _SplitConfigScreenState extends ConsumerState<SplitConfigScreen> {
   Widget _buildNamingCard(
     BuildContext context,
     String currentBaseName,
+    SinglePartFileNameMode singlePartFileNameMode,
     ValueChanged<String> onChanged,
+    ValueChanged<SinglePartFileNameMode> onSinglePartNamingChanged,
   ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -504,9 +511,39 @@ class _SplitConfigScreenState extends ConsumerState<SplitConfigScreen> {
                 }
               },
             ),
+            const SizedBox(height: 12),
+            Text(
+              'Single-clip export naming:',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 6),
+            SegmentedButton<SinglePartFileNameMode>(
+              segments: const [
+                ButtonSegment(
+                  value: SinglePartFileNameMode.originalNameOnly,
+                  label: Text('Name only'),
+                  icon: Icon(Icons.description_outlined),
+                ),
+                ButtonSegment(
+                  value: SinglePartFileNameMode.keepPartSuffix,
+                  label: Text('With _part_001'),
+                  icon: Icon(Icons.format_list_numbered),
+                ),
+              ],
+              selected: {singlePartFileNameMode},
+              onSelectionChanged: (set) {
+                if (set.isNotEmpty) {
+                  onSinglePartNamingChanged(set.first);
+                }
+              },
+            ),
             const SizedBox(height: 8),
             Text(
-              'Clips will be named: ${currentBaseName}_part_001.mp4, ${currentBaseName}_part_002.mp4, etc.',
+              singlePartFileNameMode == SinglePartFileNameMode.originalNameOnly
+                  ? 'If 1 clip: $currentBaseName.mp4\nIf multi-clip: ${currentBaseName}_part_001.mp4, etc.'
+                  : 'All clips: ${currentBaseName}_part_001.mp4, etc.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
                 fontFamily: 'monospace',

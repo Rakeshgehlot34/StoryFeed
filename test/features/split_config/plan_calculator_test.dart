@@ -3,6 +3,7 @@ import 'package:shorts_splitter/core/errors/app_exception.dart';
 import 'package:shorts_splitter/features/split_config/domain/models/background_spec.dart';
 import 'package:shorts_splitter/features/split_config/domain/models/canvas_spec.dart';
 import 'package:shorts_splitter/features/split_config/domain/models/clip_plan.dart';
+import 'package:shorts_splitter/features/split_config/domain/models/clip_segment.dart';
 import 'package:shorts_splitter/features/split_config/domain/models/overlay_spec.dart';
 import 'package:shorts_splitter/features/split_config/domain/models/plan_calculator.dart';
 import 'package:shorts_splitter/features/split_config/domain/models/plan_validator.dart';
@@ -59,7 +60,22 @@ void main() {
       expect(plan.totalParts, equals(1));
       expect(plan.items[0].durationSeconds, equals(45.0));
       expect(plan.items[0].formattedName, equals('my_video_part_001.mp4'));
-      expect(plan.items[0].resolvedMessage, equals('Part 1/1'));
+      // Under default PartLabelMode.auto, a single clip suppresses auto label
+      expect(plan.items[0].resolvedMessage, isNull);
+
+      // When PartLabelMode.always is explicitly set, it resolves 'Part 1/1'
+      final planAlways = PlanCalculator.generateAutoPlan(
+        trimRange: const TrimRange(startSeconds: 0.0, endSeconds: 45.0),
+        targetClipDurationSeconds: 60,
+        mergeShortTrailingClip: true,
+        baseName: baseName,
+        canvasSpec: canvas,
+        backgroundSpec: bg,
+        overlaySpec: overlay.copyWith(partLabelMode: PartLabelMode.always),
+        cropToFill: false,
+        sourceDurationSeconds: 100.0,
+      );
+      expect(planAlways.items[0].resolvedMessage, equals('Part 1/1'));
     });
 
     test('Exact multiple duration produces equal-sized parts', () {
@@ -355,5 +371,80 @@ void main() {
       expect(updatedItems[0].formattedName, equals('TokyoTrip_part_001.mp4'));
       expect(updatedItems[1].formattedName, equals('TokyoTrip_part_002.mp4'));
     });
+
+    test(
+      '2-hour video trimmed from 00:01:20 (80s) to 00:11:20 (680s) with 30s target generates exactly 20 clips with exact matching timestamps and no extra clips',
+      () {
+        const twoHoursSeconds = 7200.0;
+        const trimStart = 80.0; // 00:01:20.000
+        const trimEnd = 680.0; // 00:11:20.000 (10 minutes total trim)
+        const targetDuration = 30;
+
+        final plan = PlanCalculator.generateAutoPlan(
+          trimRange:
+              const TrimRange(startSeconds: trimStart, endSeconds: trimEnd),
+          targetClipDurationSeconds: targetDuration,
+          mergeShortTrailingClip: true,
+          baseName: 'long_vlog',
+          canvasSpec: canvas,
+          backgroundSpec: bg,
+          overlaySpec: overlay,
+          cropToFill: false,
+          sourceDurationSeconds: twoHoursSeconds,
+        );
+
+        expect(plan.totalParts, equals(20));
+        expect(plan.totalPlannedDurationSeconds, equals(600.0));
+
+        // Verify Clip 1 starts at 00:01:20 (80.0s)
+        expect(plan.items.first.index, equals(1));
+        expect(plan.items.first.startSeconds, equals(80.0));
+        expect(plan.items.first.endSeconds, equals(110.0));
+        expect(plan.items.first.durationSeconds, equals(30.0));
+        expect(
+          plan.items.first.formattedName,
+          equals('long_vlog_part_001.mp4'),
+        );
+
+        // Verify Clip 20 ends at 00:11:20 (680.0s)
+        expect(plan.items.last.index, equals(20));
+        expect(plan.items.last.startSeconds, equals(650.0));
+        expect(plan.items.last.endSeconds, equals(680.0));
+        expect(plan.items.last.durationSeconds, equals(30.0));
+        expect(
+          plan.items.last.formattedName,
+          equals('long_vlog_part_020.mp4'),
+        );
+
+        // Verify contiguous boundaries across all 20 clips
+        for (int i = 0; i < plan.items.length - 1; i++) {
+          expect(
+            plan.items[i].endSeconds,
+            equals(plan.items[i + 1].startSeconds),
+          );
+        }
+
+        // Also verify ClipSegment.calculateSegments with startOffsetSeconds matches
+        final segments = ClipSegment.calculateSegments(
+          totalDurationSeconds: trimEnd - trimStart,
+          startOffsetSeconds: trimStart,
+          targetClipDurationSeconds: targetDuration,
+          mergeShortTrailingClip: true,
+          baseName: 'long_vlog',
+        );
+
+        expect(segments.length, equals(20));
+        expect(segments.first.startSeconds, equals(80.0));
+        expect(
+          segments.first.formattedTimeRange,
+          equals('01:20 - 01:50 (00:30)'),
+        );
+        expect(segments.last.endSeconds, equals(680.0));
+        expect(
+          segments.last.formattedTimeRange,
+          equals('10:50 - 11:20 (00:30)'),
+        );
+      },
+    );
   });
 }

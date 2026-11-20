@@ -1,11 +1,14 @@
 import 'dart:io';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../app/constants.dart';
+import '../../../../app/theme.dart';
+import '../../../../core/utils/permission_utils.dart';
 import '../../../output/domain/models/storage_strategy.dart';
 import '../../../output/presentation/controllers/output_controller.dart';
 
@@ -49,20 +52,29 @@ class SettingsState {
 
 final settingsControllerProvider =
     AsyncNotifierProvider<SettingsController, SettingsState>(
-      SettingsController.new,
-    );
+  SettingsController.new,
+);
 
 class SettingsController extends AsyncNotifier<SettingsState> {
+  AppLifecycleListener? _lifecycleListener;
+
   @override
   Future<SettingsState> build() async {
+    _lifecycleListener ??= AppLifecycleListener(
+      onResume: refreshPermissions,
+    );
+    ref.onDispose(() {
+      _lifecycleListener?.dispose();
+      _lifecycleListener = null;
+    });
+
     final prefs = await SharedPreferences.getInstance();
     final keepAwake =
         prefs.getBool(AppConstants.prefKeyKeepScreenAwake) ?? true;
     final showNotif =
         prefs.getBool(AppConstants.prefKeyShowNotification) ?? true;
-    final dupHandling = await ref
-        .read(outputRepositoryProvider)
-        .getDuplicateHandling();
+    final dupHandling =
+        await ref.read(outputRepositoryProvider).getDuplicateHandling();
 
     final tempSize = await _calculateTempDirectorySize();
     bool notifGranted = true;
@@ -71,17 +83,17 @@ class SettingsController extends AsyncNotifier<SettingsState> {
     if (!Platform.environment.containsKey('FLUTTER_TEST')) {
       try {
         final notifStatus = await Permission.notification.status.timeout(
-          const Duration(milliseconds: 250),
+          const Duration(seconds: 1),
         );
         notifGranted = notifStatus.isGranted;
       } catch (_) {
         // Graceful fallback for tests or desktop environments
       }
       try {
-        final storageStatus = await Permission.storage.status.timeout(
-          const Duration(milliseconds: 250),
+        storageGranted =
+            await PermissionUtils.hasMediaOrStoragePermission().timeout(
+          const Duration(seconds: 1),
         );
-        storageGranted = storageStatus.isGranted;
       } catch (_) {
         // Graceful fallback for tests or desktop environments
       }
@@ -94,6 +106,34 @@ class SettingsController extends AsyncNotifier<SettingsState> {
       tempFilesSizeBytes: tempSize,
       hasNotificationPermission: notifGranted,
       hasStoragePermission: storageGranted,
+    );
+  }
+
+  /// Automatically re-probes permissions when returning from App Settings.
+  Future<void> refreshPermissions() async {
+    bool notifGranted = true;
+    bool storageGranted = true;
+
+    if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+      try {
+        final notifStatus = await Permission.notification.status.timeout(
+          const Duration(seconds: 1),
+        );
+        notifGranted = notifStatus.isGranted;
+      } catch (_) {}
+      try {
+        storageGranted =
+            await PermissionUtils.hasMediaOrStoragePermission().timeout(
+          const Duration(seconds: 1),
+        );
+      } catch (_) {}
+    }
+
+    state = state.whenData(
+      (s) => s.copyWith(
+        hasNotificationPermission: notifGranted,
+        hasStoragePermission: storageGranted,
+      ),
     );
   }
 
@@ -134,6 +174,10 @@ class SettingsController extends AsyncNotifier<SettingsState> {
   Future<void> resetAllSettings() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
+    // Preserve onboarding status so resetting preferences does not force onboarding again
+    await prefs.setBool(AppConstants.prefKeyOnboardingCompleted, true);
+    ref.invalidate(themeModeProvider);
+    ref.invalidate(accentColorProvider);
     ref.invalidateSelf();
   }
 

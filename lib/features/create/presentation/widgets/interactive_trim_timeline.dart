@@ -321,15 +321,12 @@ class _TrimTimelinePainter extends CustomPainter {
     final handleRRect = RRect.fromRectAndCorners(
       handleRect,
       topLeft: isLeft ? const Radius.circular(AppTokens.radiusSm) : Radius.zero,
-      bottomLeft: isLeft
-          ? const Radius.circular(AppTokens.radiusSm)
-          : Radius.zero,
-      topRight: !isLeft
-          ? const Radius.circular(AppTokens.radiusSm)
-          : Radius.zero,
-      bottomRight: !isLeft
-          ? const Radius.circular(AppTokens.radiusSm)
-          : Radius.zero,
+      bottomLeft:
+          isLeft ? const Radius.circular(AppTokens.radiusSm) : Radius.zero,
+      topRight:
+          !isLeft ? const Radius.circular(AppTokens.radiusSm) : Radius.zero,
+      bottomRight:
+          !isLeft ? const Radius.circular(AppTokens.radiusSm) : Radius.zero,
     );
 
     final fillPaint = Paint()
@@ -349,9 +346,8 @@ class _TrimTimelinePainter extends CustomPainter {
       ..strokeWidth = 1.5
       ..strokeCap = StrokeCap.round;
 
-    final gripCenterX = isLeft
-        ? centerX - (handleW / 2)
-        : centerX + (handleW / 2);
+    final gripCenterX =
+        isLeft ? centerX - (handleW / 2) : centerX + (handleW / 2);
     final centerY = top + (height / 2);
 
     canvas.drawLine(

@@ -214,4 +214,26 @@ ShortsSplitter provides visual selection controls and lifecycle chips across the
 - Projects with partial exports display a `X/Y processed` badge (e.g. `3/30 processed`) alongside a mini `LinearProgressIndicator`.
 - Fully completed exports display standard short counts (`30 shorts • Shorts 9:16`).
 
+---
+
+## 10. Split Settings & Layout Alignment Controls (`FitLayout`)
+
+### Split Settings Screen (`/split-config`)
+- **Canvas & Alignment (`CanvasSelector`):**
+  - **Vertical Position:** `Center` (default, symmetric top/bottom bands), `Top` (pinned to top edge), `Bottom` (pinned to bottom edge).
+  - **Fine-Tuning Offset Slider:** `Manual Vertical Offset (-20% to +20%)` with quick `Reset` chip.
+- **Part Messages & Overlay (`OverlaySettingsCard`):**
+  - **Part Label Mode Segmented Button:**
+    - `Auto` (default): Emits label only for multi-part plans; hides on 1-clip conversions.
+    - `Always`: Always emits part label on all clips.
+    - `Never`: Disables auto numbering.
+  - **7 Overlay Positions:** `Top-Left`, `Top-Center`, `Top-Right`, `Center`, `Bottom-Left`, `Bottom-Center`, `Bottom-Right`.
+- **Naming & Prefix Card:**
+  - Configures base prefix and single-clip naming mode (`Name only` vs `With suffix`).
+
+### Plan Review Screen (`/plan-review`)
+- **Single-Part Smart Detection:** Displays info banner `"Your video fits in 1 short. No splitting needed!"` and bottom action button `"Create 1 Short (XX.Xs)"`.
+- **Live Overlay Preview (`OverlayLivePreview`):** Accurately reflects exact `FitLayout` integer coordinates, video dimensions, vertical position, and offset.
+- **Part Message Dialog (`PartMessageDialog`):** Provides a 3-way override selector (`Default`, `Show`, `Hide`) alongside custom message tokens.
+
 

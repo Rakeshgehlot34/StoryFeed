@@ -117,7 +117,8 @@ class _CustomSplitScreenState extends ConsumerState<CustomSplitScreen> {
           ? EmptyState(
               icon: Icons.movie_creation_outlined,
               title: 'No Video Selected',
-              message: 'Select a video from your device to configure custom splits without 3-minute limits.',
+              message:
+                  'Select a video from your device to configure custom splits without 3-minute limits.',
               actionLabel: 'Choose Video',
               onAction: () => _pickVideo(context),
             )
@@ -197,7 +198,9 @@ class _CustomSplitScreenState extends ConsumerState<CustomSplitScreen> {
       children: [
         Text(
           'Split Strategy',
-          style: Theme.of(context).textTheme.titleSmall
+          style: Theme.of(context)
+              .textTheme
+              .titleSmall
               ?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: AppTokens.spaceSm),
@@ -248,23 +251,23 @@ class _CustomSplitScreenState extends ConsumerState<CustomSplitScreen> {
       icon: Icons.tune_rounded,
       child: switch (config.mode) {
         CustomSplitMode.byDuration => _buildDurationConfig(
-          context,
-          config,
-          controller,
-          totalVideoSec,
-        ),
+            context,
+            config,
+            controller,
+            totalVideoSec,
+          ),
         CustomSplitMode.byParts => _buildPartsConfig(
-          context,
-          config,
-          controller,
-          totalVideoSec,
-        ),
+            context,
+            config,
+            controller,
+            totalVideoSec,
+          ),
         CustomSplitMode.byPoints => _buildPointsConfig(
-          context,
-          config,
-          controller,
-          totalVideoSec,
-        ),
+            context,
+            config,
+            controller,
+            totalVideoSec,
+          ),
         CustomSplitMode.bySize => _buildSizeConfig(context, config, controller),
       },
     );
@@ -454,7 +457,8 @@ class _CustomSplitScreenState extends ConsumerState<CustomSplitScreen> {
         ),
         const SizedBox(height: AppTokens.spaceMd),
         const InfoBanner(
-          message: 'Estimated file size requires re-encoding. Splits are calculated using video bitrate estimation.',
+          message:
+              'Estimated file size requires re-encoding. Splits are calculated using video bitrate estimation.',
           type: InfoBannerType.info,
         ),
       ],
@@ -471,7 +475,9 @@ class _CustomSplitScreenState extends ConsumerState<CustomSplitScreen> {
       children: [
         Text(
           'Encoding Method',
-          style: Theme.of(context).textTheme.titleSmall
+          style: Theme.of(context)
+              .textTheme
+              .titleSmall
               ?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: AppTokens.spaceSm),
@@ -497,12 +503,14 @@ class _CustomSplitScreenState extends ConsumerState<CustomSplitScreen> {
         const SizedBox(height: AppTokens.spaceSm),
         if (config.method == SplitMethod.fast)
           const InfoBanner(
-            message: 'Fast mode copies streams (-c copy) with zero re-encoding. Instant export, but cuts snap to keyframes (~0.5s - 2.0s drift).',
+            message:
+                'Fast mode copies streams (-c copy) with zero re-encoding. Instant export, but cuts snap to keyframes (~0.5s - 2.0s drift).',
             type: InfoBannerType.warning,
           )
         else
           const InfoBanner(
-            message: 'Precise mode re-encodes video for frame-accurate millisecond cuts.',
+            message:
+                'Precise mode re-encodes video for frame-accurate millisecond cuts.',
             type: InfoBannerType.info,
           ),
       ],

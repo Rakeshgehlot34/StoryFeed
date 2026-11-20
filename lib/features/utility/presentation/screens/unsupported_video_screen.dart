@@ -56,7 +56,8 @@ class UnsupportedVideoScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppTokens.spaceSm),
               Text(
-                reason ?? 'The selected video format or codec is not supported by the hardware decoder on this device.',
+                reason ??
+                    'The selected video format or codec is not supported by the hardware decoder on this device.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),

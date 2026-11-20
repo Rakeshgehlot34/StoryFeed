@@ -36,7 +36,9 @@ void main() {
       }
     });
 
-    test('calculates and executes selective split on parts 1 and 3 of 3, verifies strict naming invariant, then processes remaining part 2', () async {
+    test(
+        'calculates and executes selective split on parts 1 and 3 of 3, verifies strict naming invariant, then processes remaining part 2',
+        () async {
       // 1. Probe source video with OutputVerifier
       final sourceProbe = await OutputVerifier.probe(fixturePath);
       expect(sourceProbe.hasVideo, isTrue);

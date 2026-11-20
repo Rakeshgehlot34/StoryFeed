@@ -62,7 +62,8 @@ Before any transcoding begins, users inspect the generated split plan on the **P
 
 ### Capabilities
 - **Summary Metrics:** Total shorts count, total split duration, source video resolution, and canvas aspect ratio.
-- **Part List:** Each part displays index (`Part 1 of N`), timestamps (`00:00.000 - 01:00.000`), duration, and effective overlay text.
+- **Single-Part Smart Detection:** When an already-short video yields exactly 1 short, a dedicated info banner displays "Your video fits in 1 short. No splitting needed!", and the action button reflects "Create 1 Short (XX.Xs)". If the source is already 9:16 and $\le 180$s without edits, an "Already Shorts-ready: Fast stream copy available" badge is shown.
+- **Part List:** Each part displays index (`Part 1 of N`), timestamps (`00:00.000 - 01:00.000`), duration, and effective overlay text (or "No label (tap to add)" badge when suppressed or empty).
 - **Interactive Boundary Editing:**
   - Dragging or entering a new boundary timestamp updates both adjacent clips:
     $$\text{Clip}_i.\text{endSeconds} = \text{newBoundary} = \text{Clip}_{i+1}.\text{startSeconds}$$
@@ -70,6 +71,7 @@ Before any transcoding begins, users inspect the generated split plan on the **P
   - Automatically rejected if boundary adjustment causes either clip to violate the 180s cap or 1s minimum.
 - **Split Part:** Any clip $\ge 2.0$ seconds can be split into two sub-clips at its midpoint or a chosen timestamp.
 - **Merge Parts:** Any two adjacent parts can be merged into a single clip, provided their combined duration $\le 180.0$ seconds.
+- **Per-Part Label Visibility Dialog:** Tapping any part's message opens `PartMessageDialog` with an explicit override selector (`Project Default`, `Show`, `Hide`) and optional custom message.
 
 ---
 
@@ -77,11 +79,17 @@ Before any transcoding begins, users inspect the generated split plan on the **P
 
 Text overlays (e.g. `Part 1/5`) are rendered as transparent PNG images via `dart:ui` by `OverlayRenderer`. This guarantees universal Unicode and emoji rendering without relying on system font files.
 
+### Part Label Modes
+ShortsSplitter provides three distinct modes for part label rendering:
+1. **Auto (Default):** Show part label only when the sequence produces **more than 1 clip**. For single-clip conversions, the auto label is cleanly suppressed, eliminating meaningless "Part 1/1" badges.
+2. **Always:** Show part label on every clip, including single-clip conversions ("Part 1/1").
+3. **Never:** Completely disable auto part numbering across all clips.
+
 ### 4-Tier Resolution Hierarchy
 When generating the overlay badge for clip $i$, the engine evaluates rules in strict order:
-1. **Specific Part Override:** If user defined a custom message for part $i$, use it directly.
+1. **Specific Part Custom Message:** If user defined a custom message for part $i$, use it directly (never suppressed by Auto/Never modes).
 2. **All Parts Message:** Else if user defined a global custom message, evaluate it.
-3. **Auto Label Template:** Else if auto-label is enabled, evaluate the template (default: `Part {n}/{total}`).
+3. **Per-Part Override & Auto Label Template:** Else if per-part override is `show` or (`useProjectDefault` with `partLabelMode != never` and not suppressed by 1-clip Auto), evaluate the template (default: `Part {n}/{total}`).
 4. **No Overlay:** Else render no badge.
 
 ### Token Replacement Variables
@@ -90,11 +98,25 @@ Templates support dynamic string replacement:
 - `{total}`: total count of clips in the sequence (e.g. `5`).
 - `{name}`: original video base filename.
 
+### 7 Layout Position Presets
+The overlay badge position supports 7 presets respecting the platform safe area:
+- `topLeft`, `topCenter` (default), `topRight`, `center`, `bottomLeft`, `bottomCenter`, `bottomRight`.
+
 ---
 
 ## 5. Canvas Formatting & Background Rendering
 
-ShortsSplitter formats any video container (landscape, square, or portrait) to meet vertical platform specifications.
+ShortsSplitter formats any video container (landscape, square, or portrait) to meet vertical platform specifications using `FitLayout` as the single source of truth across Flutter live preview and native FFmpeg export.
+
+### Pure Domain `FitLayout`
+- **Integer-Even Pixel Alignment:** Computes exact integer coordinates (`x`, `y`, `width`, `height`, `topBand`, `bottomBand`) where all values are guaranteed even integers, avoiding odd-pixel blur and platform codec rejections.
+- **Symmetric Centering:** By default, fitted videos are centered horizontally and vertically, guaranteeing `topBand == bottomBand` (within 2px even-pixel rounding).
+- **Vertical Positions:**
+  - `Center (Default)`: Horizontally and vertically centered.
+  - `Top`: Pinned to the top edge (`topBand = 0`), leaving remaining space at the bottom.
+  - `Bottom`: Pinned to the bottom edge (`bottomBand = 0`), leaving remaining space at the top.
+- **Manual Offset Slider:** Fine-nudge slider allowing $\pm 20\%$ offset of the available free space.
+- **Rotation Metadata & SAR:** Automatically swaps dimensions for 90°/270° orientation tags and scales non-square pixel aspect ratios before computing layout.
 
 ### Canvas Formats
 1. **Vertical 9:16 (Default):** Standard `1080x1920` canvas for YouTube Shorts, Instagram Reels, and TikTok.
@@ -103,9 +125,10 @@ ShortsSplitter formats any video container (landscape, square, or portrait) to m
 
 ### Fit & Background Styles (Never Auto-Crop by Default)
 - **Scale to Fit (Default):** Video is scaled to fit within canvas bounds preserving original aspect ratio.
-- **Blurred Background:** Background canvas is populated by a scaled, heavily blurred (`boxblur=20:5`) version of the video.
+- **Blurred Background:** Background canvas is populated by a downscaled, blurred (`scale=108:192,boxblur=5:1,scale=1080:1920`) version of the video covering the canvas.
 - **Solid Color:** Letterbox padding filled with user-selected solid color (default black, white, or custom hex).
-- **Crop to Fill (Explicit Toggle):** Scales footage to fill the entire canvas, cropping left/right edges for landscape footage.
+- **Custom Image Background:** Looped image scaled to cover the canvas (`scale=cw:ch:force_original_aspect_ratio=increase,crop=cw:ch`) with foreground video overlaid at exact `FitLayout` coordinates.
+- **Crop to Fill (Explicit Toggle):** Scales footage to fill the entire canvas, cropping edges for landscape footage.
 
 ---
 
@@ -113,6 +136,13 @@ ShortsSplitter formats any video container (landscape, square, or portrait) to m
 
 Exported files follow a deterministic naming convention:
 $$\text{\{originalName\}\_part\_\{NNN\}.mp4}$$
+
+### Single-Part Naming Options
+When a split job yields exactly 1 short (or for single-part conversions):
+- **Name Only (`originalNameOnly`):** Saves as `{baseName}.mp4` without a redundant `_part_001` suffix.
+- **With Suffix (`keepPartSuffix`):** Preserves standard `{baseName}_part_001.mp4`.
+
+For all multi-part sequences ($\ge 2$ clips), `{baseName}_part_{NNN}.mp4` is strictly invariant across all platforms.
 
 ### Zero-Padding Rules
 Padding width is computed as:
@@ -238,5 +268,28 @@ Users can selectively process any subset of planned clips (e.g. 3 of 30 clips) w
 - **Single-Pass Segment Muxer:** When full stream-copy is selected, FFmpeg executes all cuts in a single pass at 2,926x realtime.
 - **Downscaled Background Blur:** Input frames are scaled to 10% resolution ($108\times 192$), blurred, and upscaled bicubic, achieving a 4.3x desktop / >15x mobile speedup.
 - **Hardware Acceleration:** Native `h264_mediacodec` on Android devices with software `libx264 ultrafast` fallback.
+
+---
+
+## 15. Two-Stage Workflow, Embedded SQLite & Output Folder Architecture
+
+Designed for scaling seamlessly from 15-second clips to 2-hour longform videos.
+
+### Two-Stage Workflow Architecture
+- **Automatic Recommendation:** Videos longer than 20 minutes or generating more than 20 parts trigger the `WorkflowChoiceDialog`, recommending "Split first, convert later".
+- **Stage 1 (Fast Stream-Copy Split):** Executes a single-pass stream copy (`-c copy`) segment split at speeds up to 3,000x realtime. Raw parts become immediately visible and playable in history. Keyframe snapping is probed, recording actual cut timestamps and flagging any part exceeding 180s with `>3:00 Cap`.
+- **Stage 2 (Targeted Shorts Conversion):** Users select desired parts from the parts review screen and transcode only those parts into 9:16 Shorts with canvas scaling, background fill/blur, and labels.
+- **Safe In-Place Replacement (`SafeClipReplacer`):** Staged temp file write (`.tmp.mp4`) beside original $\to$ integrity verification $\to$ atomic delete of raw file and rename of staged file to final name. On any error, original raw split file is preserved without corruption. Supports "Keep both" (`..._short.mp4`) or "Replace".
+
+### Output Folder Layout (`FolderLayoutResolver`)
+- **Multi-Part Projects ($\ge 2$ parts):** Automatically grouped into a sanitized, collision-safe subfolder: `<saveLocation>/<SourceName>/<SourceName>_part_001.mp4`.
+- **Single-Part Projects ($= 1$ part):** Saved directly into root destination without creating redundant wrapper folders: `<saveLocation>/<SourceName>.mp4`.
+
+### Reactive SQLite Persistence (Drift)
+- Structured SQLite database replaces SharedPreferences for history, projects, and parts.
+- Automated, non-destructive migration (`LegacyMigration`) copies all existing SharedPreferences history to SQLite on first launch while retaining raw data backups.
+- Compound performance indexes and foreign keys with cascade deletion.
+- Real-time SQL aggregation for dashboard statistics (`DashboardStatsRepository`).
+
 
 

@@ -146,7 +146,8 @@ class _ScreenshotScreenState extends ConsumerState<ScreenshotScreen> {
       return EmptyState(
         icon: Icons.camera_alt_outlined,
         title: 'No Video Selected',
-        message: 'Select a video to capture and extract high-resolution screenshots.',
+        message:
+            'Select a video to capture and extract high-resolution screenshots.',
         actionLabel: 'Select Video',
         onAction: () => _pickVideo(context),
       );
@@ -445,7 +446,6 @@ class _ScreenshotScreenState extends ConsumerState<ScreenshotScreen> {
             ],
           ),
           const SizedBox(height: AppTokens.spaceSm),
-
           if (timestamps.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: AppTokens.spaceMd),
@@ -473,7 +473,6 @@ class _ScreenshotScreenState extends ConsumerState<ScreenshotScreen> {
               }).toList(),
             ),
           const SizedBox(height: AppTokens.spaceMd),
-
           if (timestamps.isNotEmpty)
             PrimaryButton(
               icon: Icons.burst_mode_rounded,
@@ -745,8 +744,8 @@ class _ScreenshotScreenState extends ConsumerState<ScreenshotScreen> {
                   onPressed: state.isSaving
                       ? null
                       : () async {
-                          final saved = await controller
-                              .saveSelectedToGallery();
+                          final saved =
+                              await controller.saveSelectedToGallery();
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(

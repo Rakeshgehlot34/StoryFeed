@@ -11,8 +11,8 @@ class PartsSelectionValidator {
   ValidationResult validate({
     required List<PartItem> items,
     required int freeDiskBytes,
-    double bytesPerSecond = 2.5 * 1024 * 1024,
-    int minSafetyBytes = 150 * 1024 * 1024,
+    double bytesPerSecond = 500 * 1024,
+    int minSafetyBytes = 50 * 1024 * 1024,
   }) {
     final issues = <ValidationIssue>[];
 

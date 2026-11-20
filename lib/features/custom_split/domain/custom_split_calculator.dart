@@ -37,36 +37,35 @@ class CustomSplitCalculator {
     }
 
     // Default effective bitrate if probe did not report or 0
-    final effectiveBitrate = bitrateBps > 0
-        ? bitrateBps
-        : (5 * 1000 * 1000); // 5 Mbps default
+    final effectiveBitrate =
+        bitrateBps > 0 ? bitrateBps : (5 * 1000 * 1000); // 5 Mbps default
 
     final List<_Interval> rawIntervals = switch (config.mode) {
       CustomSplitMode.byDuration => _calculateByDuration(
-        start: effectiveStart,
-        end: effectiveEnd,
-        clipDuration: config.targetDurationSeconds,
-        mergeTrailing: config.mergeShortTrailingClip,
-        mergeThreshold: config.trailingMergeThresholdSeconds,
-      ),
+          start: effectiveStart,
+          end: effectiveEnd,
+          clipDuration: config.targetDurationSeconds,
+          mergeTrailing: config.mergeShortTrailingClip,
+          mergeThreshold: config.trailingMergeThresholdSeconds,
+        ),
       CustomSplitMode.byParts => _calculateByParts(
-        start: effectiveStart,
-        end: effectiveEnd,
-        parts: config.targetPartCount,
-      ),
+          start: effectiveStart,
+          end: effectiveEnd,
+          parts: config.targetPartCount,
+        ),
       CustomSplitMode.byPoints => _calculateByPoints(
-        start: effectiveStart,
-        end: effectiveEnd,
-        points: config.customSplitPoints,
-      ),
+          start: effectiveStart,
+          end: effectiveEnd,
+          points: config.customSplitPoints,
+        ),
       CustomSplitMode.bySize => _calculateBySize(
-        start: effectiveStart,
-        end: effectiveEnd,
-        sizeMb: config.targetSizeMb,
-        bitrateBps: effectiveBitrate,
-        mergeTrailing: config.mergeShortTrailingClip,
-        mergeThreshold: config.trailingMergeThresholdSeconds,
-      ),
+          start: effectiveStart,
+          end: effectiveEnd,
+          sizeMb: config.targetSizeMb,
+          bitrateBps: effectiveBitrate,
+          mergeTrailing: config.mergeShortTrailingClip,
+          mergeThreshold: config.trailingMergeThresholdSeconds,
+        ),
     };
 
     if (rawIntervals.isEmpty) {
@@ -177,9 +176,11 @@ class CustomSplitCalculator {
     required List<double> points,
   }) {
     // Filter points strictly between start and end
-    final validPoints =
-        points.where((p) => p > start + 0.1 && p < end - 0.1).toSet().toList()
-          ..sort();
+    final validPoints = points
+        .where((p) => p > start + 0.1 && p < end - 0.1)
+        .toSet()
+        .toList()
+      ..sort();
 
     final boundaries = [start, ...validPoints, end];
     final intervals = <_Interval>[];
@@ -245,9 +246,9 @@ class CustomSplitCalculator {
 
     final bitrate =
         (plan.totalDurationSeconds > 0 && plan.estimatedTotalSizeBytes > 0)
-        ? ((plan.estimatedTotalSizeBytes * 8) / plan.totalDurationSeconds)
-              .round()
-        : (5 * 1000 * 1000);
+            ? ((plan.estimatedTotalSizeBytes * 8) / plan.totalDurationSeconds)
+                .round()
+            : (5 * 1000 * 1000);
 
     updatedItems[clipIndex - 1] = prev.copyWith(
       endSeconds: newBoundary,
@@ -335,9 +336,9 @@ class CustomSplitCalculator {
     final padWidth = _calculatePadWidth(totalNewClips);
     final bitrate =
         (plan.totalDurationSeconds > 0 && plan.estimatedTotalSizeBytes > 0)
-        ? ((plan.estimatedTotalSizeBytes * 8) / plan.totalDurationSeconds)
-              .round()
-        : (5 * 1000 * 1000);
+            ? ((plan.estimatedTotalSizeBytes * 8) / plan.totalDurationSeconds)
+                .round()
+            : (5 * 1000 * 1000);
 
     final newItems = <CustomClipItem>[];
     int newIdx = 1;

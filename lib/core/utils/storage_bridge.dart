@@ -50,6 +50,46 @@ class StorageBridge {
     }
   }
 
+  /// Creates a subfolder in a user-selected SAF tree URI and returns its document URI.
+  static Future<String> createSafDirectory({
+    required String treeUri,
+    required String dirName,
+  }) async {
+    if (!Platform.isAndroid) return '$treeUri/$dirName';
+    final result = await _channel.invokeMethod<String>('createSafDirectory', {
+      'treeUri': treeUri,
+      'dirName': dirName,
+    });
+    if (result == null || result.isEmpty) {
+      throw Exception('Native SAF directory creation failed for $dirName');
+    }
+    return result;
+  }
+
+  /// Renames a SAF document file or directory.
+  static Future<bool> renameSafDocument({
+    required String documentUri,
+    required String newName,
+  }) async {
+    if (!Platform.isAndroid) return true;
+    final result = await _channel.invokeMethod<bool>('renameSafDocument', {
+      'documentUri': documentUri,
+      'newName': newName,
+    });
+    return result ?? false;
+  }
+
+  /// Deletes a SAF document file or directory.
+  static Future<bool> deleteSafDocument({
+    required String documentUri,
+  }) async {
+    if (!Platform.isAndroid) return true;
+    final result = await _channel.invokeMethod<bool>('deleteSafDocument', {
+      'documentUri': documentUri,
+    });
+    return result ?? false;
+  }
+
   /// Copies a local temp MP4 clip to the destination SAF tree directory via DocumentFile.
   static Future<String> writeClipToSaf({
     required String tempFilePath,
@@ -126,6 +166,32 @@ class StorageBridge {
       final res = await _channel.invokeMethod<bool>('scanMediaFile', {
         'filePath': filePath,
       });
+      return res ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Checks if the app is exempt from battery optimizations on Android.
+  static Future<bool> isIgnoringBatteryOptimizations() async {
+    if (!Platform.isAndroid) return true;
+    try {
+      final res = await _channel.invokeMethod<bool>(
+        'isIgnoringBatteryOptimizations',
+      );
+      return res ?? true;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  /// Prompts the user to exempt the app from battery optimizations for uninterrupted long splits.
+  static Future<bool> requestIgnoreBatteryOptimizations() async {
+    if (!Platform.isAndroid) return true;
+    try {
+      final res = await _channel.invokeMethod<bool>(
+        'requestIgnoreBatteryOptimizations',
+      );
       return res ?? false;
     } catch (_) {
       return false;

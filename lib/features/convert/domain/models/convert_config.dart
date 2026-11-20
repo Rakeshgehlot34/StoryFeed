@@ -5,31 +5,31 @@ enum ConvertOutputFormat { mp4H264, mp4H265, webm, mkv, gif, audioOnly }
 
 extension ConvertOutputFormatExtension on ConvertOutputFormat {
   String get displayName => switch (this) {
-    ConvertOutputFormat.mp4H264 => 'MP4 (H.264)',
-    ConvertOutputFormat.mp4H265 => 'MP4 (H.265 / HEVC)',
-    ConvertOutputFormat.webm => 'WebM (VP9)',
-    ConvertOutputFormat.mkv => 'MKV (Matroska)',
-    ConvertOutputFormat.gif => 'Animated GIF',
-    ConvertOutputFormat.audioOnly => 'Audio Extraction',
-  };
+        ConvertOutputFormat.mp4H264 => 'MP4 (H.264)',
+        ConvertOutputFormat.mp4H265 => 'MP4 (H.265 / HEVC)',
+        ConvertOutputFormat.webm => 'WebM (VP9)',
+        ConvertOutputFormat.mkv => 'MKV (Matroska)',
+        ConvertOutputFormat.gif => 'Animated GIF',
+        ConvertOutputFormat.audioOnly => 'Audio Extraction',
+      };
 
   String get shortName => switch (this) {
-    ConvertOutputFormat.mp4H264 => 'MP4',
-    ConvertOutputFormat.mp4H265 => 'HEVC',
-    ConvertOutputFormat.webm => 'WebM',
-    ConvertOutputFormat.mkv => 'MKV',
-    ConvertOutputFormat.gif => 'GIF',
-    ConvertOutputFormat.audioOnly => 'Audio',
-  };
+        ConvertOutputFormat.mp4H264 => 'MP4',
+        ConvertOutputFormat.mp4H265 => 'HEVC',
+        ConvertOutputFormat.webm => 'WebM',
+        ConvertOutputFormat.mkv => 'MKV',
+        ConvertOutputFormat.gif => 'GIF',
+        ConvertOutputFormat.audioOnly => 'Audio',
+      };
 
   String get defaultExtension => switch (this) {
-    ConvertOutputFormat.mp4H264 => '.mp4',
-    ConvertOutputFormat.mp4H265 => '.mp4',
-    ConvertOutputFormat.webm => '.webm',
-    ConvertOutputFormat.mkv => '.mkv',
-    ConvertOutputFormat.gif => '.gif',
-    ConvertOutputFormat.audioOnly => '.mp3',
-  };
+        ConvertOutputFormat.mp4H264 => '.mp4',
+        ConvertOutputFormat.mp4H265 => '.mp4',
+        ConvertOutputFormat.webm => '.webm',
+        ConvertOutputFormat.mkv => '.mkv',
+        ConvertOutputFormat.gif => '.gif',
+        ConvertOutputFormat.audioOnly => '.mp3',
+      };
 
   bool get isVideo =>
       this != ConvertOutputFormat.gif && this != ConvertOutputFormat.audioOnly;
@@ -42,22 +42,22 @@ enum ResolutionPreset { original, res4k, res1080p, res720p, res480p, res360p }
 
 extension ResolutionPresetExtension on ResolutionPreset {
   String get displayName => switch (this) {
-    ResolutionPreset.original => 'Original Resolution',
-    ResolutionPreset.res4k => '4K UHD (2160p)',
-    ResolutionPreset.res1080p => 'Full HD (1080p)',
-    ResolutionPreset.res720p => 'HD (720p)',
-    ResolutionPreset.res480p => 'SD (480p)',
-    ResolutionPreset.res360p => 'Low (360p)',
-  };
+        ResolutionPreset.original => 'Original Resolution',
+        ResolutionPreset.res4k => '4K UHD (2160p)',
+        ResolutionPreset.res1080p => 'Full HD (1080p)',
+        ResolutionPreset.res720p => 'HD (720p)',
+        ResolutionPreset.res480p => 'SD (480p)',
+        ResolutionPreset.res360p => 'Low (360p)',
+      };
 
   int get maxLongDimension => switch (this) {
-    ResolutionPreset.original => 0,
-    ResolutionPreset.res4k => 3840,
-    ResolutionPreset.res1080p => 1920,
-    ResolutionPreset.res720p => 1280,
-    ResolutionPreset.res480p => 854,
-    ResolutionPreset.res360p => 640,
-  };
+        ResolutionPreset.original => 0,
+        ResolutionPreset.res4k => 3840,
+        ResolutionPreset.res1080p => 1920,
+        ResolutionPreset.res720p => 1280,
+        ResolutionPreset.res480p => 854,
+        ResolutionPreset.res360p => 640,
+      };
 }
 
 /// Video frame rate presets.
@@ -65,20 +65,20 @@ enum FpsPreset { original, fps60, fps30, fps24, fps15 }
 
 extension FpsPresetExtension on FpsPreset {
   String get displayName => switch (this) {
-    FpsPreset.original => 'Original FPS',
-    FpsPreset.fps60 => '60 FPS',
-    FpsPreset.fps30 => '30 FPS',
-    FpsPreset.fps24 => '24 FPS (Cinematic)',
-    FpsPreset.fps15 => '15 FPS (Compact)',
-  };
+        FpsPreset.original => 'Original FPS',
+        FpsPreset.fps60 => '60 FPS',
+        FpsPreset.fps30 => '30 FPS',
+        FpsPreset.fps24 => '24 FPS (Cinematic)',
+        FpsPreset.fps15 => '15 FPS (Compact)',
+      };
 
   int get value => switch (this) {
-    FpsPreset.original => 0,
-    FpsPreset.fps60 => 60,
-    FpsPreset.fps30 => 30,
-    FpsPreset.fps24 => 24,
-    FpsPreset.fps15 => 15,
-  };
+        FpsPreset.original => 0,
+        FpsPreset.fps60 => 60,
+        FpsPreset.fps30 => 30,
+        FpsPreset.fps24 => 24,
+        FpsPreset.fps15 => 15,
+      };
 }
 
 /// Quality presets controlling Constant Rate Factor (CRF).
@@ -86,32 +86,32 @@ enum QualityPreset { high, balanced, small, ultraSmall }
 
 extension QualityPresetExtension on QualityPreset {
   String get displayName => switch (this) {
-    QualityPreset.high => 'High Quality (CRF 18)',
-    QualityPreset.balanced => 'Balanced (CRF 23 - Recommended)',
-    QualityPreset.small => 'Compact Size (CRF 28)',
-    QualityPreset.ultraSmall => 'Maximum Compression (CRF 32)',
-  };
+        QualityPreset.high => 'High Quality (CRF 18)',
+        QualityPreset.balanced => 'Balanced (CRF 23 - Recommended)',
+        QualityPreset.small => 'Compact Size (CRF 28)',
+        QualityPreset.ultraSmall => 'Maximum Compression (CRF 32)',
+      };
 
   int get crfH264 => switch (this) {
-    QualityPreset.high => 18,
-    QualityPreset.balanced => 23,
-    QualityPreset.small => 28,
-    QualityPreset.ultraSmall => 32,
-  };
+        QualityPreset.high => 18,
+        QualityPreset.balanced => 23,
+        QualityPreset.small => 28,
+        QualityPreset.ultraSmall => 32,
+      };
 
   int get crfH265 => switch (this) {
-    QualityPreset.high => 22,
-    QualityPreset.balanced => 28,
-    QualityPreset.small => 32,
-    QualityPreset.ultraSmall => 36,
-  };
+        QualityPreset.high => 22,
+        QualityPreset.balanced => 28,
+        QualityPreset.small => 32,
+        QualityPreset.ultraSmall => 36,
+      };
 
   int get crfVp9 => switch (this) {
-    QualityPreset.high => 24,
-    QualityPreset.balanced => 31,
-    QualityPreset.small => 37,
-    QualityPreset.ultraSmall => 42,
-  };
+        QualityPreset.high => 24,
+        QualityPreset.balanced => 31,
+        QualityPreset.small => 37,
+        QualityPreset.ultraSmall => 42,
+      };
 }
 
 /// Supported audio extraction formats.
@@ -119,25 +119,25 @@ enum AudioOutputFormat { mp3, aac, wav, opus }
 
 extension AudioOutputFormatExtension on AudioOutputFormat {
   String get displayName => switch (this) {
-    AudioOutputFormat.mp3 => 'MP3 (Universal)',
-    AudioOutputFormat.aac => 'AAC / M4A (High Fidelity)',
-    AudioOutputFormat.wav => 'WAV (Uncompressed PCM)',
-    AudioOutputFormat.opus => 'Opus (High Efficiency)',
-  };
+        AudioOutputFormat.mp3 => 'MP3 (Universal)',
+        AudioOutputFormat.aac => 'AAC / M4A (High Fidelity)',
+        AudioOutputFormat.wav => 'WAV (Uncompressed PCM)',
+        AudioOutputFormat.opus => 'Opus (High Efficiency)',
+      };
 
   String get fileExtension => switch (this) {
-    AudioOutputFormat.mp3 => '.mp3',
-    AudioOutputFormat.aac => '.m4a',
-    AudioOutputFormat.wav => '.wav',
-    AudioOutputFormat.opus => '.opus',
-  };
+        AudioOutputFormat.mp3 => '.mp3',
+        AudioOutputFormat.aac => '.m4a',
+        AudioOutputFormat.wav => '.wav',
+        AudioOutputFormat.opus => '.opus',
+      };
 
   String get codec => switch (this) {
-    AudioOutputFormat.mp3 => 'libmp3lame',
-    AudioOutputFormat.aac => 'aac',
-    AudioOutputFormat.wav => 'pcm_s16le',
-    AudioOutputFormat.opus => 'libopus',
-  };
+        AudioOutputFormat.mp3 => 'libmp3lame',
+        AudioOutputFormat.aac => 'aac',
+        AudioOutputFormat.wav => 'pcm_s16le',
+        AudioOutputFormat.opus => 'libopus',
+      };
 }
 
 /// Settings specific to animated GIF generation.
@@ -153,22 +153,22 @@ class GifConfig {
   });
 
   Map<String, dynamic> toJson() => {
-    'fps': fps,
-    'maxWidth': maxWidth,
-    'dither': dither,
-  };
+        'fps': fps,
+        'maxWidth': maxWidth,
+        'dither': dither,
+      };
 
   factory GifConfig.fromJson(Map<String, dynamic> json) => GifConfig(
-    fps: (json['fps'] as num?)?.toInt() ?? 15,
-    maxWidth: (json['maxWidth'] as num?)?.toInt() ?? 480,
-    dither: json['dither'] as String? ?? 'bayer:bayer_scale=5',
-  );
+        fps: (json['fps'] as num?)?.toInt() ?? 15,
+        maxWidth: (json['maxWidth'] as num?)?.toInt() ?? 480,
+        dither: json['dither'] as String? ?? 'bayer:bayer_scale=5',
+      );
 
   GifConfig copyWith({int? fps, int? maxWidth, String? dither}) => GifConfig(
-    fps: fps ?? this.fps,
-    maxWidth: maxWidth ?? this.maxWidth,
-    dither: dither ?? this.dither,
-  );
+        fps: fps ?? this.fps,
+        maxWidth: maxWidth ?? this.maxWidth,
+        dither: dither ?? this.dither,
+      );
 }
 
 /// Comprehensive configuration for video conversion and compression.
@@ -299,55 +299,54 @@ class ConvertConfig {
     }
 
     final videoBytes = (durationSeconds * (baseBitrateMbps * 1000000 / 8));
-    final audioBytes = muteAudio
-        ? 0.0
-        : (durationSeconds * (audioBitrateKbps * 1000 / 8));
+    final audioBytes =
+        muteAudio ? 0.0 : (durationSeconds * (audioBitrateKbps * 1000 / 8));
 
     return (videoBytes + audioBytes).round();
   }
 
   Map<String, dynamic> toJson() => {
-    'format': format.name,
-    'resolution': resolution.name,
-    'fps': fps.name,
-    'quality': quality.name,
-    'targetSizeMb': targetSizeMb,
-    'muteAudio': muteAudio,
-    'audioFormat': audioFormat.name,
-    'audioBitrateKbps': audioBitrateKbps,
-    'gifConfig': gifConfig.toJson(),
-    'customFileName': customFileName,
-  };
+        'format': format.name,
+        'resolution': resolution.name,
+        'fps': fps.name,
+        'quality': quality.name,
+        'targetSizeMb': targetSizeMb,
+        'muteAudio': muteAudio,
+        'audioFormat': audioFormat.name,
+        'audioBitrateKbps': audioBitrateKbps,
+        'gifConfig': gifConfig.toJson(),
+        'customFileName': customFileName,
+      };
 
   factory ConvertConfig.fromJson(Map<String, dynamic> json) => ConvertConfig(
-    format: ConvertOutputFormat.values.firstWhere(
-      (e) => e.name == json['format'],
-      orElse: () => ConvertOutputFormat.mp4H264,
-    ),
-    resolution: ResolutionPreset.values.firstWhere(
-      (e) => e.name == json['resolution'],
-      orElse: () => ResolutionPreset.original,
-    ),
-    fps: FpsPreset.values.firstWhere(
-      (e) => e.name == json['fps'],
-      orElse: () => FpsPreset.original,
-    ),
-    quality: QualityPreset.values.firstWhere(
-      (e) => e.name == json['quality'],
-      orElse: () => QualityPreset.balanced,
-    ),
-    targetSizeMb: (json['targetSizeMb'] as num?)?.toDouble(),
-    muteAudio: json['muteAudio'] as bool? ?? false,
-    audioFormat: AudioOutputFormat.values.firstWhere(
-      (e) => e.name == json['audioFormat'],
-      orElse: () => AudioOutputFormat.mp3,
-    ),
-    audioBitrateKbps: (json['audioBitrateKbps'] as num?)?.toInt() ?? 192,
-    gifConfig: json['gifConfig'] != null
-        ? GifConfig.fromJson(json['gifConfig'] as Map<String, dynamic>)
-        : const GifConfig(),
-    customFileName: json['customFileName'] as String?,
-  );
+        format: ConvertOutputFormat.values.firstWhere(
+          (e) => e.name == json['format'],
+          orElse: () => ConvertOutputFormat.mp4H264,
+        ),
+        resolution: ResolutionPreset.values.firstWhere(
+          (e) => e.name == json['resolution'],
+          orElse: () => ResolutionPreset.original,
+        ),
+        fps: FpsPreset.values.firstWhere(
+          (e) => e.name == json['fps'],
+          orElse: () => FpsPreset.original,
+        ),
+        quality: QualityPreset.values.firstWhere(
+          (e) => e.name == json['quality'],
+          orElse: () => QualityPreset.balanced,
+        ),
+        targetSizeMb: (json['targetSizeMb'] as num?)?.toDouble(),
+        muteAudio: json['muteAudio'] as bool? ?? false,
+        audioFormat: AudioOutputFormat.values.firstWhere(
+          (e) => e.name == json['audioFormat'],
+          orElse: () => AudioOutputFormat.mp3,
+        ),
+        audioBitrateKbps: (json['audioBitrateKbps'] as num?)?.toInt() ?? 192,
+        gifConfig: json['gifConfig'] != null
+            ? GifConfig.fromJson(json['gifConfig'] as Map<String, dynamic>)
+            : const GifConfig(),
+        customFileName: json['customFileName'] as String?,
+      );
 
   ConvertConfig copyWith({
     ConvertOutputFormat? format,
@@ -361,16 +360,18 @@ class ConvertConfig {
     int? audioBitrateKbps,
     GifConfig? gifConfig,
     String? customFileName,
-  }) => ConvertConfig(
-    format: format ?? this.format,
-    resolution: resolution ?? this.resolution,
-    fps: fps ?? this.fps,
-    quality: quality ?? this.quality,
-    targetSizeMb: clearTargetSize ? null : (targetSizeMb ?? this.targetSizeMb),
-    muteAudio: muteAudio ?? this.muteAudio,
-    audioFormat: audioFormat ?? this.audioFormat,
-    audioBitrateKbps: audioBitrateKbps ?? this.audioBitrateKbps,
-    gifConfig: gifConfig ?? this.gifConfig,
-    customFileName: customFileName ?? this.customFileName,
-  );
+  }) =>
+      ConvertConfig(
+        format: format ?? this.format,
+        resolution: resolution ?? this.resolution,
+        fps: fps ?? this.fps,
+        quality: quality ?? this.quality,
+        targetSizeMb:
+            clearTargetSize ? null : (targetSizeMb ?? this.targetSizeMb),
+        muteAudio: muteAudio ?? this.muteAudio,
+        audioFormat: audioFormat ?? this.audioFormat,
+        audioBitrateKbps: audioBitrateKbps ?? this.audioBitrateKbps,
+        gifConfig: gifConfig ?? this.gifConfig,
+        customFileName: customFileName ?? this.customFileName,
+      );
 }

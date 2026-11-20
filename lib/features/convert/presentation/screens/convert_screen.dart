@@ -92,7 +92,8 @@ class _ConvertScreenState extends ConsumerState<ConvertScreen> {
       return EmptyState(
         icon: Icons.transform_rounded,
         title: 'No Video Selected',
-        message: 'Select a video to convert formats (MP4, WebM, MKV, GIF), compress for Discord/WhatsApp, or extract audio tracks.',
+        message:
+            'Select a video to convert formats (MP4, WebM, MKV, GIF), compress for Discord/WhatsApp, or extract audio tracks.',
         actionLabel: 'Choose Video',
         onAction: () => _pickVideo(context),
       );
@@ -316,8 +317,8 @@ class _ConvertScreenState extends ConsumerState<ConvertScreen> {
                     mb == 16.0
                         ? '16 MB (WhatsApp)'
                         : mb == 25.0
-                        ? '25 MB (Discord)'
-                        : '${mb.toInt()} MB',
+                            ? '25 MB (Discord)'
+                            : '${mb.toInt()} MB',
                   ),
                   selected: isSelected,
                   onSelected: (_) => controller.setTargetSizeMb(mb),
@@ -373,7 +374,8 @@ class _ConvertScreenState extends ConsumerState<ConvertScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const InfoBanner(
-            message: 'Animated GIFs generate a dynamic 256-color palette (palettegen) for vivid colors and zero banding.',
+            message:
+                'Animated GIFs generate a dynamic 256-color palette (palettegen) for vivid colors and zero banding.',
             type: InfoBannerType.info,
           ),
           const SizedBox(height: AppTokens.spaceMd),

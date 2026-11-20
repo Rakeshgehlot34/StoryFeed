@@ -7,12 +7,15 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/constants.dart';
 import '../../../../app/constants/app_strings.dart';
 import '../../../../app/theme/app_tokens.dart';
+import '../../../../core/utils/permission_utils.dart';
 import '../../../../shared/widgets/error_state.dart';
+import '../../../../shared/widgets/info_banner.dart';
 import '../../../../shared/widgets/loading_skeleton.dart';
 import '../../../jobs/domain/job_queue_controller.dart';
 import '../../../jobs/domain/models/job_record.dart';
 import '../../../output/presentation/controllers/output_controller.dart';
 import '../../../processing/domain/export_job_controller.dart';
+import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../controllers/dashboard_controller.dart';
 import '../widgets/creator_tips_carousel.dart';
 import '../widgets/dashboard_continue_card.dart';
@@ -76,6 +79,8 @@ class DashboardScreen extends ConsumerWidget {
   ) {
     final queueState = ref.watch(jobQueueControllerProvider);
     final legacyJobState = ref.watch(exportJobControllerProvider);
+    final settings = ref.watch(settingsControllerProvider).valueOrNull;
+    final hasStoragePermission = settings?.hasStoragePermission ?? true;
 
     return ListView(
       padding: const EdgeInsets.symmetric(
@@ -84,6 +89,23 @@ class DashboardScreen extends ConsumerWidget {
       ),
       children: [
         const GreetingHeader(),
+        if (!hasStoragePermission) ...[
+          const SizedBox(height: AppTokens.spaceMd),
+          InfoBanner(
+            message:
+                'Storage & media permission required to access and export videos.',
+            type: InfoBannerType.warning,
+            trailing: TextButton(
+              onPressed: () async {
+                await PermissionUtils.requestAllAppPermissions(
+                  context: context,
+                );
+                ref.invalidate(settingsControllerProvider);
+              },
+              child: const Text('Grant'),
+            ),
+          ),
+        ],
         if (queueState.activeJob != null) ...[
           const SizedBox(height: AppTokens.spaceLg),
           _buildActiveJobCard(context, queueState.activeJob!),

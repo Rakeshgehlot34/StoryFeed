@@ -40,17 +40,16 @@ class CustomSplitState {
       config: config ?? this.config,
       plan: clearPlan ? null : (plan ?? this.plan),
       isCalculating: isCalculating ?? this.isCalculating,
-      errorMessage: clearErrorMessage
-          ? null
-          : (errorMessage ?? this.errorMessage),
+      errorMessage:
+          clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
     );
   }
 }
 
 final customSplitControllerProvider =
     NotifierProvider<CustomSplitController, CustomSplitState>(
-      CustomSplitController.new,
-    );
+  CustomSplitController.new,
+);
 
 class CustomSplitController extends Notifier<CustomSplitState> {
   @override

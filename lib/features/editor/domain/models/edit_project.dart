@@ -5,18 +5,18 @@ enum TargetAspectRatio { original, vertical916, square11, landscape169 }
 
 extension TargetAspectRatioExtension on TargetAspectRatio {
   String get label => switch (this) {
-    TargetAspectRatio.original => 'Original',
-    TargetAspectRatio.vertical916 => '9:16 (Shorts/Reels)',
-    TargetAspectRatio.square11 => '1:1 (Square)',
-    TargetAspectRatio.landscape169 => '16:9 (Landscape)',
-  };
+        TargetAspectRatio.original => 'Original',
+        TargetAspectRatio.vertical916 => '9:16 (Shorts/Reels)',
+        TargetAspectRatio.square11 => '1:1 (Square)',
+        TargetAspectRatio.landscape169 => '16:9 (Landscape)',
+      };
 
   (int width, int height) get dimensions => switch (this) {
-    TargetAspectRatio.original => (0, 0),
-    TargetAspectRatio.vertical916 => (1080, 1920),
-    TargetAspectRatio.square11 => (1080, 1080),
-    TargetAspectRatio.landscape169 => (1920, 1080),
-  };
+        TargetAspectRatio.original => (0, 0),
+        TargetAspectRatio.vertical916 => (1080, 1920),
+        TargetAspectRatio.square11 => (1080, 1080),
+        TargetAspectRatio.landscape169 => (1920, 1080),
+      };
 }
 
 /// Canvas background fit strategies when source doesn't match target aspect ratio.
@@ -24,10 +24,10 @@ enum CanvasFitMode { fitWithColor, fitWithBlur, cropToFill }
 
 extension CanvasFitModeExtension on CanvasFitMode {
   String get label => switch (this) {
-    CanvasFitMode.fitWithColor => 'Solid Color',
-    CanvasFitMode.fitWithBlur => 'Blurred Background',
-    CanvasFitMode.cropToFill => 'Crop to Fill',
-  };
+        CanvasFitMode.fitWithColor => 'Solid Color',
+        CanvasFitMode.fitWithBlur => 'Blurred Background',
+        CanvasFitMode.cropToFill => 'Crop to Fill',
+      };
 }
 
 /// Position options for watermarks and text badges.
@@ -35,20 +35,20 @@ enum OverlayPosition { topLeft, topRight, bottomLeft, bottomRight, center }
 
 extension OverlayPositionExtension on OverlayPosition {
   String get label => switch (this) {
-    OverlayPosition.topLeft => 'Top Left',
-    OverlayPosition.topRight => 'Top Right',
-    OverlayPosition.bottomLeft => 'Bottom Left',
-    OverlayPosition.bottomRight => 'Bottom Right',
-    OverlayPosition.center => 'Center',
-  };
+        OverlayPosition.topLeft => 'Top Left',
+        OverlayPosition.topRight => 'Top Right',
+        OverlayPosition.bottomLeft => 'Bottom Left',
+        OverlayPosition.bottomRight => 'Bottom Right',
+        OverlayPosition.center => 'Center',
+      };
 
   String get ffmpegCoordinates => switch (this) {
-    OverlayPosition.topLeft => '20:20',
-    OverlayPosition.topRight => 'W-w-20:20',
-    OverlayPosition.bottomLeft => '20:H-h-20',
-    OverlayPosition.bottomRight => 'W-w-20:H-h-20',
-    OverlayPosition.center => '(W-w)/2:(H-h)/2',
-  };
+        OverlayPosition.topLeft => '20:20',
+        OverlayPosition.topRight => 'W-w-20:20',
+        OverlayPosition.bottomLeft => '20:H-h-20',
+        OverlayPosition.bottomRight => 'W-w-20:H-h-20',
+        OverlayPosition.center => '(W-w)/2:(H-h)/2',
+      };
 }
 
 /// Color filter presets for quick aesthetic adjustments.
@@ -56,12 +56,12 @@ enum ColorFilterPreset { none, vibrant, cinematic, vintage, bw }
 
 extension ColorFilterPresetExtension on ColorFilterPreset {
   String get label => switch (this) {
-    ColorFilterPreset.none => 'None',
-    ColorFilterPreset.vibrant => 'Vibrant',
-    ColorFilterPreset.cinematic => 'Cinematic',
-    ColorFilterPreset.vintage => 'Vintage',
-    ColorFilterPreset.bw => 'B & W',
-  };
+        ColorFilterPreset.none => 'None',
+        ColorFilterPreset.vibrant => 'Vibrant',
+        ColorFilterPreset.cinematic => 'Cinematic',
+        ColorFilterPreset.vintage => 'Vintage',
+        ColorFilterPreset.bw => 'B & W',
+      };
 }
 
 /// Trimming bounds.
@@ -75,19 +75,19 @@ class TrimConfig {
       (endSeconds > startSeconds) ? (endSeconds - startSeconds) : 0.0;
 
   TrimConfig copyWith({double? startSeconds, double? endSeconds}) => TrimConfig(
-    startSeconds: startSeconds ?? this.startSeconds,
-    endSeconds: endSeconds ?? this.endSeconds,
-  );
+        startSeconds: startSeconds ?? this.startSeconds,
+        endSeconds: endSeconds ?? this.endSeconds,
+      );
 
   Map<String, dynamic> toJson() => {
-    'startSeconds': startSeconds,
-    'endSeconds': endSeconds,
-  };
+        'startSeconds': startSeconds,
+        'endSeconds': endSeconds,
+      };
 
   factory TrimConfig.fromJson(Map<String, dynamic> json) => TrimConfig(
-    startSeconds: (json['startSeconds'] as num?)?.toDouble() ?? 0.0,
-    endSeconds: (json['endSeconds'] as num?)?.toDouble() ?? 0.0,
-  );
+        startSeconds: (json['startSeconds'] as num?)?.toDouble() ?? 0.0,
+        endSeconds: (json['endSeconds'] as num?)?.toDouble() ?? 0.0,
+      );
 }
 
 /// Transformation specs (crop, rotation, mirror flips).
@@ -125,35 +125,36 @@ class TransformSpec {
     int? rotationDegrees,
     bool? hflip,
     bool? vflip,
-  }) => TransformSpec(
-    cropX: cropX ?? this.cropX,
-    cropY: cropY ?? this.cropY,
-    cropWidth: cropWidth ?? this.cropWidth,
-    cropHeight: cropHeight ?? this.cropHeight,
-    rotationDegrees: rotationDegrees ?? this.rotationDegrees,
-    hflip: hflip ?? this.hflip,
-    vflip: vflip ?? this.vflip,
-  );
+  }) =>
+      TransformSpec(
+        cropX: cropX ?? this.cropX,
+        cropY: cropY ?? this.cropY,
+        cropWidth: cropWidth ?? this.cropWidth,
+        cropHeight: cropHeight ?? this.cropHeight,
+        rotationDegrees: rotationDegrees ?? this.rotationDegrees,
+        hflip: hflip ?? this.hflip,
+        vflip: vflip ?? this.vflip,
+      );
 
   Map<String, dynamic> toJson() => {
-    'cropX': cropX,
-    'cropY': cropY,
-    'cropWidth': cropWidth,
-    'cropHeight': cropHeight,
-    'rotationDegrees': rotationDegrees,
-    'hflip': hflip,
-    'vflip': vflip,
-  };
+        'cropX': cropX,
+        'cropY': cropY,
+        'cropWidth': cropWidth,
+        'cropHeight': cropHeight,
+        'rotationDegrees': rotationDegrees,
+        'hflip': hflip,
+        'vflip': vflip,
+      };
 
   factory TransformSpec.fromJson(Map<String, dynamic> json) => TransformSpec(
-    cropX: json['cropX'] as int?,
-    cropY: json['cropY'] as int?,
-    cropWidth: json['cropWidth'] as int?,
-    cropHeight: json['cropHeight'] as int?,
-    rotationDegrees: json['rotationDegrees'] as int? ?? 0,
-    hflip: json['hflip'] as bool? ?? false,
-    vflip: json['vflip'] as bool? ?? false,
-  );
+        cropX: json['cropX'] as int?,
+        cropY: json['cropY'] as int?,
+        cropWidth: json['cropWidth'] as int?,
+        cropHeight: json['cropHeight'] as int?,
+        rotationDegrees: json['rotationDegrees'] as int? ?? 0,
+        hflip: json['hflip'] as bool? ?? false,
+        vflip: json['vflip'] as bool? ?? false,
+      );
 }
 
 /// Canvas configuration.
@@ -172,27 +173,28 @@ class CanvasConfig {
     TargetAspectRatio? aspectRatio,
     CanvasFitMode? fitMode,
     int? backgroundColorHex,
-  }) => CanvasConfig(
-    aspectRatio: aspectRatio ?? this.aspectRatio,
-    fitMode: fitMode ?? this.fitMode,
-    backgroundColorHex: backgroundColorHex ?? this.backgroundColorHex,
-  );
+  }) =>
+      CanvasConfig(
+        aspectRatio: aspectRatio ?? this.aspectRatio,
+        fitMode: fitMode ?? this.fitMode,
+        backgroundColorHex: backgroundColorHex ?? this.backgroundColorHex,
+      );
 
   Map<String, dynamic> toJson() => {
-    'aspectRatio': aspectRatio.name,
-    'fitMode': fitMode.name,
-    'backgroundColorHex': backgroundColorHex,
-  };
+        'aspectRatio': aspectRatio.name,
+        'fitMode': fitMode.name,
+        'backgroundColorHex': backgroundColorHex,
+      };
 
   factory CanvasConfig.fromJson(Map<String, dynamic> json) => CanvasConfig(
-    aspectRatio: TargetAspectRatio.values.byName(
-      json['aspectRatio'] as String? ?? 'original',
-    ),
-    fitMode: CanvasFitMode.values.byName(
-      json['fitMode'] as String? ?? 'fitWithColor',
-    ),
-    backgroundColorHex: json['backgroundColorHex'] as int? ?? 0xFF000000,
-  );
+        aspectRatio: TargetAspectRatio.values.byName(
+          json['aspectRatio'] as String? ?? 'original',
+        ),
+        fitMode: CanvasFitMode.values.byName(
+          json['fitMode'] as String? ?? 'fitWithColor',
+        ),
+        backgroundColorHex: json['backgroundColorHex'] as int? ?? 0xFF000000,
+      );
 }
 
 /// Playback speed and audio pitch preservation.
@@ -205,19 +207,19 @@ class SpeedSpec {
   bool get isModified => (speed - 1.0).abs() >= 0.001;
 
   SpeedSpec copyWith({double? speed, bool? preservePitch}) => SpeedSpec(
-    speed: speed ?? this.speed,
-    preservePitch: preservePitch ?? this.preservePitch,
-  );
+        speed: speed ?? this.speed,
+        preservePitch: preservePitch ?? this.preservePitch,
+      );
 
   Map<String, dynamic> toJson() => {
-    'speed': speed,
-    'preservePitch': preservePitch,
-  };
+        'speed': speed,
+        'preservePitch': preservePitch,
+      };
 
   factory SpeedSpec.fromJson(Map<String, dynamic> json) => SpeedSpec(
-    speed: (json['speed'] as num?)?.toDouble() ?? 1.0,
-    preservePitch: json['preservePitch'] as bool? ?? true,
-  );
+        speed: (json['speed'] as num?)?.toDouble() ?? 1.0,
+        preservePitch: json['preservePitch'] as bool? ?? true,
+      );
 }
 
 /// Color correction and grading.
@@ -245,19 +247,20 @@ class ColorFilterSpec {
     double? contrast,
     double? saturation,
     ColorFilterPreset? preset,
-  }) => ColorFilterSpec(
-    brightness: brightness ?? this.brightness,
-    contrast: contrast ?? this.contrast,
-    saturation: saturation ?? this.saturation,
-    preset: preset ?? this.preset,
-  );
+  }) =>
+      ColorFilterSpec(
+        brightness: brightness ?? this.brightness,
+        contrast: contrast ?? this.contrast,
+        saturation: saturation ?? this.saturation,
+        preset: preset ?? this.preset,
+      );
 
   Map<String, dynamic> toJson() => {
-    'brightness': brightness,
-    'contrast': contrast,
-    'saturation': saturation,
-    'preset': preset.name,
-  };
+        'brightness': brightness,
+        'contrast': contrast,
+        'saturation': saturation,
+        'preset': preset.name,
+      };
 
   factory ColorFilterSpec.fromJson(Map<String, dynamic> json) =>
       ColorFilterSpec(
@@ -288,23 +291,24 @@ class FadeSpec {
     double? fadeInSeconds,
     double? fadeOutSeconds,
     bool? fadeAudio,
-  }) => FadeSpec(
-    fadeInSeconds: fadeInSeconds ?? this.fadeInSeconds,
-    fadeOutSeconds: fadeOutSeconds ?? this.fadeOutSeconds,
-    fadeAudio: fadeAudio ?? this.fadeAudio,
-  );
+  }) =>
+      FadeSpec(
+        fadeInSeconds: fadeInSeconds ?? this.fadeInSeconds,
+        fadeOutSeconds: fadeOutSeconds ?? this.fadeOutSeconds,
+        fadeAudio: fadeAudio ?? this.fadeAudio,
+      );
 
   Map<String, dynamic> toJson() => {
-    'fadeInSeconds': fadeInSeconds,
-    'fadeOutSeconds': fadeOutSeconds,
-    'fadeAudio': fadeAudio,
-  };
+        'fadeInSeconds': fadeInSeconds,
+        'fadeOutSeconds': fadeOutSeconds,
+        'fadeAudio': fadeAudio,
+      };
 
   factory FadeSpec.fromJson(Map<String, dynamic> json) => FadeSpec(
-    fadeInSeconds: (json['fadeInSeconds'] as num?)?.toDouble() ?? 0.0,
-    fadeOutSeconds: (json['fadeOutSeconds'] as num?)?.toDouble() ?? 0.0,
-    fadeAudio: json['fadeAudio'] as bool? ?? true,
-  );
+        fadeInSeconds: (json['fadeInSeconds'] as num?)?.toDouble() ?? 0.0,
+        fadeOutSeconds: (json['fadeOutSeconds'] as num?)?.toDouble() ?? 0.0,
+        fadeAudio: json['fadeAudio'] as bool? ?? true,
+      );
 }
 
 /// Watermark image overlay.
@@ -326,28 +330,29 @@ class WatermarkSpec {
     OverlayPosition? position,
     double? opacity,
     double? scale,
-  }) => WatermarkSpec(
-    imagePath: imagePath ?? this.imagePath,
-    position: position ?? this.position,
-    opacity: opacity ?? this.opacity,
-    scale: scale ?? this.scale,
-  );
+  }) =>
+      WatermarkSpec(
+        imagePath: imagePath ?? this.imagePath,
+        position: position ?? this.position,
+        opacity: opacity ?? this.opacity,
+        scale: scale ?? this.scale,
+      );
 
   Map<String, dynamic> toJson() => {
-    'imagePath': imagePath,
-    'position': position.name,
-    'opacity': opacity,
-    'scale': scale,
-  };
+        'imagePath': imagePath,
+        'position': position.name,
+        'opacity': opacity,
+        'scale': scale,
+      };
 
   factory WatermarkSpec.fromJson(Map<String, dynamic> json) => WatermarkSpec(
-    imagePath: json['imagePath'] as String,
-    position: OverlayPosition.values.byName(
-      json['position'] as String? ?? 'topRight',
-    ),
-    opacity: (json['opacity'] as num?)?.toDouble() ?? 0.8,
-    scale: (json['scale'] as num?)?.toDouble() ?? 0.15,
-  );
+        imagePath: json['imagePath'] as String,
+        position: OverlayPosition.values.byName(
+          json['position'] as String? ?? 'topRight',
+        ),
+        opacity: (json['opacity'] as num?)?.toDouble() ?? 0.8,
+        scale: (json['scale'] as num?)?.toDouble() ?? 0.15,
+      );
 }
 
 /// Text overlay badge.
@@ -372,21 +377,22 @@ class TextOverlaySpec {
     int? fontSize,
     int? fontColorHex,
     int? backgroundColorHex,
-  }) => TextOverlaySpec(
-    text: text ?? this.text,
-    position: position ?? this.position,
-    fontSize: fontSize ?? this.fontSize,
-    fontColorHex: fontColorHex ?? this.fontColorHex,
-    backgroundColorHex: backgroundColorHex ?? this.backgroundColorHex,
-  );
+  }) =>
+      TextOverlaySpec(
+        text: text ?? this.text,
+        position: position ?? this.position,
+        fontSize: fontSize ?? this.fontSize,
+        fontColorHex: fontColorHex ?? this.fontColorHex,
+        backgroundColorHex: backgroundColorHex ?? this.backgroundColorHex,
+      );
 
   Map<String, dynamic> toJson() => {
-    'text': text,
-    'position': position.name,
-    'fontSize': fontSize,
-    'fontColorHex': fontColorHex,
-    'backgroundColorHex': backgroundColorHex,
-  };
+        'text': text,
+        'position': position.name,
+        'fontSize': fontSize,
+        'fontColorHex': fontColorHex,
+        'backgroundColorHex': backgroundColorHex,
+      };
 
   factory TextOverlaySpec.fromJson(Map<String, dynamic> json) =>
       TextOverlaySpec(
@@ -489,66 +495,72 @@ class EditProject {
     TextOverlaySpec? textOverlay,
     bool clearTextOverlay = false,
     bool? reverse,
-  }) => EditProject(
-    id: id ?? this.id,
-    title: title ?? this.title,
-    sourceVideoPath: sourceVideoPath ?? this.sourceVideoPath,
-    sourceVideoName: sourceVideoName ?? this.sourceVideoName,
-    sourceDurationSeconds: sourceDurationSeconds ?? this.sourceDurationSeconds,
-    sourceWidth: sourceWidth ?? this.sourceWidth,
-    sourceHeight: sourceHeight ?? this.sourceHeight,
-    trim: trim ?? this.trim,
-    transform: transform ?? this.transform,
-    canvas: canvas ?? this.canvas,
-    speed: speed ?? this.speed,
-    color: color ?? this.color,
-    fade: fade ?? this.fade,
-    watermark: clearWatermark ? null : (watermark ?? this.watermark),
-    textOverlay: clearTextOverlay ? null : (textOverlay ?? this.textOverlay),
-    reverse: reverse ?? this.reverse,
-  );
+  }) =>
+      EditProject(
+        id: id ?? this.id,
+        title: title ?? this.title,
+        sourceVideoPath: sourceVideoPath ?? this.sourceVideoPath,
+        sourceVideoName: sourceVideoName ?? this.sourceVideoName,
+        sourceDurationSeconds:
+            sourceDurationSeconds ?? this.sourceDurationSeconds,
+        sourceWidth: sourceWidth ?? this.sourceWidth,
+        sourceHeight: sourceHeight ?? this.sourceHeight,
+        trim: trim ?? this.trim,
+        transform: transform ?? this.transform,
+        canvas: canvas ?? this.canvas,
+        speed: speed ?? this.speed,
+        color: color ?? this.color,
+        fade: fade ?? this.fade,
+        watermark: clearWatermark ? null : (watermark ?? this.watermark),
+        textOverlay:
+            clearTextOverlay ? null : (textOverlay ?? this.textOverlay),
+        reverse: reverse ?? this.reverse,
+      );
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'title': title,
-    'sourceVideoPath': sourceVideoPath,
-    'sourceVideoName': sourceVideoName,
-    'sourceDurationSeconds': sourceDurationSeconds,
-    'sourceWidth': sourceWidth,
-    'sourceHeight': sourceHeight,
-    'trim': trim.toJson(),
-    'transform': transform.toJson(),
-    'canvas': canvas.toJson(),
-    'speed': speed.toJson(),
-    'color': color.toJson(),
-    'fade': fade.toJson(),
-    'watermark': watermark?.toJson(),
-    'textOverlay': textOverlay?.toJson(),
-    'reverse': reverse,
-  };
+        'id': id,
+        'title': title,
+        'sourceVideoPath': sourceVideoPath,
+        'sourceVideoName': sourceVideoName,
+        'sourceDurationSeconds': sourceDurationSeconds,
+        'sourceWidth': sourceWidth,
+        'sourceHeight': sourceHeight,
+        'trim': trim.toJson(),
+        'transform': transform.toJson(),
+        'canvas': canvas.toJson(),
+        'speed': speed.toJson(),
+        'color': color.toJson(),
+        'fade': fade.toJson(),
+        'watermark': watermark?.toJson(),
+        'textOverlay': textOverlay?.toJson(),
+        'reverse': reverse,
+      };
 
   factory EditProject.fromJson(Map<String, dynamic> json) => EditProject(
-    id: json['id'] as String,
-    title: json['title'] as String,
-    sourceVideoPath: json['sourceVideoPath'] as String,
-    sourceVideoName: json['sourceVideoName'] as String,
-    sourceDurationSeconds: (json['sourceDurationSeconds'] as num).toDouble(),
-    sourceWidth: json['sourceWidth'] as int,
-    sourceHeight: json['sourceHeight'] as int,
-    trim: TrimConfig.fromJson(json['trim'] as Map<String, dynamic>),
-    transform: TransformSpec.fromJson(
-      json['transform'] as Map<String, dynamic>,
-    ),
-    canvas: CanvasConfig.fromJson(json['canvas'] as Map<String, dynamic>),
-    speed: SpeedSpec.fromJson(json['speed'] as Map<String, dynamic>),
-    color: ColorFilterSpec.fromJson(json['color'] as Map<String, dynamic>),
-    fade: FadeSpec.fromJson(json['fade'] as Map<String, dynamic>),
-    watermark: json['watermark'] != null
-        ? WatermarkSpec.fromJson(json['watermark'] as Map<String, dynamic>)
-        : null,
-    textOverlay: json['textOverlay'] != null
-        ? TextOverlaySpec.fromJson(json['textOverlay'] as Map<String, dynamic>)
-        : null,
-    reverse: json['reverse'] as bool? ?? false,
-  );
+        id: json['id'] as String,
+        title: json['title'] as String,
+        sourceVideoPath: json['sourceVideoPath'] as String,
+        sourceVideoName: json['sourceVideoName'] as String,
+        sourceDurationSeconds:
+            (json['sourceDurationSeconds'] as num).toDouble(),
+        sourceWidth: json['sourceWidth'] as int,
+        sourceHeight: json['sourceHeight'] as int,
+        trim: TrimConfig.fromJson(json['trim'] as Map<String, dynamic>),
+        transform: TransformSpec.fromJson(
+          json['transform'] as Map<String, dynamic>,
+        ),
+        canvas: CanvasConfig.fromJson(json['canvas'] as Map<String, dynamic>),
+        speed: SpeedSpec.fromJson(json['speed'] as Map<String, dynamic>),
+        color: ColorFilterSpec.fromJson(json['color'] as Map<String, dynamic>),
+        fade: FadeSpec.fromJson(json['fade'] as Map<String, dynamic>),
+        watermark: json['watermark'] != null
+            ? WatermarkSpec.fromJson(json['watermark'] as Map<String, dynamic>)
+            : null,
+        textOverlay: json['textOverlay'] != null
+            ? TextOverlaySpec.fromJson(
+                json['textOverlay'] as Map<String, dynamic>,
+              )
+            : null,
+        reverse: json['reverse'] as bool? ?? false,
+      );
 }

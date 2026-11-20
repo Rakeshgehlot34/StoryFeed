@@ -65,8 +65,8 @@ class SplitSettingsValidator {
     }
 
     if (targetDurationSeconds > 0 && totalTrimDurationSeconds > 0) {
-      final estimatedClips = (totalTrimDurationSeconds / targetDurationSeconds)
-          .ceil();
+      final estimatedClips =
+          (totalTrimDurationSeconds / targetDurationSeconds).ceil();
       if (estimatedClips > maxClipsCap) {
         issues.add(
           const ValidationIssue(

@@ -1,13 +1,23 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Video and Storage Permissions across Android versions (API 28 through API 35+) -->
-    <!-- Android 13+ (API 33+) Scoped Media Permissions -->
+    <!-- ================================================================ -->
+    <!-- Storage & Media Permissions: API 28 (Android 9) → API 35+ (Android 15) -->
+    <!-- ================================================================ -->
+
+    <!-- Android 13+ (API 33+): Granular media access — appears as "Photos and videos" in App Info -->
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
 
-    <!-- Android 12 and below (API <= 32) Legacy Storage Permissions -->
+    <!-- Android 14+ (API 34+): Partial / "Selected photos and videos" access in App Info.
+         MUST be declared alongside READ_MEDIA_VIDEO and READ_MEDIA_IMAGES to let the user
+         grant access to specific files rather than all media. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
+
+    <!-- Android 12 and below (API ≤ 32): Legacy external storage read — appears as "Storage" -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
-    <!-- API 28 direct write access to public storage (e.g. Movies/ShortsSplitter) -->
+
+    <!-- Android 9 only (API 28): Direct write to public Movies/ShortsSplitter folder -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
 
     <!-- Foreground Service permissions for uninterrupted background export -->
@@ -19,6 +29,7 @@
 
     <!-- Keep CPU awake during lengthy video encoding jobs -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <!-- Post Notifications on completion and ongoing progress (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />

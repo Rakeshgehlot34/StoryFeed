@@ -2,6 +2,7 @@ import '../../../../core/utils/formatters.dart';
 import 'background_spec.dart';
 import 'canvas_spec.dart';
 import 'clip_segment.dart';
+import 'fit_layout.dart';
 import 'overlay_spec.dart';
 import 'trim_range.dart';
 
@@ -14,6 +15,7 @@ class ClipPlanItem {
   final String? customMessage;
   final String? resolvedMessage;
   final bool isMergedTrailing;
+  final PartLabelOverride partLabelOverride;
 
   const ClipPlanItem({
     required this.index,
@@ -23,6 +25,7 @@ class ClipPlanItem {
     this.customMessage,
     this.resolvedMessage,
     this.isMergedTrailing = false,
+    this.partLabelOverride = PartLabelOverride.useProjectDefault,
   }) : assert(endSeconds > startSeconds, 'endSeconds must exceed startSeconds');
 
   double get durationSeconds => endSeconds - startSeconds;
@@ -50,6 +53,7 @@ class ClipPlanItem {
     String? customMessage,
     String? resolvedMessage,
     bool? isMergedTrailing,
+    PartLabelOverride? partLabelOverride,
   }) {
     return ClipPlanItem(
       index: index ?? this.index,
@@ -59,6 +63,7 @@ class ClipPlanItem {
       customMessage: customMessage ?? this.customMessage,
       resolvedMessage: resolvedMessage ?? this.resolvedMessage,
       isMergedTrailing: isMergedTrailing ?? this.isMergedTrailing,
+      partLabelOverride: partLabelOverride ?? this.partLabelOverride,
     );
   }
 
@@ -73,18 +78,20 @@ class ClipPlanItem {
           formattedName == other.formattedName &&
           customMessage == other.customMessage &&
           resolvedMessage == other.resolvedMessage &&
-          isMergedTrailing == other.isMergedTrailing;
+          isMergedTrailing == other.isMergedTrailing &&
+          partLabelOverride == other.partLabelOverride;
 
   @override
   int get hashCode => Object.hash(
-    index,
-    startSeconds,
-    endSeconds,
-    formattedName,
-    customMessage,
-    resolvedMessage,
-    isMergedTrailing,
-  );
+        index,
+        startSeconds,
+        endSeconds,
+        formattedName,
+        customMessage,
+        resolvedMessage,
+        isMergedTrailing,
+        partLabelOverride,
+      );
 }
 
 /// Comprehensive split plan inspected, edited, and approved by the user before processing.
@@ -97,6 +104,9 @@ class ClipPlan {
   final String baseName;
   final double sourceDurationSeconds;
   final TrimRange trimRange;
+  final VerticalPosition verticalPosition;
+  final double verticalOffsetFraction;
+  final SinglePartFileNameMode singlePartFileNameMode;
 
   const ClipPlan({
     required this.items,
@@ -107,6 +117,9 @@ class ClipPlan {
     required this.baseName,
     required this.sourceDurationSeconds,
     required this.trimRange,
+    this.verticalPosition = VerticalPosition.center,
+    this.verticalOffsetFraction = 0.0,
+    this.singlePartFileNameMode = SinglePartFileNameMode.keepPartSuffix,
   });
 
   int get totalParts => items.length;
@@ -126,6 +139,9 @@ class ClipPlan {
     String? baseName,
     double? sourceDurationSeconds,
     TrimRange? trimRange,
+    VerticalPosition? verticalPosition,
+    double? verticalOffsetFraction,
+    SinglePartFileNameMode? singlePartFileNameMode,
   }) {
     return ClipPlan(
       items: items ?? this.items,
@@ -137,32 +153,11 @@ class ClipPlan {
       sourceDurationSeconds:
           sourceDurationSeconds ?? this.sourceDurationSeconds,
       trimRange: trimRange ?? this.trimRange,
+      verticalPosition: verticalPosition ?? this.verticalPosition,
+      verticalOffsetFraction:
+          verticalOffsetFraction ?? this.verticalOffsetFraction,
+      singlePartFileNameMode:
+          singlePartFileNameMode ?? this.singlePartFileNameMode,
     );
   }
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is ClipPlan &&
-          runtimeType == other.runtimeType &&
-          items == other.items &&
-          canvasSpec == other.canvasSpec &&
-          backgroundSpec == other.backgroundSpec &&
-          overlaySpec == other.overlaySpec &&
-          cropToFill == other.cropToFill &&
-          baseName == other.baseName &&
-          sourceDurationSeconds == other.sourceDurationSeconds &&
-          trimRange == other.trimRange;
-
-  @override
-  int get hashCode => Object.hash(
-    items,
-    canvasSpec,
-    backgroundSpec,
-    overlaySpec,
-    cropToFill,
-    baseName,
-    sourceDurationSeconds,
-    trimRange,
-  );
 }

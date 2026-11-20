@@ -29,7 +29,8 @@ class AspectRatioSelector extends StatelessWidget {
           context,
           option: AspectRatioOption.cropVertical,
           title: 'Crop to 9:16 Vertical',
-          subtitle: 'Centers and crops video to full-bleed vertical (ideal for Shorts).',
+          subtitle:
+              'Centers and crops video to full-bleed vertical (ideal for Shorts).',
           icon: Icons.crop_portrait_rounded,
         ),
         const SizedBox(height: 8),
@@ -37,7 +38,8 @@ class AspectRatioSelector extends StatelessWidget {
           context,
           option: AspectRatioOption.blurVertical,
           title: 'Blur-Background 9:16',
-          subtitle: 'Fills 9:16 vertical canvas with blurred background & centered video.',
+          subtitle:
+              'Fills 9:16 vertical canvas with blurred background & centered video.',
           icon: Icons.blur_on_rounded,
         ),
       ],

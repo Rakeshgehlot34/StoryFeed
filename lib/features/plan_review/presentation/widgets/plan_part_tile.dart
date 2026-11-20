@@ -18,6 +18,9 @@ class PlanPartTile extends StatelessWidget {
   final VoidCallback? onAdjustBoundary;
   final VoidCallback? onMergeWithNext;
   final VoidCallback onSplitPart;
+  final VoidCallback? onTrimToCap;
+  final VoidCallback? onResplitPrecisely;
+  final VoidCallback? onPreview;
 
   const PlanPartTile({
     super.key,
@@ -32,6 +35,9 @@ class PlanPartTile extends StatelessWidget {
     this.onAdjustBoundary,
     this.onMergeWithNext,
     required this.onSplitPart,
+    this.onTrimToCap,
+    this.onResplitPrecisely,
+    this.onPreview,
   });
 
   @override
@@ -39,8 +45,7 @@ class PlanPartTile extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    final canMerge =
-        !isLast &&
+    final canMerge = !isLast &&
         nextItem != null &&
         (item.durationSeconds + nextItem!.durationSeconds) <=
             AppConstants.maxClipDurationSeconds;
@@ -64,6 +69,62 @@ class PlanPartTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildTopRow(theme, colorScheme),
+            if (item.durationSeconds > AppConstants.maxClipDurationSeconds) ...[
+              const SizedBox(height: 6),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.amber.shade300),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      size: 16,
+                      color: Colors.amber.shade900,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Exceeds 3:00 Shorts cap (${item.formattedDuration})',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.amber.shade900,
+                        ),
+                      ),
+                    ),
+                    if (onTrimToCap != null)
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                        ),
+                        onPressed: onTrimToCap,
+                        child: const Text(
+                          'Trim to 3:00',
+                          style: TextStyle(fontSize: 11),
+                        ),
+                      ),
+                    if (onResplitPrecisely != null)
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                        ),
+                        onPressed: onResplitPrecisely,
+                        child: const Text(
+                          'Re-split',
+                          style: TextStyle(fontSize: 11),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 8),
             _buildMessagePreview(theme, colorScheme),
             const SizedBox(height: 8),
@@ -330,9 +391,7 @@ class PlanPartTile extends StatelessWidget {
             const SizedBox(width: 6),
             Flexible(
               child: Text(
-                hasMessage
-                    ? item.resolvedMessage!
-                    : 'No overlay message (tap to add)',
+                hasMessage ? item.resolvedMessage! : 'No label (tap to add)',
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontStyle: hasMessage ? FontStyle.normal : FontStyle.italic,
                   color: hasMessage
@@ -357,6 +416,12 @@ class PlanPartTile extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
+        if (onPreview != null)
+          IconButton(
+            icon: const Icon(Icons.play_circle_outline, size: 20),
+            tooltip: 'Preview Clip Segment',
+            onPressed: onPreview,
+          ),
         IconButton(
           icon: const Icon(Icons.call_split_rounded, size: 18),
           tooltip: 'Split Part',

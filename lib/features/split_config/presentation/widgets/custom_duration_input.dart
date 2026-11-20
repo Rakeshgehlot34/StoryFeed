@@ -125,9 +125,9 @@ class _CustomDurationInputState extends State<CustomDurationInput> {
             const SizedBox(height: 8),
             Slider(
               value: widget.currentDurationSeconds.toDouble().clamp(
-                AppConstants.minClipDurationSeconds.toDouble(),
-                AppConstants.maxClipDurationSeconds.toDouble(),
-              ),
+                    AppConstants.minClipDurationSeconds.toDouble(),
+                    AppConstants.maxClipDurationSeconds.toDouble(),
+                  ),
               min: AppConstants.minClipDurationSeconds.toDouble(),
               max: AppConstants.maxClipDurationSeconds.toDouble(),
               divisions: 179,

@@ -24,8 +24,8 @@ class CustomClipItem {
 
   String get displayName =>
       (customName != null && customName!.trim().isNotEmpty)
-      ? customName!.trim()
-      : formattedName;
+          ? customName!.trim()
+          : formattedName;
 
   CustomClipItem copyWith({
     int? index,
@@ -50,26 +50,26 @@ class CustomClipItem {
   }
 
   Map<String, dynamic> toJson() => {
-    'index': index,
-    'formattedName': formattedName,
-    'startSeconds': startSeconds,
-    'endSeconds': endSeconds,
-    'durationSeconds': durationSeconds,
-    'estimatedSizeBytes': estimatedSizeBytes,
-    'isKeyframeAccurate': isKeyframeAccurate,
-    'customName': customName,
-  };
+        'index': index,
+        'formattedName': formattedName,
+        'startSeconds': startSeconds,
+        'endSeconds': endSeconds,
+        'durationSeconds': durationSeconds,
+        'estimatedSizeBytes': estimatedSizeBytes,
+        'isKeyframeAccurate': isKeyframeAccurate,
+        'customName': customName,
+      };
 
   factory CustomClipItem.fromJson(Map<String, dynamic> json) => CustomClipItem(
-    index: json['index'] as int,
-    formattedName: json['formattedName'] as String,
-    startSeconds: (json['startSeconds'] as num).toDouble(),
-    endSeconds: (json['endSeconds'] as num).toDouble(),
-    durationSeconds: (json['durationSeconds'] as num).toDouble(),
-    estimatedSizeBytes: (json['estimatedSizeBytes'] as num?)?.toInt() ?? 0,
-    isKeyframeAccurate: json['isKeyframeAccurate'] as bool? ?? true,
-    customName: json['customName'] as String?,
-  );
+        index: json['index'] as int,
+        formattedName: json['formattedName'] as String,
+        startSeconds: (json['startSeconds'] as num).toDouble(),
+        endSeconds: (json['endSeconds'] as num).toDouble(),
+        durationSeconds: (json['durationSeconds'] as num).toDouble(),
+        estimatedSizeBytes: (json['estimatedSizeBytes'] as num?)?.toInt() ?? 0,
+        isKeyframeAccurate: json['isKeyframeAccurate'] as bool? ?? true,
+        customName: json['customName'] as String?,
+      );
 }
 
 /// Complete plan specification for a custom video split job.
@@ -119,29 +119,29 @@ class CustomClipPlan {
   }
 
   Map<String, dynamic> toJson() => {
-    'originalVideoName': originalVideoName,
-    'baseName': baseName,
-    'totalDurationSeconds': totalDurationSeconds,
-    'splitMode': splitMode.name,
-    'splitMethod': splitMethod.name,
-    'items': items.map((i) => i.toJson()).toList(),
-    'estimatedTotalSizeBytes': estimatedTotalSizeBytes,
-  };
+        'originalVideoName': originalVideoName,
+        'baseName': baseName,
+        'totalDurationSeconds': totalDurationSeconds,
+        'splitMode': splitMode.name,
+        'splitMethod': splitMethod.name,
+        'items': items.map((i) => i.toJson()).toList(),
+        'estimatedTotalSizeBytes': estimatedTotalSizeBytes,
+      };
 
   factory CustomClipPlan.fromJson(Map<String, dynamic> json) => CustomClipPlan(
-    originalVideoName: json['originalVideoName'] as String,
-    baseName: json['baseName'] as String,
-    totalDurationSeconds: (json['totalDurationSeconds'] as num).toDouble(),
-    splitMode: CustomSplitMode.values.byName(
-      json['splitMode'] as String? ?? 'byDuration',
-    ),
-    splitMethod: SplitMethod.values.byName(
-      json['splitMethod'] as String? ?? 'fast',
-    ),
-    items: (json['items'] as List<dynamic>)
-        .map((e) => CustomClipItem.fromJson(e as Map<String, dynamic>))
-        .toList(),
-    estimatedTotalSizeBytes:
-        (json['estimatedTotalSizeBytes'] as num?)?.toInt() ?? 0,
-  );
+        originalVideoName: json['originalVideoName'] as String,
+        baseName: json['baseName'] as String,
+        totalDurationSeconds: (json['totalDurationSeconds'] as num).toDouble(),
+        splitMode: CustomSplitMode.values.byName(
+          json['splitMode'] as String? ?? 'byDuration',
+        ),
+        splitMethod: SplitMethod.values.byName(
+          json['splitMethod'] as String? ?? 'fast',
+        ),
+        items: (json['items'] as List<dynamic>)
+            .map((e) => CustomClipItem.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        estimatedTotalSizeBytes:
+            (json['estimatedTotalSizeBytes'] as num?)?.toInt() ?? 0,
+      );
 }

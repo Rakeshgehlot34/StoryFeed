@@ -1,15 +1,23 @@
 import 'dart:convert';
 
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shorts_splitter/app/constants.dart';
 import 'package:shorts_splitter/app/constants/app_strings.dart';
+import 'package:shorts_splitter/core/database/app_database.dart';
 import 'package:shorts_splitter/features/history/domain/models/project_record.dart';
 import 'package:shorts_splitter/features/history/presentation/screens/history_screen.dart';
 
+import '../../test_sqlite_helper.dart';
+
 void main() {
+  setUpAll(() {
+    setupTestSqlite();
+  });
+
   setUp(() {
     SharedPreferences.setMockInitialValues({});
   });
@@ -38,8 +46,15 @@ void main() {
       ],
     });
 
+    final inMemoryDb = AppDatabase(NativeDatabase.memory());
+
     await tester.pumpWidget(
-      const ProviderScope(child: MaterialApp(home: HistoryScreen())),
+      ProviderScope(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(inMemoryDb),
+        ],
+        child: const MaterialApp(home: HistoryScreen()),
+      ),
     );
 
     await tester.pump();
@@ -47,7 +62,9 @@ void main() {
 
     expect(find.text(AppStrings.historyTitle), findsOneWidget);
     expect(find.text('epic_sunset.mp4'), findsOneWidget);
-    expect(find.textContaining('3 shorts'), findsOneWidget);
+    expect(find.textContaining('3 parts'), findsOneWidget);
+
+    await inMemoryDb.close();
   });
 
   testWidgets('HistoryScreen delete with undo snackbar restores project', (
@@ -73,9 +90,14 @@ void main() {
       ],
     });
 
+    final inMemoryDb = AppDatabase(NativeDatabase.memory());
+
     await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(home: Scaffold(body: HistoryScreen())),
+      ProviderScope(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(inMemoryDb),
+        ],
+        child: const MaterialApp(home: Scaffold(body: HistoryScreen())),
       ),
     );
 
@@ -102,5 +124,7 @@ void main() {
 
     // Project should be restored in the list
     expect(find.text('guitar_solo.mp4'), findsOneWidget);
+
+    await inMemoryDb.close();
   });
 }

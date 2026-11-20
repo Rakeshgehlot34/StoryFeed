@@ -37,14 +37,12 @@ class _JobsScreenState extends ConsumerState<JobsScreen> {
         queueState.jobs.where((j) => j.status.isActive).toList(),
       _JobFilter.completed =>
         queueState.jobs.where((j) => j.status == JobStatus.completed).toList(),
-      _JobFilter.failed =>
-        queueState.jobs
-            .where(
-              (j) =>
-                  j.status == JobStatus.failed ||
-                  j.status == JobStatus.cancelled,
-            )
-            .toList(),
+      _JobFilter.failed => queueState.jobs
+          .where(
+            (j) =>
+                j.status == JobStatus.failed || j.status == JobStatus.cancelled,
+          )
+          .toList(),
     };
 
     return Scaffold(
@@ -185,7 +183,6 @@ class _JobsScreenState extends ConsumerState<JobsScreen> {
             ),
           ),
           const SizedBox(height: AppTokens.spaceSm),
-
           if (job.status == JobStatus.running ||
               job.status == JobStatus.queued) ...[
             ClipRRect(
@@ -212,7 +209,6 @@ class _JobsScreenState extends ConsumerState<JobsScreen> {
               ],
             ),
           ],
-
           if (job.errorMessage != null) ...[
             const SizedBox(height: AppTokens.spaceSm),
             Text(
@@ -222,7 +218,6 @@ class _JobsScreenState extends ConsumerState<JobsScreen> {
               ),
             ),
           ],
-
           const SizedBox(height: AppTokens.spaceMd),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,

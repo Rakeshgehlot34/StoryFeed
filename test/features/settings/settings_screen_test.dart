@@ -32,7 +32,11 @@ void main() {
 
       expect(find.text(AppStrings.settingsTitle), findsOneWidget);
       expect(find.text(AppStrings.setSectionOutput), findsOneWidget);
-      expect(find.text(AppStrings.setSectionAppearance), findsOneWidget);
+      expect(find.text('Shorts Splitting Defaults'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text(AppStrings.setSectionProcessing),
+        200,
+      );
       expect(find.text(AppStrings.setSectionProcessing), findsOneWidget);
     },
   );

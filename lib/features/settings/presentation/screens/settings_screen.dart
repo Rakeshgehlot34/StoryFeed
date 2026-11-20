@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 import '../../../../app/constants.dart';
 import '../../../../app/constants/app_strings.dart';
@@ -8,12 +7,16 @@ import '../../../../app/theme.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_tokens.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/permission_utils.dart';
 import '../../../../shared/widgets/confirm_dialog.dart';
 import '../../../../shared/widgets/loading_skeleton.dart';
 import '../../../../shared/widgets/settings_tile.dart';
 import '../../../output/domain/models/storage_strategy.dart';
 import '../../../output/presentation/controllers/output_controller.dart';
 import '../../../player/data/player_service.dart';
+import '../../../split_config/domain/models/fit_layout.dart';
+import '../../../split_config/domain/models/overlay_spec.dart';
+import '../../../split_config/domain/models/split_config.dart';
 import '../../../split_config/presentation/controllers/split_config_controller.dart';
 import '../controllers/settings_controller.dart';
 
@@ -26,6 +29,8 @@ class SettingsScreen extends ConsumerWidget {
     final outputDirAsync = ref.watch(outputDirectoryProvider);
     final themeMode = ref.watch(themeModeProvider);
     final accentColor = ref.watch(accentColorProvider);
+    final splitConfig = ref.watch(splitConfigControllerProvider);
+    final splitController = ref.read(splitConfigControllerProvider.notifier);
 
     return Scaffold(
       appBar: AppBar(title: const Text(AppStrings.settingsTitle)),
@@ -43,11 +48,18 @@ class SettingsScreen extends ConsumerWidget {
           children: [
             _buildOutputSection(context, ref, outputDirAsync, settings),
             const Divider(),
+            _buildShortsDefaultsSection(
+              context,
+              ref,
+              splitConfig,
+              splitController,
+            ),
+            const Divider(),
             _buildAppearanceSection(context, ref, themeMode, accentColor),
             const Divider(),
             _buildProcessingSection(context, ref, settings),
             const Divider(),
-            _buildPermissionsSection(context, settings),
+            _buildPermissionsSection(context, ref, settings),
             const Divider(),
             _buildAboutSection(context, ref),
             const SizedBox(height: AppTokens.spaceXxl),
@@ -107,6 +119,100 @@ class SettingsScreen extends ConsumerWidget {
                 ref
                     .read(settingsControllerProvider.notifier)
                     .setDuplicateHandling(val);
+              }
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildShortsDefaultsSection(
+    BuildContext context,
+    WidgetRef ref,
+    SplitConfig splitConfig,
+    SplitConfigController splitController,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Shorts Splitting Defaults'),
+        SettingsTile(
+          icon: Icons.subtitles_outlined,
+          title: 'Part Label Default',
+          subtitle: splitConfig.overlaySpec.partLabelMode.label,
+          trailing: DropdownButton<PartLabelMode>(
+            value: splitConfig.overlaySpec.partLabelMode,
+            underline: const SizedBox(),
+            items: const [
+              DropdownMenuItem(
+                value: PartLabelMode.auto,
+                child: Text('Auto (>1 clip)'),
+              ),
+              DropdownMenuItem(
+                value: PartLabelMode.always,
+                child: Text('Always show'),
+              ),
+              DropdownMenuItem(
+                value: PartLabelMode.never,
+                child: Text('Never show'),
+              ),
+            ],
+            onChanged: (val) {
+              if (val != null) {
+                splitController.setPartLabelMode(val);
+              }
+            },
+          ),
+        ),
+        SettingsTile(
+          icon: Icons.vertical_align_center,
+          title: 'Vertical Position Default',
+          subtitle: splitConfig.verticalPosition.label,
+          trailing: DropdownButton<VerticalPosition>(
+            value: splitConfig.verticalPosition,
+            underline: const SizedBox(),
+            items: const [
+              DropdownMenuItem(
+                value: VerticalPosition.center,
+                child: Text('Center (Default)'),
+              ),
+              DropdownMenuItem(value: VerticalPosition.top, child: Text('Top')),
+              DropdownMenuItem(
+                value: VerticalPosition.bottom,
+                child: Text('Bottom'),
+              ),
+            ],
+            onChanged: (val) {
+              if (val != null) {
+                splitController.setVerticalPosition(val);
+              }
+            },
+          ),
+        ),
+        SettingsTile(
+          icon: Icons.drive_file_rename_outline,
+          title: 'Single-Clip Naming Default',
+          subtitle: splitConfig.singlePartFileNameMode ==
+                  SinglePartFileNameMode.originalNameOnly
+              ? 'Name only (video.mp4)'
+              : 'With suffix (video_part_001.mp4)',
+          trailing: DropdownButton<SinglePartFileNameMode>(
+            value: splitConfig.singlePartFileNameMode,
+            underline: const SizedBox(),
+            items: const [
+              DropdownMenuItem(
+                value: SinglePartFileNameMode.originalNameOnly,
+                child: Text('Name only'),
+              ),
+              DropdownMenuItem(
+                value: SinglePartFileNameMode.keepPartSuffix,
+                child: Text('With suffix'),
+              ),
+            ],
+            onChanged: (val) {
+              if (val != null) {
+                splitController.setSinglePartFileNameMode(val);
               }
             },
           ),
@@ -228,7 +334,9 @@ class SettingsScreen extends ConsumerWidget {
           margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest
+            color: Theme.of(context)
+                .colorScheme
+                .surfaceContainerHighest
                 .withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(12),
           ),
@@ -264,6 +372,7 @@ class SettingsScreen extends ConsumerWidget {
 
   Widget _buildPermissionsSection(
     BuildContext context,
+    WidgetRef ref,
     SettingsState settings,
   ) {
     return Column(
@@ -273,12 +382,18 @@ class SettingsScreen extends ConsumerWidget {
         SettingsTile(
           icon: Icons.storage_outlined,
           title: 'Storage & Media Access',
-          subtitle: settings.hasStoragePermission
-              ? 'Granted'
-              : 'Missing Permissions',
+          subtitle:
+              settings.hasStoragePermission ? 'Granted' : 'Missing Permissions',
           trailing: !settings.hasStoragePermission
               ? TextButton(
-                  onPressed: () => openAppSettings(),
+                  onPressed: () async {
+                    await PermissionUtils.requestAllAppPermissions(
+                      context: context,
+                    );
+                    await ref
+                        .read(settingsControllerProvider.notifier)
+                        .refreshPermissions();
+                  },
                   child: const Text('Grant'),
                 )
               : const Icon(Icons.check_circle_rounded, color: Colors.green),

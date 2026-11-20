@@ -88,16 +88,15 @@ class JobQueueController extends Notifier<JobQueueState> {
         final loadedJobs = list
             .map((item) => JobRecord.fromJson(item as Map<String, dynamic>))
             .map((job) {
-              // If a job was left in 'running' when app died, mark as failed for safe recovery
-              if (job.status == JobStatus.running) {
-                return job.copyWith(
-                  status: JobStatus.failed,
-                  errorMessage: 'Job interrupted by process termination.',
-                );
-              }
-              return job;
-            })
-            .toList();
+          // If a job was left in 'running' when app died, mark as failed for safe recovery
+          if (job.status == JobStatus.running) {
+            return job.copyWith(
+              status: JobStatus.failed,
+              errorMessage: 'Job interrupted by process termination.',
+            );
+          }
+          return job;
+        }).toList();
 
         state = state.copyWith(jobs: loadedJobs);
         AppLogger.info('Loaded ${loadedJobs.length} jobs from queue storage');

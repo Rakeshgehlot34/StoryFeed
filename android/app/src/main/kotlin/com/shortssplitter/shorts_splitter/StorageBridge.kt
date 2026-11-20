@@ -8,8 +8,12 @@ import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
+import android.os.PowerManager
 import android.os.StatFs
 import android.provider.MediaStore
+import android.provider.Settings
 import androidx.documentfile.provider.DocumentFile
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -76,6 +80,100 @@ class StorageBridge(private val context: Context) : MethodChannel.MethodCallHand
                 }
             }
 
+            "createSafDirectory" -> {
+                val treeUriString = call.argument<String>("treeUri")
+                val dirName = call.argument<String>("dirName")
+                if (treeUriString == null || dirName == null) {
+                    result.error("INVALID_ARGS", "treeUri and dirName must not be null", null)
+                    return
+                }
+                Thread {
+                    try {
+                        val treeUri = Uri.parse(treeUriString)
+                        val parentDoc = if (treeUriString.contains("/document/")) {
+                            DocumentFile.fromSingleUri(context, treeUri) ?: DocumentFile.fromTreeUri(context, treeUri)
+                        } else {
+                            DocumentFile.fromTreeUri(context, treeUri)
+                        }
+                        if (parentDoc == null || !parentDoc.canWrite()) {
+                            Handler(Looper.getMainLooper()).post {
+                                result.error("SAF_WRITE_DENIED", "Cannot write to selected SAF directory", null)
+                            }
+                            return@Thread
+                        }
+                        val existing = parentDoc.findFile(dirName)
+                        if (existing != null && existing.isDirectory) {
+                            Handler(Looper.getMainLooper()).post {
+                                result.success(existing.uri.toString())
+                            }
+                            return@Thread
+                        }
+                        val newDir = parentDoc.createDirectory(dirName)
+                        Handler(Looper.getMainLooper()).post {
+                            if (newDir != null) {
+                                result.success(newDir.uri.toString())
+                            } else {
+                                result.error("SAF_MKDIR_FAILED", "Could not create directory $dirName", null)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Handler(Looper.getMainLooper()).post {
+                            result.error("SAF_MKDIR_ERROR", e.message, null)
+                        }
+                    }
+                }.start()
+            }
+
+            "renameSafDocument" -> {
+                val docUriString = call.argument<String>("documentUri")
+                val newName = call.argument<String>("newName")
+                if (docUriString == null || newName == null) {
+                    result.error("INVALID_ARGS", "documentUri and newName required", null)
+                    return
+                }
+                Thread {
+                    try {
+                        val docUri = Uri.parse(docUriString)
+                        val doc = DocumentFile.fromSingleUri(context, docUri)
+                        val success = doc != null && doc.renameTo(newName)
+                        Handler(Looper.getMainLooper()).post {
+                            result.success(success)
+                        }
+                    } catch (e: Exception) {
+                        Handler(Looper.getMainLooper()).post {
+                            result.error("SAF_RENAME_ERROR", e.message, null)
+                        }
+                    }
+                }.start()
+            }
+
+            "deleteSafDocument" -> {
+                val docUriString = call.argument<String>("documentUri")
+                if (docUriString == null) {
+                    result.error("INVALID_ARGS", "documentUri required", null)
+                    return
+                }
+                Thread {
+                    try {
+                        val docUri = Uri.parse(docUriString)
+                        val doc = DocumentFile.fromSingleUri(context, docUri)
+                        var success = doc != null && doc.delete()
+                        if (!success) {
+                            try {
+                                success = context.contentResolver.delete(docUri, null, null) > 0
+                            } catch (_: Exception) {}
+                        }
+                        Handler(Looper.getMainLooper()).post {
+                            result.success(success)
+                        }
+                    } catch (e: Exception) {
+                        Handler(Looper.getMainLooper()).post {
+                            result.error("SAF_DELETE_ERROR", e.message, null)
+                        }
+                    }
+                }.start()
+            }
+
             "writeClipToSaf" -> {
                 val tempFilePath = call.argument<String>("tempFilePath")
                 val treeUriString = call.argument<String>("treeUri")
@@ -95,7 +193,11 @@ class StorageBridge(private val context: Context) : MethodChannel.MethodCallHand
                     }
 
                     val treeUri = Uri.parse(treeUriString)
-                    val treeDoc = DocumentFile.fromTreeUri(context, treeUri)
+                    val treeDoc = if (treeUriString.contains("/document/")) {
+                        DocumentFile.fromSingleUri(context, treeUri) ?: DocumentFile.fromTreeUri(context, treeUri)
+                    } else {
+                        DocumentFile.fromTreeUri(context, treeUri)
+                    }
                     if (treeDoc == null || !treeDoc.canWrite()) {
                         result.error("SAF_WRITE_DENIED", "Cannot write to selected SAF directory", null)
                         return
@@ -261,6 +363,33 @@ class StorageBridge(private val context: Context) : MethodChannel.MethodCallHand
                     // Scan completed
                 }
                 result.success(true)
+            }
+
+            "isIgnoringBatteryOptimizations" -> {
+                val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+                val isIgnoring = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    powerManager?.isIgnoringBatteryOptimizations(context.packageName) ?: true
+                } else {
+                    true
+                }
+                result.success(isIgnoring)
+            }
+
+            "requestIgnoreBatteryOptimizations" -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    try {
+                        val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                            data = Uri.parse("package:${context.packageName}")
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        context.startActivity(intent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.success(false)
+                    }
+                } else {
+                    result.success(true)
+                }
             }
 
             else -> result.notImplemented()

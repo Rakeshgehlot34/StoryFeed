@@ -18,7 +18,9 @@ class DashboardStatsGrid extends StatelessWidget {
       children: [
         Text(
           AppStrings.dashStatsTitle,
-          style: Theme.of(context).textTheme.titleSmall
+          style: Theme.of(context)
+              .textTheme
+              .titleSmall
               ?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: AppTokens.spaceSm),

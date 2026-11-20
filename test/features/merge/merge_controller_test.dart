@@ -43,11 +43,8 @@ void main() {
       final controller = container.read(mergeControllerProvider.notifier);
       await controller.addVideos(['/storage/vid1.mp4', '/storage/vid2.mp4']);
 
-      final firstId = container
-          .read(mergeControllerProvider)
-          .config
-          .clips[0]
-          .id;
+      final firstId =
+          container.read(mergeControllerProvider).config.clips[0].id;
       controller.removeClip(firstId);
 
       final state = container.read(mergeControllerProvider);

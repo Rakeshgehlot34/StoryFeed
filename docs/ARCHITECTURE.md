@@ -336,3 +336,22 @@ ShortsSplitter integrates with native Android OS capabilities via three MethodCh
 3. **`AudioRecorderBridge` (`com.shortssplitter.shorts_splitter/audio_recorder`):**
    - Implemented in Kotlin: `android/app/src/main/kotlin/.../AudioRecorderBridge.kt`.
    - Native microphone recording using Android's `MediaRecorder` API (AAC, 44.1kHz, 192kbps), with start/stop/duration methods, zero third-party pub dependencies, and full API 28 through API 35+ support.
+
+---
+
+## 8. Local Embedded Database (Drift SQLite) & Two-Stage Pipeline
+
+ShortsSplitter incorporates an embedded, typed, reactive SQLite architecture powered by **Drift** (`drift: ^2.31.0` + `sqlite3_flutter_libs`):
+
+### Schema Design & Foreign Key Cascades
+- **`sources`:** Unique media fingerprint (`SourceFingerprint`), technical metadata (resolution, fps, duration, size), content URI or file path.
+- **`projects`:** Foreign key to `sources(id)` with `ON DELETE CASCADE`. Stores workflow type (`two_stage` or `single_step`), trim range, output layout, settings snapshot JSON, and timestamps.
+- **`parts`:** Foreign key to `projects(id)` with `ON DELETE CASCADE`. Stores planned and actual cut boundaries, granular lifecycle stages (`planned`, `split`, `converted`), status (`idle`, `queued`, `running`, `failed`), `hasCapViolation`, `isStale`, and `isMissing`.
+- **`jobs` & `job_events`:** Background execution state, progress tracking, and detailed error/status logging.
+- **`app_settings`:** Key-value system configurations.
+
+### Two-Stage Workflow Architecture
+1. **Stage 1 "Fast Split":** Single-pass stream copy (`-c copy`) segment split for long videos into a designated subfolder (`FolderLayoutResolver`). Cuts snap to nearest keyframes; actual cut boundaries and durations are probed and updated in `parts`. Parts exceeding 180s cap are flagged with `hasCapViolation`.
+2. **Stage 2 "Convert to Shorts":** Selective transcoding for user-chosen parts from the parts review screen. Transcoded output safely replaces raw split parts via `SafeClipReplacer` (write to temp -> verify integrity -> write staged document beside target -> verify -> atomic delete/rename with full rollback preserving the raw clip on any error).
+3. **Reactive UI Streaming:** The presentation layer subscribes to Drift queries via domain repositories (`watchAllProjects()`, `watchPartsForProject()`), ensuring instantaneous UI reflection with zero polling. Granular per-row progress is throttled to 4 Hz via `ProgressTracker` and isolated through `partProgressProvider(index)`.
+

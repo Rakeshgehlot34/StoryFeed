@@ -42,6 +42,11 @@ class AppStrings {
   static const String onbPage3Title = 'Choose Your Output Folder';
   static const String onbPage3Desc =
       'Select where your finished clips will be saved using Android Scoped Storage, or proceed with the recommended default location.';
+  static const String onbPermissionsTitle = 'Allow Permissions';
+  static const String onbPermissionsDesc =
+      'ShortsSplitter requires storage access to pick and export videos, notifications for background export progress, and microphone for audio recording.';
+  static const String onbGrantPermissions = 'Grant All Permissions';
+  static const String onbPermissionsGranted = 'Permissions Granted';
   static const String onbGetStarted = 'Get Started';
   static const String onbChooseFolder = 'Select Output Directory';
 

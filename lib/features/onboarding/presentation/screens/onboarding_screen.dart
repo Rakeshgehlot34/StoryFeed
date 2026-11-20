@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/constants.dart';
 import '../../../../app/constants/app_strings.dart';
 import '../../../../app/theme/app_tokens.dart';
+import '../../../../core/utils/permission_utils.dart';
 import '../../../output/presentation/controllers/output_controller.dart';
 import '../controllers/onboarding_controller.dart';
 
@@ -18,6 +19,8 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  bool _isFinishing = false;
+  bool _permissionsRequested = false;
 
   @override
   void dispose() {
@@ -26,9 +29,23 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _finishOnboarding() async {
-    await ref.read(onboardingControllerProvider.notifier).completeOnboarding();
-    if (mounted) {
-      context.go(AppRoutes.home);
+    if (_isFinishing) return;
+    _isFinishing = true;
+    try {
+      // Prompt all app permissions on initial completion if not yet requested
+      if (!_permissionsRequested) {
+        await PermissionUtils.requestAllAppPermissions(context: context);
+      }
+      await ref
+          .read(onboardingControllerProvider.notifier)
+          .completeOnboarding();
+      if (mounted) {
+        context.go(AppRoutes.home);
+      }
+    } finally {
+      if (mounted) {
+        _isFinishing = false;
+      }
     }
   }
 
@@ -38,12 +55,22 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Back',
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              _finishOnboarding();
+            }
+          },
+        ),
         actions: [
-          if (_currentPage < 2)
-            TextButton(
-              onPressed: _finishOnboarding,
-              child: const Text(AppStrings.actionSkip),
-            ),
+          TextButton(
+            onPressed: _finishOnboarding,
+            child: const Text(AppStrings.actionSkip),
+          ),
         ],
       ),
       body: SafeArea(
@@ -59,6 +86,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     title: AppStrings.onbPage1Title,
                     description: AppStrings.onbPage1Desc,
                   ),
+                  _buildPermissionsPage(colorScheme),
                   _buildPage(
                     icon: Icons.checklist_rounded,
                     title: AppStrings.onbPage2Title,
@@ -115,8 +143,130 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
+  Widget _buildPermissionsPage(ColorScheme colorScheme) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppTokens.spaceXxl),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircleAvatar(
+            radius: 54,
+            backgroundColor: colorScheme.tertiaryContainer,
+            child: Icon(
+              Icons.verified_user_rounded,
+              size: 54,
+              color: colorScheme.onTertiaryContainer,
+            ),
+          ),
+          const SizedBox(height: AppTokens.spaceXxl),
+          Text(
+            AppStrings.onbPermissionsTitle,
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppTokens.spaceMd),
+          Text(
+            AppStrings.onbPermissionsDesc,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+              height: 1.4,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppTokens.spaceLg),
+          _buildPermissionItem(
+            icon: Icons.video_library_rounded,
+            title: 'Photos & Videos',
+            subtitle: 'Read source videos to trim & split',
+            colorScheme: colorScheme,
+          ),
+          const SizedBox(height: AppTokens.spaceSm),
+          _buildPermissionItem(
+            icon: Icons.notifications_active_rounded,
+            title: 'Notifications',
+            subtitle: 'Show progress during exports',
+            colorScheme: colorScheme,
+          ),
+          const SizedBox(height: AppTokens.spaceSm),
+          _buildPermissionItem(
+            icon: Icons.mic_rounded,
+            title: 'Microphone',
+            subtitle: 'Audio Studio voiceover recording',
+            colorScheme: colorScheme,
+          ),
+          const SizedBox(height: AppTokens.spaceLg),
+          FilledButton.icon(
+            icon: Icon(
+              _permissionsRequested
+                  ? Icons.check_circle_rounded
+                  : Icons.security_rounded,
+            ),
+            label: Text(
+              _permissionsRequested
+                  ? AppStrings.onbPermissionsGranted
+                  : AppStrings.onbGrantPermissions,
+            ),
+            onPressed: () async {
+              await PermissionUtils.requestAllAppPermissions(context: context);
+              if (mounted) {
+                setState(() => _permissionsRequested = true);
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPermissionItem({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required ColorScheme colorScheme,
+  }) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(AppTokens.spaceSm),
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(AppTokens.radiusMd),
+          ),
+          child: Icon(icon, size: 20, color: colorScheme.primary),
+        ),
+        const SizedBox(width: AppTokens.spaceMd),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style:
+                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildStoragePage(ColorScheme colorScheme) {
-    final outputDir = ref.watch(outputDirectoryProvider).valueOrNull ?? '';
+    // Safely unwrap — provider may still be loading or in error state on first
+    // render; fall back to empty string so the page never shows a blank screen.
+    final outputDirAsync = ref.watch(outputDirectoryProvider);
+    final outputDir = outputDirAsync.valueOrNull ?? '';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppTokens.spaceXxl),
@@ -135,14 +285,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           const SizedBox(height: AppTokens.spaceXxl),
           Text(
             AppStrings.onbPage3Title,
-            style: Theme.of(context).textTheme.headlineSmall
+            style: Theme.of(context)
+                .textTheme
+                .headlineSmall
                 ?.copyWith(fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppTokens.spaceLg),
           Text(
             AppStrings.onbPage3Desc,
-            style: Theme.of(context).textTheme.bodyMedium
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
                 ?.copyWith(color: colorScheme.onSurfaceVariant, height: 1.5),
             textAlign: TextAlign.center,
           ),
@@ -173,13 +327,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Widget _buildBottomControls(ColorScheme colorScheme) {
+    const totalPages = 4;
+
     return Padding(
       padding: const EdgeInsets.all(AppTokens.spaceLg),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
-            children: List.generate(3, (idx) {
+            children: List.generate(totalPages, (idx) {
               return Container(
                 width: _currentPage == idx ? 20 : 8,
                 height: 8,
@@ -195,7 +351,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           ),
           FilledButton(
             onPressed: () {
-              if (_currentPage < 2) {
+              if (_currentPage < totalPages - 1) {
                 _pageController.nextPage(
                   duration: AppTokens.durationNormal,
                   curve: Curves.easeInOut,
@@ -205,7 +361,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               }
             },
             child: Text(
-              _currentPage == 2
+              _currentPage == totalPages - 1
                   ? AppStrings.onbGetStarted
                   : AppStrings.actionNext,
             ),

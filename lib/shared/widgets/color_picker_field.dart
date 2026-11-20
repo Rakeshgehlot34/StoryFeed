@@ -25,10 +25,8 @@ class ColorPickerField extends StatelessWidget {
   });
 
   String get _hexCode {
-    final hex = selectedColorValue
-        .toRadixString(16)
-        .padLeft(8, '0')
-        .toUpperCase();
+    final hex =
+        selectedColorValue.toRadixString(16).padLeft(8, '0').toUpperCase();
     return '#${hex.substring(2)}';
   }
 

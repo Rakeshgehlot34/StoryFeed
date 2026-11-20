@@ -4,14 +4,23 @@ import 'package:flutter/material.dart';
 
 import '../../../split_config/domain/models/background_spec.dart';
 import '../../../split_config/domain/models/canvas_spec.dart';
+import '../../../split_config/domain/models/fit_layout.dart';
 import '../../../split_config/domain/models/overlay_spec.dart';
 
 /// Live canvas and overlay preview showing safe-area positioning and styling.
+/// Powered by [FitLayout] to ensure 100% exact parity with FFmpeg export geometry.
 class OverlayLivePreview extends StatelessWidget {
   final CanvasSpec canvasSpec;
   final BackgroundSpec backgroundSpec;
   final OverlaySpec overlaySpec;
   final String? previewText;
+  final int sourceWidth;
+  final int sourceHeight;
+  final int rotationDegrees;
+  final VerticalPosition verticalPosition;
+  final double verticalOffsetFraction;
+  final bool cropToFill;
+  final VoidCallback? onPreviewTap;
 
   const OverlayLivePreview({
     super.key,
@@ -19,6 +28,13 @@ class OverlayLivePreview extends StatelessWidget {
     required this.backgroundSpec,
     required this.overlaySpec,
     this.previewText,
+    this.sourceWidth = 1920,
+    this.sourceHeight = 1080,
+    this.rotationDegrees = 0,
+    this.verticalPosition = VerticalPosition.center,
+    this.verticalOffsetFraction = 0.0,
+    this.cropToFill = false,
+    this.onPreviewTap,
   });
 
   @override
@@ -26,6 +42,17 @@ class OverlayLivePreview extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final aspect = canvasSpec.aspectRatio;
+
+    final fitLayout = FitLayout.calculate(
+      sourceWidth: sourceWidth,
+      sourceHeight: sourceHeight,
+      canvasWidth: canvasSpec.width,
+      canvasHeight: canvasSpec.height,
+      rotationDegrees: rotationDegrees,
+      fitMode: cropToFill ? FitMode.cropToFill : FitMode.fit,
+      verticalPosition: verticalPosition,
+      verticalOffsetFraction: verticalOffsetFraction,
+    );
 
     return Center(
       child: Container(
@@ -45,14 +72,65 @@ class OverlayLivePreview extends StatelessWidget {
               ],
             ),
             clipBehavior: Clip.antiAlias,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                _buildBackground(),
-                _buildVideoPlaceholder(theme, colorScheme),
-                if (previewText != null && previewText!.isNotEmpty)
-                  _buildOverlayText(),
-              ],
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onPreviewTap,
+                borderRadius: BorderRadius.circular(12),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        _buildBackground(),
+                        _buildVideoPlaceholder(
+                          theme,
+                          colorScheme,
+                          fitLayout,
+                          constraints.maxWidth,
+                          constraints.maxHeight,
+                        ),
+                        if (previewText != null && previewText!.isNotEmpty)
+                          _buildOverlayText(),
+                        if (onPreviewTap != null)
+                          Positioned(
+                            bottom: 8,
+                            right: 8,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.7),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.play_arrow_rounded,
+                                    color: Colors.white,
+                                    size: 14,
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Preview',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ),
             ),
           ),
         ),
@@ -68,7 +146,8 @@ class OverlayLivePreview extends StatelessWidget {
         return Image.file(
           File(imagePath),
           fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => Container(color: Colors.white),
+          errorBuilder: (context, error, stackTrace) =>
+              Container(color: Colors.white),
         );
       case BlurBackgroundSpec():
         return Container(
@@ -80,14 +159,34 @@ class OverlayLivePreview extends StatelessWidget {
     }
   }
 
-  Widget _buildVideoPlaceholder(ThemeData theme, ColorScheme colorScheme) {
-    return Center(
+  Widget _buildVideoPlaceholder(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    FitLayout layout,
+    double parentWidth,
+    double parentHeight,
+  ) {
+    final left = layout.normalizedX * parentWidth;
+    final top = layout.normalizedY * parentHeight;
+    final width = (layout.normalizedWidth * parentWidth).clamp(
+      2.0,
+      parentWidth,
+    );
+    final height = (layout.normalizedHeight * parentHeight).clamp(
+      2.0,
+      parentHeight,
+    );
+
+    return Positioned(
+      left: left,
+      top: top,
+      width: width,
+      height: height,
       child: Container(
-        width: 140,
-        height: 80,
         decoration: BoxDecoration(
           color: Colors.black87,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: Colors.white24, width: 1),
         ),
         child: Center(
           child: FittedBox(
@@ -100,14 +199,14 @@ class OverlayLivePreview extends StatelessWidget {
                   const Icon(
                     Icons.play_circle_outline,
                     color: Colors.white70,
-                    size: 28,
+                    size: 24,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
                     'Source Video',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: Colors.white70,
-                      fontSize: 10,
+                      fontSize: 9,
                     ),
                   ),
                 ],
@@ -120,11 +219,19 @@ class OverlayLivePreview extends StatelessWidget {
   }
 
   Widget _buildOverlayText() {
+    double alignX = 0.0;
+    if (overlaySpec.position == OverlayPosition.topLeft ||
+        overlaySpec.position == OverlayPosition.bottomLeft) {
+      alignX = -0.84;
+    } else if (overlaySpec.position == OverlayPosition.topRight ||
+        overlaySpec.position == OverlayPosition.bottomRight) {
+      alignX = 0.84;
+    }
+
+    final alignY = (overlaySpec.position.yOffsetFraction * 2.0) - 1.0;
+
     return Align(
-      alignment: Alignment(
-        0.0,
-        (overlaySpec.position.yOffsetFraction * 2.0) - 1.0,
-      ),
+      alignment: Alignment(alignX, alignY),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

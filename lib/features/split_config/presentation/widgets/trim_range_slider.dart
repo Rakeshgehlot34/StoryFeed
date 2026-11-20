@@ -26,6 +26,8 @@ class _TrimRangeSliderState extends State<TrimRangeSlider> {
   late double _end;
   late final TextEditingController _startController;
   late final TextEditingController _endController;
+  late final FocusNode _startFocus;
+  late final FocusNode _endFocus;
   String? _errorMessage;
 
   @override
@@ -39,13 +41,23 @@ class _TrimRangeSliderState extends State<TrimRangeSlider> {
     _endController = TextEditingController(
       text: Formatters.formatPrecise(_end),
     );
+    _startFocus = FocusNode()..addListener(_onFocusChange);
+    _endFocus = FocusNode()..addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    if (!_startFocus.hasFocus && !_endFocus.hasFocus) {
+      _onTimeFieldSubmitted();
+    }
   }
 
   @override
   void didUpdateWidget(covariant TrimRangeSlider oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.currentRange != null &&
-        widget.currentRange != oldWidget.currentRange) {
+        widget.currentRange != oldWidget.currentRange &&
+        !_startFocus.hasFocus &&
+        !_endFocus.hasFocus) {
       _start = widget.currentRange!.startSeconds;
       _end = widget.currentRange!.endSeconds;
       _startController.text = Formatters.formatPrecise(_start);
@@ -55,6 +67,10 @@ class _TrimRangeSliderState extends State<TrimRangeSlider> {
 
   @override
   void dispose() {
+    _startFocus.removeListener(_onFocusChange);
+    _endFocus.removeListener(_onFocusChange);
+    _startFocus.dispose();
+    _endFocus.dispose();
     _startController.dispose();
     _endController.dispose();
     super.dispose();
@@ -112,9 +128,8 @@ class _TrimRangeSliderState extends State<TrimRangeSlider> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final maxSec = widget.totalDurationSeconds > 0
-        ? widget.totalDurationSeconds
-        : 1.0;
+    final maxSec =
+        widget.totalDurationSeconds > 0 ? widget.totalDurationSeconds : 1.0;
 
     return Card(
       elevation: 0,
@@ -234,25 +249,37 @@ class _TrimRangeSliderState extends State<TrimRangeSlider> {
         Expanded(
           child: TextField(
             controller: _startController,
+            focusNode: _startFocus,
             decoration: const InputDecoration(
               labelText: 'Start (mm:ss.mmm)',
               isDense: true,
               border: OutlineInputBorder(),
             ),
+            onTapOutside: (_) => _onTimeFieldSubmitted(),
+            onEditingComplete: _onTimeFieldSubmitted,
             onSubmitted: (_) => _onTimeFieldSubmitted(),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 8),
         Expanded(
           child: TextField(
             controller: _endController,
+            focusNode: _endFocus,
             decoration: const InputDecoration(
               labelText: 'End (mm:ss.mmm)',
               isDense: true,
               border: OutlineInputBorder(),
             ),
+            onTapOutside: (_) => _onTimeFieldSubmitted(),
+            onEditingComplete: _onTimeFieldSubmitted,
             onSubmitted: (_) => _onTimeFieldSubmitted(),
           ),
+        ),
+        const SizedBox(width: 8),
+        IconButton.filledTonal(
+          icon: const Icon(Icons.check_rounded, size: 20),
+          tooltip: 'Apply Timestamps',
+          onPressed: _onTimeFieldSubmitted,
         ),
       ],
     );

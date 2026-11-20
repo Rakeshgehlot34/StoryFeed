@@ -1,20 +1,29 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/models/canvas_spec.dart';
+import '../../domain/models/fit_layout.dart';
 
-/// Selector for output canvas aspect ratio and explicit crop-to-fill toggle.
+/// Selector for output canvas aspect ratio, crop-to-fill, and vertical alignment.
 class CanvasSelector extends StatelessWidget {
   final CanvasSpec selectedCanvas;
   final bool cropToFill;
+  final VerticalPosition verticalPosition;
+  final double verticalOffsetFraction;
   final ValueChanged<CanvasSpec> onCanvasChanged;
   final ValueChanged<bool> onCropToFillChanged;
+  final ValueChanged<VerticalPosition> onVerticalPositionChanged;
+  final ValueChanged<double> onVerticalOffsetChanged;
 
   const CanvasSelector({
     super.key,
     required this.selectedCanvas,
     required this.cropToFill,
+    this.verticalPosition = VerticalPosition.center,
+    this.verticalOffsetFraction = 0.0,
     required this.onCanvasChanged,
     required this.onCropToFillChanged,
+    required this.onVerticalPositionChanged,
+    required this.onVerticalOffsetChanged,
   });
 
   @override
@@ -98,6 +107,73 @@ class CanvasSelector extends StatelessWidget {
               value: cropToFill,
               onChanged: onCropToFillChanged,
             ),
+            if (!cropToFill) ...[
+              const SizedBox(height: 8),
+              const Divider(height: 1),
+              const SizedBox(height: 12),
+              Text(
+                'Vertical Position',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: SegmentedButton<VerticalPosition>(
+                  segments: const [
+                    ButtonSegment(
+                      value: VerticalPosition.top,
+                      label: Text('Top'),
+                      icon: Icon(Icons.vertical_align_top_rounded, size: 16),
+                    ),
+                    ButtonSegment(
+                      value: VerticalPosition.center,
+                      label: Text('Center'),
+                      icon: Icon(Icons.vertical_align_center_rounded, size: 16),
+                    ),
+                    ButtonSegment(
+                      value: VerticalPosition.bottom,
+                      label: Text('Bottom'),
+                      icon: Icon(Icons.vertical_align_bottom_rounded, size: 16),
+                    ),
+                  ],
+                  selected: {verticalPosition},
+                  onSelectionChanged: (newSelection) {
+                    onVerticalPositionChanged(newSelection.first);
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Vertical Offset: ${(verticalOffsetFraction * 100).round()}%',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  if (verticalOffsetFraction != 0.0)
+                    TextButton(
+                      onPressed: () => onVerticalOffsetChanged(0.0),
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                      ),
+                      child: const Text('Reset'),
+                    ),
+                ],
+              ),
+              Slider(
+                value: verticalOffsetFraction,
+                min: -0.20,
+                max: 0.20,
+                divisions: 20,
+                label: '${(verticalOffsetFraction * 100).round()}%',
+                onChanged: onVerticalOffsetChanged,
+              ),
+            ],
           ],
         ),
       ),

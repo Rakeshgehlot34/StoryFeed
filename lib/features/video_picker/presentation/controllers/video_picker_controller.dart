@@ -12,8 +12,8 @@ final videoPickerRepositoryProvider = Provider<VideoPickerRepository>((ref) {
 
 final videoPickerControllerProvider =
     AsyncNotifierProvider<VideoPickerController, PickedVideo?>(
-      VideoPickerController.new,
-    );
+  VideoPickerController.new,
+);
 
 class VideoPickerController extends AsyncNotifier<PickedVideo?> {
   @override

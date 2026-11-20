@@ -21,15 +21,15 @@ class TimelineMapper {
     this.handleWidth = 16.0,
     this.handleTouchWidth = 48.0,
     this.minGapMs = 1000,
-  }) : assert(totalDurationMs >= 0, 'totalDurationMs cannot be negative'),
-       assert(viewMinMs >= 0, 'viewMinMs cannot be negative'),
-       assert(viewMaxMs >= viewMinMs, 'viewMaxMs must be >= viewMinMs'),
-       assert(trackWidth >= 0, 'trackWidth cannot be negative');
+  })  : assert(totalDurationMs >= 0, 'totalDurationMs cannot be negative'),
+        assert(viewMinMs >= 0, 'viewMinMs cannot be negative'),
+        assert(viewMaxMs >= viewMinMs, 'viewMaxMs must be >= viewMinMs'),
+        assert(trackWidth >= 0, 'trackWidth cannot be negative');
 
   int get viewDurationMs => (viewMaxMs - viewMinMs).clamp(
-    1,
-    totalDurationMs > 0 ? totalDurationMs : 1,
-  );
+        1,
+        totalDurationMs > 0 ? totalDurationMs : 1,
+      );
 
   double get trackRight => trackLeft + trackWidth;
 

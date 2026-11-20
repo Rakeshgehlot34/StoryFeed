@@ -30,9 +30,8 @@ class _MergeTrimDialogState extends State<MergeTrimDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final maxDur = widget.clip.durationSeconds > 0.1
-        ? widget.clip.durationSeconds
-        : 1.0;
+    final maxDur =
+        widget.clip.durationSeconds > 0.1 ? widget.clip.durationSeconds : 1.0;
 
     return AlertDialog(
       title: Text('Trim: ${widget.clip.fileName}'),

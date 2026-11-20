@@ -44,9 +44,8 @@ class MergeState {
       config: config ?? this.config,
       isLoading: isLoading ?? this.isLoading,
       isAnalyzing: isAnalyzing ?? this.isAnalyzing,
-      errorMessage: clearErrorMessage
-          ? null
-          : (errorMessage ?? this.errorMessage),
+      errorMessage:
+          clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
       activePreviewClipId: clearPreviewClipId
           ? null
           : (activePreviewClipId ?? this.activePreviewClipId),

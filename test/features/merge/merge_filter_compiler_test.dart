@@ -59,7 +59,9 @@ void main() {
       hasAudio: false, // Silent video!
     );
 
-    test('3. Compiles direct concatenation with synthetic silence for silent video', () {
+    test(
+        '3. Compiles direct concatenation with synthetic silence for silent video',
+        () {
       const config = MergeConfig(
         clips: [clip1, clip2],
         canvasPreset: CanvasAspectRatioPreset.standard1080p,

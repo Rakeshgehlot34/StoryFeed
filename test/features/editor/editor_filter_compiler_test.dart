@@ -28,7 +28,9 @@ void main() {
       ),
     );
 
-    test('compiles complete 1-pass export command with video and audio filter chains', () {
+    test(
+        'compiles complete 1-pass export command with video and audio filter chains',
+        () {
       final cmd = EditorFilterCompiler.compileExport(
         project: testProject,
         resolvedInputPath: '/path/input.mp4',

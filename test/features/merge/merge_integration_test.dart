@@ -63,7 +63,9 @@ void main() {
       },
     );
 
-    test('2. Normalizes 16:9 and 9:16 vertical video with letterbox and crossfade transition', () async {
+    test(
+        '2. Normalizes 16:9 and 9:16 vertical video with letterbox and crossfade transition',
+        () async {
       final p16 = await OutputVerifier.probe(fixture16x9);
       final p9 = await OutputVerifier.probe(fixture9x16);
 
@@ -116,7 +118,9 @@ void main() {
       expect(outProbe.duration, closeTo(expectedDur, 1.0));
     });
 
-    test('3. Concatenates video with silent video fixture using synthetic audio generator', () async {
+    test(
+        '3. Concatenates video with silent video fixture using synthetic audio generator',
+        () async {
       final p16 = await OutputVerifier.probe(fixture16x9);
       final pSilent = await OutputVerifier.probe(fixtureSilent);
 

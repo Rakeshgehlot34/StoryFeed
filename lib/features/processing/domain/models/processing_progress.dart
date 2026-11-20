@@ -1,3 +1,5 @@
+import 'part_progress_state.dart';
+
 enum ProcessingStatus {
   idle,
   preparing,
@@ -19,8 +21,12 @@ class ProcessingProgress {
   final double fps;
   final Duration currentTime;
   final Duration targetClipDuration;
+  final String stageLabel; // Preparing, Cutting, Encoding, Saving, Verifying
+  final Duration elapsed;
+  final Duration? eta;
   final String? errorMessage;
   final List<String> outputPaths;
+  final Map<int, PartProgressState> partProgressMap;
 
   const ProcessingProgress({
     this.status = ProcessingStatus.idle,
@@ -33,8 +39,12 @@ class ProcessingProgress {
     this.fps = 0.0,
     this.currentTime = Duration.zero,
     this.targetClipDuration = Duration.zero,
+    this.stageLabel = 'Idle',
+    this.elapsed = Duration.zero,
+    this.eta,
     this.errorMessage,
     this.outputPaths = const [],
+    this.partProgressMap = const {},
   });
 
   bool get isProcessing =>
@@ -43,6 +53,8 @@ class ProcessingProgress {
   bool get isCompleted => status == ProcessingStatus.completed;
   bool get isCancelled => status == ProcessingStatus.cancelled;
   bool get hasError => status == ProcessingStatus.error;
+
+  int get overallPercent => (overallProgress * 100).clamp(0, 100).toInt();
 
   ProcessingProgress copyWith({
     ProcessingStatus? status,
@@ -55,8 +67,12 @@ class ProcessingProgress {
     double? fps,
     Duration? currentTime,
     Duration? targetClipDuration,
+    String? stageLabel,
+    Duration? elapsed,
+    Duration? eta,
     String? errorMessage,
     List<String>? outputPaths,
+    Map<int, PartProgressState>? partProgressMap,
   }) {
     return ProcessingProgress(
       status: status ?? this.status,
@@ -69,8 +85,12 @@ class ProcessingProgress {
       fps: fps ?? this.fps,
       currentTime: currentTime ?? this.currentTime,
       targetClipDuration: targetClipDuration ?? this.targetClipDuration,
+      stageLabel: stageLabel ?? this.stageLabel,
+      elapsed: elapsed ?? this.elapsed,
+      eta: eta ?? this.eta,
       errorMessage: errorMessage ?? this.errorMessage,
       outputPaths: outputPaths ?? this.outputPaths,
+      partProgressMap: partProgressMap ?? this.partProgressMap,
     );
   }
 }

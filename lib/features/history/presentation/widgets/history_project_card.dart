@@ -98,19 +98,19 @@ class HistoryProjectCard extends StatelessWidget {
                 radius: 22,
                 backgroundColor: filesAvailable
                     ? (project.isPartiallyProcessed
-                          ? colorScheme.secondaryContainer
-                          : colorScheme.primaryContainer)
+                        ? colorScheme.secondaryContainer
+                        : colorScheme.primaryContainer)
                     : colorScheme.errorContainer.withValues(alpha: 0.6),
                 child: Icon(
                   filesAvailable
                       ? (project.isPartiallyProcessed
-                            ? Icons.pie_chart_outline_rounded
-                            : Icons.movie_creation_outlined)
+                          ? Icons.pie_chart_outline_rounded
+                          : Icons.movie_creation_outlined)
                       : Icons.broken_image_outlined,
                   color: filesAvailable
                       ? (project.isPartiallyProcessed
-                            ? colorScheme.secondary
-                            : colorScheme.primary)
+                          ? colorScheme.secondary
+                          : colorScheme.primary)
                       : colorScheme.error,
                   size: AppTokens.iconMd,
                 ),
@@ -189,8 +189,7 @@ class HistoryProjectCard extends StatelessWidget {
 
   Widget _buildSubtitle(ThemeData theme, ColorScheme colorScheme) {
     if (project.isPartiallyProcessed) {
-      final ratio =
-          project.actualProcessedCount /
+      final ratio = project.actualProcessedCount /
           (project.totalShortsCount > 0 ? project.totalShortsCount : 1);
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,

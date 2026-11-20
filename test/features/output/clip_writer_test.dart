@@ -49,7 +49,8 @@ void main() {
   group('ClipWriter Strategy Resolution by Android API Level', () {
     test('API 28 with valid SAF tree URI resolves to SafClipWriter', () async {
       final writer = await ClipWriterFactory.resolveWriter(
-        preferredSafUri: 'content://com.android.externalstorage.documents/tree/primary%3AMovies',
+        preferredSafUri:
+            'content://com.android.externalstorage.documents/tree/primary%3AMovies',
         overrideSdkInt: 28,
         isAndroid: true,
       );
@@ -112,7 +113,8 @@ void main() {
 
     test('API 35 with valid SAF URI resolves to SafClipWriter', () async {
       final writer = await ClipWriterFactory.resolveWriter(
-        preferredSafUri: 'content://com.android.externalstorage.documents/tree/primary%3AShorts',
+        preferredSafUri:
+            'content://com.android.externalstorage.documents/tree/primary%3AShorts',
         overrideSdkInt: 35,
         isAndroid: true,
       );
@@ -161,7 +163,9 @@ void main() {
       },
     );
 
-    test('DuplicateHandling.autoSuffix appends sequential index suffix while preserving sequence', () async {
+    test(
+        'DuplicateHandling.autoSuffix appends sequential index suffix while preserving sequence',
+        () async {
       final fakeWriter = FakeClipWriter(
         strategyType: StorageStrategyType.appSpecific,
       );

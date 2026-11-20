@@ -5,15 +5,16 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/constants.dart';
 import '../../../../app/constants/app_strings.dart';
 import '../../../../app/theme/app_tokens.dart';
+import '../../../../core/database/app_database.dart';
 import '../../../../shared/services/app_messenger.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/error_state.dart';
 import '../../../../shared/widgets/loading_skeleton.dart';
 import '../../../output/domain/models/exported_clip.dart';
 import '../../../output/presentation/controllers/output_controller.dart';
-import '../../domain/models/project_record.dart';
+import '../../domain/models/project_with_details.dart';
 import '../controllers/history_controller.dart';
-import '../widgets/history_project_card.dart';
+import '../widgets/grouped_history_card.dart';
 
 class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
@@ -43,16 +44,23 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     });
   }
 
-  void _openProjectResults(ProjectRecord project) {
-    final clips = project.outputFilePaths.asMap().entries.map((e) {
+  void _openProjectResults(ProjectWithDetails project) {
+    final clips = project.parts
+        .where(
+      (p) => p.outputUriOrPath != null && p.outputUriOrPath!.isNotEmpty,
+    )
+        .map((p) {
+      final dur = p.actualDurationSeconds ?? p.plannedDurationSeconds;
       return ExportedClip(
-        path: e.value,
-        fileName: e.value.split('/').last,
-        partIndex: e.key + 1,
-        totalParts: project.outputFilePaths.length,
-        duration: Duration.zero,
-        sizeInBytes: 0,
-        createdAt: project.createdAt,
+        path: p.outputUriOrPath!,
+        fileName: p.outputUriOrPath!.split('/').last,
+        partIndex: p.partIndex,
+        totalParts: project.project.totalPartsCount,
+        duration: Duration(milliseconds: (dur * 1000).toInt()),
+        sizeInBytes: p.fileSizeBytes.toInt(),
+        createdAt: DateTime.fromMillisecondsSinceEpoch(
+          project.project.createdAt.toInt(),
+        ),
       );
     }).toList();
 
@@ -72,19 +80,20 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     );
   }
 
-  Map<String, List<ProjectRecord>> _groupByDate(List<ProjectRecord> projects) {
-    final Map<String, List<ProjectRecord>> groups = {};
+  Map<String, List<ProjectWithDetails>> _groupByDate(
+    List<ProjectWithDetails> projects,
+  ) {
+    final Map<String, List<ProjectWithDetails>> groups = {};
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
     final weekAgo = today.subtract(const Duration(days: 7));
 
     for (final p in projects) {
-      final pDate = DateTime(
-        p.createdAt.year,
-        p.createdAt.month,
-        p.createdAt.day,
+      final createdAt = DateTime.fromMillisecondsSinceEpoch(
+        p.project.createdAt.toInt(),
       );
+      final pDate = DateTime(createdAt.year, createdAt.month, createdAt.day);
       final String groupName;
       if (pDate.isAtSameMomentAs(today)) {
         groupName = 'Today';
@@ -214,7 +223,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   }
 
   Widget _buildGroupedProjectsList(
-    List<ProjectRecord> projects,
+    List<ProjectWithDetails> projects,
     bool isSelectionMode,
   ) {
     final grouped = _groupByDate(projects);
@@ -244,9 +253,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               ),
             ),
             ...groupProjects.map((p) {
-              final isSelected = _selectedIds.contains(p.id);
+              final isSelected = _selectedIds.contains(p.project.id);
               return Dismissible(
-                key: Key(p.id),
+                key: Key(p.project.id),
                 direction: DismissDirection.endToStart,
                 background: Container(
                   alignment: Alignment.centerRight,
@@ -257,22 +266,36 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   ),
                   child: const Icon(Icons.delete_outline, color: Colors.white),
                 ),
-                onDismissed: (_) => _deleteWithUndo(p.id),
+                onDismissed: (_) => _deleteWithUndo(p.project.id),
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: AppTokens.spaceSm),
-                  child: HistoryProjectCard(
-                    project: p,
+                  child: GroupedHistoryCard(
+                    item: p,
                     isSelected: isSelected,
                     isSelectionMode: isSelectionMode,
                     onTap: () {
                       if (isSelectionMode) {
-                        _toggleSelect(p.id);
+                        _toggleSelect(p.project.id);
                       } else {
                         _openProjectResults(p);
                       }
                     },
-                    onLongPress: () => _toggleSelect(p.id),
-                    onDelete: () => _deleteWithUndo(p.id),
+                    onLongPress: () => _toggleSelect(p.project.id),
+                    onDelete: () => _deleteWithUndo(p.project.id),
+                    onPlayPart: (Part part) {
+                      if (part.outputUriOrPath != null) {
+                        context.push(
+                          AppRoutes.player,
+                          extra: part.outputUriOrPath,
+                        );
+                      }
+                    },
+                    onConvertPart: (Part part) {
+                      context.push(AppRoutes.planReview);
+                    },
+                    onContinueProject: () {
+                      context.push(AppRoutes.planReview);
+                    },
                   ),
                 ),
               );

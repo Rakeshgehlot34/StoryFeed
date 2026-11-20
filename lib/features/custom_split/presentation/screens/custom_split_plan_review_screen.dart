@@ -51,7 +51,8 @@ class CustomSplitPlanReviewScreen extends ConsumerWidget {
                 const SizedBox(height: AppTokens.spaceMd),
                 if (plan.splitMethod == SplitMethod.fast) ...[
                   const InfoBanner(
-                    message: 'Fast mode cuts snap to nearest keyframes. Boundaries may shift ~0.5s - 2.0s without re-encoding.',
+                    message:
+                        'Fast mode cuts snap to nearest keyframes. Boundaries may shift ~0.5s - 2.0s without re-encoding.',
                     type: InfoBannerType.warning,
                   ),
                   const SizedBox(height: AppTokens.spaceMd),

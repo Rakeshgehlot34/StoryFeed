@@ -15,18 +15,18 @@ enum CustomSplitMode {
 
 extension CustomSplitModeExtension on CustomSplitMode {
   String get label => switch (this) {
-    CustomSplitMode.byDuration => 'By Duration',
-    CustomSplitMode.byParts => 'Equal Parts',
-    CustomSplitMode.byPoints => 'Split Points',
-    CustomSplitMode.bySize => 'By File Size',
-  };
+        CustomSplitMode.byDuration => 'By Duration',
+        CustomSplitMode.byParts => 'Equal Parts',
+        CustomSplitMode.byPoints => 'Split Points',
+        CustomSplitMode.bySize => 'By File Size',
+      };
 
   String get description => switch (this) {
-    CustomSplitMode.byDuration => 'Every X seconds or minutes',
-    CustomSplitMode.byParts => 'Divide into N equal clips',
-    CustomSplitMode.byPoints => 'Tap to split at exact moments',
-    CustomSplitMode.bySize => 'Approximate MB per clip',
-  };
+        CustomSplitMode.byDuration => 'Every X seconds or minutes',
+        CustomSplitMode.byParts => 'Divide into N equal clips',
+        CustomSplitMode.byPoints => 'Tap to split at exact moments',
+        CustomSplitMode.bySize => 'Approximate MB per clip',
+      };
 }
 
 /// Encoding method for clip extraction.
@@ -40,14 +40,14 @@ enum SplitMethod {
 
 extension SplitMethodExtension on SplitMethod {
   String get label => switch (this) {
-    SplitMethod.fast => 'Fast (Stream Copy)',
-    SplitMethod.precise => 'Precise (Re-encode)',
-  };
+        SplitMethod.fast => 'Fast (Stream Copy)',
+        SplitMethod.precise => 'Precise (Re-encode)',
+      };
 
   String get badge => switch (this) {
-    SplitMethod.fast => 'Instant • Keyframe Snap',
-    SplitMethod.precise => 'Frame-Accurate • Re-encoded',
-  };
+        SplitMethod.fast => 'Instant • Keyframe Snap',
+        SplitMethod.precise => 'Frame-Accurate • Re-encoded',
+      };
 }
 
 /// Configuration payload for the Custom Split tool.

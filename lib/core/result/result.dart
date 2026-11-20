@@ -6,14 +6,14 @@ sealed class Result<T, E> {
   bool get isFailure => this is Failure<T, E>;
 
   T? get valueOrNull => switch (this) {
-    Success<T, E>(:final value) => value,
-    Failure<T, E>() => null,
-  };
+        Success<T, E>(:final value) => value,
+        Failure<T, E>() => null,
+      };
 
   E? get errorOrNull => switch (this) {
-    Success<T, E>() => null,
-    Failure<T, E>(:final error) => error,
-  };
+        Success<T, E>() => null,
+        Failure<T, E>(:final error) => error,
+      };
 
   R when<R>({
     required R Function(T value) success,
@@ -22,9 +22,9 @@ sealed class Result<T, E> {
     return switch (this) {
       Success<T, E>(:final value) => success(value),
       Failure<T, E>(:final error, :final stackTrace) => failure(
-        error,
-        stackTrace,
-      ),
+          error,
+          stackTrace,
+        ),
     };
   }
 
@@ -32,9 +32,9 @@ sealed class Result<T, E> {
     return switch (this) {
       Success<T, E>(:final value) => Success(transform(value)),
       Failure<T, E>(:final error, :final stackTrace) => Failure(
-        error,
-        stackTrace,
-      ),
+          error,
+          stackTrace,
+        ),
     };
   }
 }

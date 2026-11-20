@@ -119,15 +119,15 @@ class OutputRepository {
         .where((f) => f.path.endsWith('.mp4'))
         .toList();
 
-    final regex = RegExp(r'_part_(\d+)(?:_\d+)?\.mp4$', caseSensitive: false);
+    final regex =
+        RegExp(r'_part_(\d+)(?:_short)?(?:_\d+)?\.mp4$', caseSensitive: false);
     final clips = <ExportedClip>[];
 
     for (final file in files) {
       final fileName = p.basename(file.path);
       final match = regex.firstMatch(fileName);
-      final partIndex = match != null
-          ? (int.tryParse(match.group(1)!) ?? 1)
-          : 1;
+      final partIndex =
+          match != null ? (int.tryParse(match.group(1)!) ?? 1) : 1;
       final stat = file.statSync();
 
       clips.add(

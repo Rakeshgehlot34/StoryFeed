@@ -61,7 +61,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           ? EmptyState(
               icon: Icons.movie_edit,
               title: 'No Video Loaded',
-              message: 'Select a video to edit with professional 1-pass FFmpeg transformations.',
+              message:
+                  'Select a video to edit with professional 1-pass FFmpeg transformations.',
               actionLabel: 'Choose Video',
               onAction: () => _pickVideo(context),
             )

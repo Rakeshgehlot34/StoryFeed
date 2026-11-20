@@ -81,23 +81,23 @@ class PartItem {
   }
 
   Map<String, dynamic> toJson() => {
-    'segment': segment.toJson(),
-    'isSelected': isSelected,
-    'status': status.name,
-    'outputPath': outputPath,
-    'failureReason': failureReason,
-  };
+        'segment': segment.toJson(),
+        'isSelected': isSelected,
+        'status': status.name,
+        'outputPath': outputPath,
+        'failureReason': failureReason,
+      };
 
   factory PartItem.fromJson(Map<String, dynamic> json) => PartItem(
-    segment: ClipSegment.fromJson(json['segment'] as Map<String, dynamic>),
-    isSelected: json['isSelected'] as bool? ?? true,
-    status: ClipProcessingStatus.values.firstWhere(
-      (e) => e.name == json['status'],
-      orElse: () => ClipProcessingStatus.notProcessed,
-    ),
-    outputPath: json['outputPath'] as String?,
-    failureReason: json['failureReason'] as String?,
-  );
+        segment: ClipSegment.fromJson(json['segment'] as Map<String, dynamic>),
+        isSelected: json['isSelected'] as bool? ?? true,
+        status: ClipProcessingStatus.values.firstWhere(
+          (e) => e.name == json['status'],
+          orElse: () => ClipProcessingStatus.notProcessed,
+        ),
+        outputPath: json['outputPath'] as String?,
+        failureReason: json['failureReason'] as String?,
+      );
 
   @override
   bool operator ==(Object other) =>
@@ -130,6 +130,26 @@ class PartSelectionHelpers {
   /// Inverts the selection state of every item.
   static List<PartItem> invertSelection(List<PartItem> items) =>
       items.map((i) => i.copyWith(isSelected: !i.isSelected)).toList();
+
+  /// Selects only parts that are not yet converted (i.e. not processed or raw split).
+  static List<PartItem> selectNotConverted(List<PartItem> items) =>
+      items.map((i) => i.copyWith(isSelected: !i.isProcessed)).toList();
+
+  /// Selects only failed parts for targeted retry.
+  static List<PartItem> selectFailed(List<PartItem> items) =>
+      items.map((i) => i.copyWith(isSelected: i.isFailed)).toList();
+
+  /// Selects the next [count] unfinished or unselected items.
+  static List<PartItem> selectNextN(List<PartItem> items, int count) {
+    var selectedSoFar = 0;
+    return items.map((i) {
+      if (!i.isProcessed && selectedSoFar < count) {
+        selectedSoFar++;
+        return i.copyWith(isSelected: true);
+      }
+      return i.copyWith(isSelected: false);
+    }).toList();
+  }
 
   /// Selects only the items whose 1-based index falls within [startPartIndex] and [endPartIndex].
   static List<PartItem> selectRange(
@@ -202,7 +222,7 @@ class PartSelectionHelpers {
       if (prev.status == ClipProcessingStatus.processed) {
         final boundaryChanged =
             (prev.startSeconds - newPlan.startSeconds).abs() > 0.05 ||
-            (prev.durationSeconds - newPlan.durationSeconds).abs() > 0.05;
+                (prev.durationSeconds - newPlan.durationSeconds).abs() > 0.05;
         final messageChanged = prev.resolvedMessage != newPlan.resolvedMessage;
 
         if (boundaryChanged || messageChanged) {

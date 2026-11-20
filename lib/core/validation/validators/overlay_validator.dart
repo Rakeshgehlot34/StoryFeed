@@ -13,8 +13,7 @@ class OverlayValidator {
   ValidationResult validate(OverlaySpec overlaySpec, {String? logoPath}) {
     final issues = <ValidationIssue>[];
 
-    final isOverlayActive =
-        overlaySpec.autoLabel ||
+    final isOverlayActive = overlaySpec.autoLabel ||
         (overlaySpec.allPartsMessage != null &&
             overlaySpec.allPartsMessage!.isNotEmpty);
 

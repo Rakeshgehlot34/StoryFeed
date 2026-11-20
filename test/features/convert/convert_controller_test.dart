@@ -65,9 +65,8 @@ void main() {
     final controller = container.read(convertControllerProvider.notifier);
     await controller.setVideo(testVideo);
 
-    final initialSize = container
-        .read(convertControllerProvider)
-        .estimatedSizeBytes;
+    final initialSize =
+        container.read(convertControllerProvider).estimatedSizeBytes;
 
     // Switch to SD 480p downscale
     controller.setResolution(ResolutionPreset.res480p);
@@ -76,9 +75,8 @@ void main() {
 
     // Switch to Audio Only
     controller.setFormat(ConvertOutputFormat.audioOnly);
-    final audioSize = container
-        .read(convertControllerProvider)
-        .estimatedSizeBytes;
+    final audioSize =
+        container.read(convertControllerProvider).estimatedSizeBytes;
     expect(audioSize, lessThan(sdSize));
   });
 

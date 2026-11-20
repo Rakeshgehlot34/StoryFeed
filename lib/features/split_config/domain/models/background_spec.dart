@@ -7,10 +7,10 @@ enum BackgroundType {
   blur;
 
   String get label => switch (this) {
-    BackgroundType.solidColor => 'Solid Color',
-    BackgroundType.image => 'Custom Image',
-    BackgroundType.blur => 'Blurred Video',
-  };
+        BackgroundType.solidColor => 'Solid Color',
+        BackgroundType.image => 'Custom Image',
+        BackgroundType.blur => 'Blurred Video',
+      };
 }
 
 /// Specification for background canvas fill behind scaled videos.
