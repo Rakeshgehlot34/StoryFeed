@@ -2465,7 +2465,7 @@
           const overallPct = Math.round(((i + 1) / totalClips) * 100);
           setOverallProgress(overallPct);
 
-          log(`[Clip ${clipNum}/${totalClips}] ✅ Transcoded & saved (${res.clip.size_mb}, ${res.clip.processing_time})`, 'success');
+          log(`[Clip ${clipNum}/${totalClips}] ✅ Saved: ${res.clip.duration}s clip (${res.clip.size_mb}) • Encoded in ${res.clip.processing_time}`, 'success');
           await new Promise(r => setTimeout(r, 600));
 
         } catch (err) {
