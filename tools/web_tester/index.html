@@ -1770,9 +1770,10 @@
       const truncCard = document.getElementById('truncatedFileCard');
       if (meta.is_truncated) {
         truncCard.style.display = 'block';
-        document.getElementById('truncatedFileDesc').textContent = 
-          `Source file was partially downloaded/transferred (${meta.size_mb}). Playable video ends at ${meta.duration_formatted} (container metadata claimed ${meta.original_duration_formatted || meta.original_duration + 's'}).`;
-        log(`⚠️ Detected partial/incomplete video: Playable length is ${meta.duration_formatted} (${meta.duration}s). Sliders and split count clamped to safe limits.`, 'warning');
+        document.getElementById('truncatedFileDesc').innerHTML = 
+          `<b>100% of your local file was uploaded (${meta.size_mb}).</b><br>` +
+          `However, the file in your Downloads folder was an incomplete download from the internet: it only contains the first <b>${meta.duration_formatted}</b> on your drive (the original full movie was ${meta.original_duration_formatted || meta.original_duration + 's'} / ~2.5 GB).`;
+        log(`ℹ️ 100% of local file uploaded (${meta.size_mb}). Note: Source file on disk was partially downloaded from internet; playable duration is ${meta.duration_formatted}. Safely clamped.`, 'warning');
       } else {
         truncCard.style.display = 'none';
       }
