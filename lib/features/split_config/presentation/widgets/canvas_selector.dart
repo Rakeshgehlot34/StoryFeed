@@ -56,7 +56,44 @@ class CanvasSelector extends StatelessWidget {
                   selected: isSelected,
                   onSelected: (selected) {
                     if (selected) {
-                      onCanvasChanged(CanvasSpec(format: format));
+                      onCanvasChanged(selectedCanvas.copyWith(format: format));
+                    }
+                  },
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Output Resolution & Quality',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: CanvasResolution.values.map((preset) {
+                final isSelected = selectedCanvas.resolution == preset;
+                return ChoiceChip(
+                  avatar: Icon(
+                    preset == CanvasResolution.ultraHd4k
+                        ? Icons.hd_rounded
+                        : Icons.speed_rounded,
+                    size: 16,
+                  ),
+                  label: Text(
+                    preset == CanvasResolution.ultraHd4k
+                        ? '4K Ultra HD (Cinema CRF 18)'
+                        : '1080p Full HD (Standard)',
+                  ),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    if (selected) {
+                      onCanvasChanged(
+                        selectedCanvas.copyWith(resolution: preset),
+                      );
                     }
                   },
                 );

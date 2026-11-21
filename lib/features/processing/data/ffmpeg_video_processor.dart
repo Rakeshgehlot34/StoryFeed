@@ -27,6 +27,7 @@ import '../../output/domain/clip_writer.dart';
 import '../../output/domain/models/storage_strategy.dart';
 import '../../screenshot/domain/models/screenshot_config.dart';
 import '../../screenshot/domain/screenshot_compiler.dart';
+import '../../split_config/domain/models/canvas_spec.dart';
 import '../../split_config/domain/models/clip_plan.dart';
 import '../../split_config/domain/models/clip_segment.dart';
 import '../../split_config/domain/models/overlay_spec.dart' as split_overlay;
@@ -1228,6 +1229,13 @@ class FFmpegVideoProcessor implements VideoProcessor {
         outputPath,
       ]);
     } else {
+      final is4k = plan?.canvasSpec.resolution == CanvasResolution.ultraHd4k ||
+          (plan != null &&
+              (plan.canvasSpec.width > 1920 || plan.canvasSpec.height > 1920));
+      final h264Level = is4k ? '5.1' : '4.1';
+      final crfVal = is4k ? '18' : '22';
+      final audioBitrate = is4k ? '320k' : '192k';
+
       args.addAll([
         '-threads',
         cpuThreads,
@@ -1236,11 +1244,11 @@ class FFmpegVideoProcessor implements VideoProcessor {
         '-profile:v',
         'high',
         '-level',
-        '4.1',
+        h264Level,
         '-preset',
         'veryfast',
         '-crf',
-        '22',
+        crfVal,
         '-g',
         '48',
         '-keyint_min',
@@ -1248,7 +1256,7 @@ class FFmpegVideoProcessor implements VideoProcessor {
         '-c:a',
         'aac',
         '-b:a',
-        '192k',
+        audioBitrate,
         '-ac',
         '2',
         '-ar',

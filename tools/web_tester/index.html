@@ -1255,6 +1255,21 @@
             </div>
           </div>
 
+          <!-- Output Quality & Resolution Card -->
+          <div class="m3-card">
+            <div class="m3-card-header">
+              <svg viewBox="0 0 24 24"><path d="M19 4H5c-1.11 0-2 .9-2 2v12c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H5V8h14v10z"/></svg>
+              <span>Video Quality & Resolution</span>
+            </div>
+            <div class="choice-chips-wrap" id="resolutionQualityChips">
+              <div class="m3-choice-chip selected" data-res="1080p">⚡ 1080p Full HD (Standard / Fast)</div>
+              <div class="m3-choice-chip" data-res="4k">🌟 4K Ultra HD (Cinema Quality, CRF 18)</div>
+            </div>
+            <div id="qualityHintText" style="font-size: 11px; color: var(--md-sys-color-on-surface-variant); margin-top: 8px;">
+              <b>1080p Full HD:</b> 1080x1920 (Standard for YouTube Shorts, Reels & TikTok). Fast & optimal file size.
+            </div>
+          </div>
+
           <!-- 3. Background Fill Card (shown when Crop to Fill is disabled) -->
           <div class="m3-card" id="backgroundFillCard" style="display: block;">
             <div class="m3-card-header">
@@ -1591,6 +1606,7 @@
 
     let selectedPresetDur = 0; // 0 = Full video
     let selectedCanvasRatio = '9:16';
+    let selectedResolution = '1080p'; // Default: 1080p Full HD, or 4K Ultra HD
     let isCropToFill = false; // Default: Scale to Fit (No Cropping!)
     let verticalAlign = 'center';
     let backgroundFillType = 'blur'; // Default: Blurred video background for Shorts
@@ -2111,6 +2127,23 @@
       });
     });
 
+    // Step 3: Video Quality & Resolution Selector
+    document.querySelectorAll('#resolutionQualityChips .m3-choice-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('#resolutionQualityChips .m3-choice-chip').forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        selectedResolution = chip.getAttribute('data-res');
+        const hint = document.getElementById('qualityHintText');
+        if (selectedResolution === '4k') {
+          hint.innerHTML = '<b>4K Ultra HD:</b> 2160x3840 vertical video with visually lossless CRF 18 and 320kbps audio. Perfect for 4K source videos and YouTube 4K Shorts.';
+          log('Video Output Quality set to 4K Ultra HD (2160x3840, CRF 18, 320k audio)', 'info');
+        } else {
+          hint.innerHTML = '<b>1080p Full HD:</b> 1080x1920 (Standard for YouTube Shorts, Reels & TikTok). Fast & optimal file size.';
+          log('Video Output Quality set to 1080p Full HD (1080x1920, CRF 22)', 'info');
+        }
+      });
+    });
+
     // Step 3: Crop to Fill Switch
     const cropToFillCheck = document.getElementById('cropToFillCheck');
     cropToFillCheck.addEventListener('change', () => {
@@ -2402,6 +2435,7 @@
               overlay_position: overlayPosition,
               font_size: selectedFontSize,
               audio_track_idx: selectedAudioTrackIdx,
+              resolution: selectedResolution,
               custom_base_name: document.getElementById('customBaseNameInput').value.trim()
             })
           }).then(r => r.json());

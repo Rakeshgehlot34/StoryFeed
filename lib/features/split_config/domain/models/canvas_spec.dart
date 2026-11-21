@@ -33,19 +33,60 @@ enum CanvasFormat {
       };
 }
 
+/// Target canvas resolution for video output.
+enum CanvasResolution {
+  standard1080p,
+  ultraHd4k;
+
+  String get label => switch (this) {
+        CanvasResolution.standard1080p => '1080p (Full HD)',
+        CanvasResolution.ultraHd4k => '4K (Ultra HD)',
+      };
+
+  int get scaleMultiplier => switch (this) {
+        CanvasResolution.standard1080p => 1,
+        CanvasResolution.ultraHd4k => 2,
+      };
+
+  int get crf => switch (this) {
+        CanvasResolution.standard1080p => 22,
+        CanvasResolution.ultraHd4k => 18,
+      };
+
+  String get h264Level => switch (this) {
+        CanvasResolution.standard1080p => '4.1',
+        CanvasResolution.ultraHd4k => '5.1',
+      };
+
+  String get audioBitrate => switch (this) {
+        CanvasResolution.standard1080p => '192k',
+        CanvasResolution.ultraHd4k => '320k',
+      };
+}
+
 /// Canvas specification encapsulating output resolution and aspect ratio.
 class CanvasSpec {
   final CanvasFormat format;
+  final CanvasResolution resolution;
 
-  const CanvasSpec({this.format = CanvasFormat.shorts916});
+  const CanvasSpec({
+    this.format = CanvasFormat.shorts916,
+    this.resolution = CanvasResolution.standard1080p,
+  });
 
-  int get width => format.width;
-  int get height => format.height;
+  int get width => format.width * resolution.scaleMultiplier;
+  int get height => format.height * resolution.scaleMultiplier;
   double get aspectRatio => format.aspectRatio;
   String? get warningMessage => format.warningMessage;
 
-  CanvasSpec copyWith({CanvasFormat? format}) {
-    return CanvasSpec(format: format ?? this.format);
+  CanvasSpec copyWith({
+    CanvasFormat? format,
+    CanvasResolution? resolution,
+  }) {
+    return CanvasSpec(
+      format: format ?? this.format,
+      resolution: resolution ?? this.resolution,
+    );
   }
 
   @override
@@ -53,8 +94,9 @@ class CanvasSpec {
       identical(this, other) ||
       other is CanvasSpec &&
           runtimeType == other.runtimeType &&
-          format == other.format;
+          format == other.format &&
+          resolution == other.resolution;
 
   @override
-  int get hashCode => format.hashCode;
+  int get hashCode => Object.hash(format, resolution);
 }

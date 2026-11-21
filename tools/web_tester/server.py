@@ -368,31 +368,58 @@ def build_ffmpeg_command(
     font_size=52,
     clip_idx=1,
     total_clips=1,
-    audio_track_idx=0
+    audio_track_idx=0,
+    resolution="1080p"
 ):
     """
     Builds the FFmpeg command matching ShortsSplitter FilterGraphBuilder:
+    Supports 1080p (Full HD) and 4K (Ultra HD) output resolutions.
     CRITICAL: ALWAYS maps video with -map 0:v (or -map [outv]) AND a SINGLE stereo audio track
     (-map 0:a:{idx}?, -ac 2, -ar 48000) to guarantee 100% Android & YouTube Shorts compliance.
     """
     # Safe audio mapping: exactly 1 audio stream, preventing multi-track breakage in mobile apps
     audio_map = f"0:a:{audio_track_idx}?" if audio_track_idx is not None else "0:a:0?"
-    # Resolve target canvas dimensions based on aspect ratio
-    if aspect_ratio == "1:1":
-        target_w, target_h = 1080, 1080
-    elif aspect_ratio == "16:9":
-        target_w, target_h = 1920, 1080
-    elif aspect_ratio == "4:5":
-        target_w, target_h = 1080, 1350
-    elif aspect_ratio == "original" or mode == "original":
-        meta = probe_video(input_path)
-        if meta and meta.get("width") and meta.get("height"):
-            target_w = (int(meta["width"]) // 2) * 2
-            target_h = (int(meta["height"]) // 2) * 2
-        else:
+
+    # Resolve target canvas dimensions based on aspect ratio and resolution
+    is_4k = (resolution == "4k")
+    if is_4k:
+        if aspect_ratio == "1:1":
+            target_w, target_h = 2160, 2160
+        elif aspect_ratio == "16:9":
+            target_w, target_h = 3840, 2160
+        elif aspect_ratio == "4:5":
+            target_w, target_h = 2160, 2700
+        elif aspect_ratio == "original" or mode == "original":
+            meta = probe_video(input_path)
+            if meta and meta.get("width") and meta.get("height"):
+                target_w = (int(meta["width"]) // 2) * 2
+                target_h = (int(meta["height"]) // 2) * 2
+            else:
+                target_w, target_h = 3840, 2160
+        else:  # 9:16 4K Shorts/Reels/TikTok
+            target_w, target_h = 2160, 3840
+        h264_level = "5.1"
+        crf_val = "18"  # Visually lossless cinema mastering quality for 4K
+        audio_bitrate = "320k"
+    else:
+        if aspect_ratio == "1:1":
+            target_w, target_h = 1080, 1080
+        elif aspect_ratio == "16:9":
             target_w, target_h = 1920, 1080
-    else:  # 9:16 standard Shorts/Reels/TikTok
-        target_w, target_h = 1080, 1920
+        elif aspect_ratio == "4:5":
+            target_w, target_h = 1080, 1350
+        elif aspect_ratio == "original" or mode == "original":
+            meta = probe_video(input_path)
+            if meta and meta.get("width") and meta.get("height"):
+                target_w = (int(meta["width"]) // 2) * 2
+                target_h = (int(meta["height"]) // 2) * 2
+            else:
+                target_w, target_h = 1920, 1080
+        else:  # 9:16 standard 1080p Shorts/Reels/TikTok
+            target_w, target_h = 1080, 1920
+        h264_level = "4.1"
+        crf_val = "22"  # Balanced high quality standard
+        audio_bitrate = "192k"
 
     # Sanitize color string for FFmpeg pad filter
     color_val = bg_color.strip() if bg_color else "black"
@@ -494,20 +521,20 @@ def build_ffmpeg_command(
             ])
 
     # YouTube Shorts & Android 100% compliant encoding settings:
-    # 1. H.264 High Profile, Level 4.1 with 2-second keyframe GOP interval for fast seeking
-    # 2. AAC Stereo (2-channel downmix, 48kHz, 192k) preventing multi-channel 5.1/7.1 failures
+    # 1. H.264 High Profile (Level 4.1 for 1080p, Level 5.1 for 4K) with 2-second keyframe GOP interval
+    # 2. AAC Stereo (2-channel downmix, 48kHz, 192k for 1080p, 320k for 4K) preventing surround failures
     # 3. MOOV atom at head (+faststart) for instant playback
     cmd.extend([
         "-c:v", "libx264",
         "-profile:v", "high",
-        "-level", "4.1",
+        "-level", h264_level,
         "-preset", "veryfast",
-        "-crf", "22",
+        "-crf", crf_val,
         "-g", "48",
         "-keyint_min", "24",
         "-pix_fmt", "yuv420p",
         "-c:a", "aac",
-        "-b:a", "192k",
+        "-b:a", audio_bitrate,
         "-ac", "2",
         "-ar", "48000",
         "-movflags", "+faststart",
@@ -759,6 +786,8 @@ class ShortsTesterRequestHandler(http.server.SimpleHTTPRequestHandler):
             source_meta = probe_video(file_path)
             audio_track_idx = source_meta.get("default_audio_idx", 0) if source_meta else 0
 
+        resolution = data.get("resolution", "1080p")
+
         cmd = build_ffmpeg_command(
             input_path=file_path,
             output_path=out_clip_path,
@@ -773,7 +802,8 @@ class ShortsTesterRequestHandler(http.server.SimpleHTTPRequestHandler):
             font_size=font_size,
             clip_idx=idx,
             total_clips=total_clips,
-            audio_track_idx=audio_track_idx
+            audio_track_idx=audio_track_idx,
+            resolution=resolution
         )
 
         t0 = time.time()
