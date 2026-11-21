@@ -1459,6 +1459,11 @@
               <span id="activeClipStageMsg">Cropping & converting frames (0%)...</span>
             </div>
           </div>
+
+          <!-- View Results Button (Appears when completed) -->
+          <button type="button" class="m3-filled-button" id="btnGoToResults" style="display: none; margin-top: 10px;">
+            🎉 View All Exported Clips ➔
+          </button>
         </div>
 
         <!-- ==================================================================
@@ -2484,46 +2489,61 @@
       document.getElementById('m3CirclePercent').textContent = 'Done';
       document.getElementById('m3ClipCounterText').textContent = `Done! All ${totalClips} Clips Exported`;
       document.getElementById('activeClipStageMsg').textContent = `All clips saved successfully!`;
+      document.getElementById('btnGoToResults').style.display = 'block';
       log(`🎉 ALL ${totalClips} CLIPS EXPORTED AND VERIFIED!`, 'success');
 
-      await new Promise(r => setTimeout(r, 1200));
+      await new Promise(r => setTimeout(r, 600));
 
       // TRANSITION TO STEP 6: RESULTS SCREEN
       setupResultsScreen();
       goToStep(6);
     });
 
+    document.getElementById('btnGoToResults').addEventListener('click', () => {
+      setupResultsScreen();
+      goToStep(6);
+    });
+
     // Step 6: Results Screen
     function setupResultsScreen() {
-      const count = exportedClips.length;
-      document.getElementById('resultsTitle').textContent = `Successfully created ${count} ${count === 1 ? 'clip' : 'clips'}!`;
+      try {
+        const count = exportedClips.length;
+        document.getElementById('resultsTitle').textContent = `Successfully created ${count} ${count === 1 ? 'clip' : 'clips'}!`;
 
-      const notice = document.getElementById('resultsNoticeBanner');
-      if (activePlanSegments && exportedClips.length < activePlanSegments.length) {
-        notice.style.display = 'block';
-        document.getElementById('resultsNoticeText').textContent = 
-          `Note: Successfully exported ${exportedClips.length} of ${activePlanSegments.length} planned parts. The source video reached its physical end (incomplete download/transfer). All ${exportedClips.length} generated clips are saved and ready.`;
-      } else {
-        notice.style.display = 'none';
-      }
+        const notice = document.getElementById('resultsNoticeBanner');
+        if (notice) {
+          const totalPlanned = (typeof plannedSegments !== 'undefined' && Array.isArray(plannedSegments)) ? plannedSegments.length : count;
+          if (count < totalPlanned) {
+            notice.style.display = 'block';
+            document.getElementById('resultsNoticeText').textContent = 
+              `Note: Successfully exported ${count} of ${totalPlanned} planned parts. All ${count} generated clips are saved and ready.`;
+          } else {
+            notice.style.display = 'none';
+          }
+        }
 
-      const pills = document.getElementById('resultsPillsRow');
-      pills.innerHTML = '';
+        const pills = document.getElementById('resultsPillsRow');
+        pills.innerHTML = '';
 
-      exportedClips.forEach((clip, idx) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = `clip-pill-btn ${idx === 0 ? 'active' : ''}`;
-        btn.textContent = `Part ${clip.index} (${clip.duration}s)`;
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('.clip-pill-btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          loadResultVideo(idx);
+        exportedClips.forEach((clip, idx) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `clip-pill-btn ${idx === 0 ? 'active' : ''}`;
+          btn.textContent = `Part ${clip.index} (${clip.duration}s)`;
+          btn.addEventListener('click', () => {
+            document.querySelectorAll('.clip-pill-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            loadResultVideo(idx);
+          });
+          pills.appendChild(btn);
         });
-        pills.appendChild(btn);
-      });
 
-      loadResultVideo(0);
+        if (exportedClips.length > 0) {
+          loadResultVideo(0);
+        }
+      } catch (err) {
+        log(`Results setup error: ${err.message}`, 'error');
+      }
     }
 
     function loadResultVideo(idx) {
