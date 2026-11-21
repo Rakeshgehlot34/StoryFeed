@@ -58,7 +58,31 @@ class ResultsScreen extends ConsumerWidget {
           onRetry: () => ref.invalidate(exportedClipsProvider),
         ),
         data: (clips) {
-          if (clips.isEmpty && partItems.isEmpty) {
+          final totalPartsCount = plan?.totalParts ??
+              (partItems.isNotEmpty ? partItems.length : clips.length);
+
+          // Resolve effective clips: if directory listing returned empty (e.g. due to SAF Tree URI restrictions
+          // or folder layout subfolders), fall back seamlessly to verified processed parts so user never sees "0 clips".
+          final effectiveClips = clips.isNotEmpty
+              ? clips
+              : partItems
+                  .where((p) => p.isProcessed && p.outputPath != null)
+                  .map(
+                    (p) => ExportedClip(
+                      path: p.outputPath!,
+                      fileName: p.formattedName,
+                      partIndex: p.index,
+                      totalParts: totalPartsCount,
+                      duration: Duration(
+                        milliseconds: (p.durationSeconds * 1000).toInt(),
+                      ),
+                      sizeInBytes: 0,
+                      createdAt: DateTime.now(),
+                    ),
+                  )
+                  .toList();
+
+          if (effectiveClips.isEmpty && partItems.isEmpty) {
             return EmptyState(
               icon: Icons.video_library_outlined,
               title: 'No Exported Clips',
@@ -72,12 +96,11 @@ class ResultsScreen extends ConsumerWidget {
           return _buildContent(
             context,
             ref,
-            clips,
+            effectiveClips,
             dirPath,
             notifier,
             planParts: partItems,
-            totalPlanParts: plan?.totalParts ??
-                (partItems.isNotEmpty ? partItems.length : clips.length),
+            totalPlanParts: totalPartsCount,
           );
         },
       ),

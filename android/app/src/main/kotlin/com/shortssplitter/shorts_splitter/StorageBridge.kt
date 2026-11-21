@@ -185,55 +185,69 @@ class StorageBridge(private val context: Context) : MethodChannel.MethodCallHand
                     return
                 }
 
-                try {
-                    val sourceFile = File(tempFilePath)
-                    if (!sourceFile.exists()) {
-                        result.error("SOURCE_NOT_FOUND", "Temporary source clip not found: $tempFilePath", null)
-                        return
-                    }
+                Thread {
+                    try {
+                        val sourceFile = File(tempFilePath)
+                        if (!sourceFile.exists()) {
+                            Handler(Looper.getMainLooper()).post {
+                                result.error("SOURCE_NOT_FOUND", "Temporary source clip not found: $tempFilePath", null)
+                            }
+                            return@Thread
+                        }
 
-                    val treeUri = Uri.parse(treeUriString)
-                    val treeDoc = if (treeUriString.contains("/document/")) {
-                        DocumentFile.fromSingleUri(context, treeUri) ?: DocumentFile.fromTreeUri(context, treeUri)
-                    } else {
-                        DocumentFile.fromTreeUri(context, treeUri)
-                    }
-                    if (treeDoc == null || !treeDoc.canWrite()) {
-                        result.error("SAF_WRITE_DENIED", "Cannot write to selected SAF directory", null)
-                        return
-                    }
+                        val treeUri = Uri.parse(treeUriString)
+                        val treeDoc = if (treeUriString.contains("/document/")) {
+                            DocumentFile.fromSingleUri(context, treeUri) ?: DocumentFile.fromTreeUri(context, treeUri)
+                        } else {
+                            DocumentFile.fromTreeUri(context, treeUri)
+                        }
+                        if (treeDoc == null || !treeDoc.canWrite()) {
+                            Handler(Looper.getMainLooper()).post {
+                                result.error("SAF_WRITE_DENIED", "Cannot write to selected SAF directory", null)
+                            }
+                            return@Thread
+                        }
 
-                    // Only scan tree if explicit overwrite requested to avoid directory scanning overhead
-                    val overwrite = call.argument<Boolean>("overwrite") ?: false
-                    if (overwrite) {
-                        val existingFile = treeDoc.findFile(fileName)
-                        if (existingFile != null && existingFile.exists()) {
-                            existingFile.delete()
+                        // Only scan tree if explicit overwrite requested to avoid directory scanning overhead
+                        val overwrite = call.argument<Boolean>("overwrite") ?: false
+                        if (overwrite) {
+                            val existingFile = treeDoc.findFile(fileName)
+                            if (existingFile != null && existingFile.exists()) {
+                                existingFile.delete()
+                            }
+                        }
+
+                        val newFileDoc = treeDoc.createFile(mimeType, fileName)
+                        if (newFileDoc == null) {
+                            Handler(Looper.getMainLooper()).post {
+                                result.error("SAF_CREATE_FAILED", "Failed to create document in SAF folder: $fileName", null)
+                            }
+                            return@Thread
+                        }
+
+                        val outputStream = context.contentResolver.openOutputStream(newFileDoc.uri)
+                        if (outputStream == null) {
+                            Handler(Looper.getMainLooper()).post {
+                                result.error("SAF_STREAM_FAILED", "Could not open output stream for SAF URI: ${newFileDoc.uri}", null)
+                            }
+                            return@Thread
+                        }
+
+                        FileInputStream(sourceFile).use { input ->
+                            outputStream.use { output ->
+                                copyStream(input, output)
+                            }
+                        }
+
+                        Handler(Looper.getMainLooper()).post {
+                            result.success(newFileDoc.uri.toString())
+                        }
+                    } catch (e: Exception) {
+                        Handler(Looper.getMainLooper()).post {
+                            result.error("SAF_WRITE_ERROR", "Error writing clip via SAF: ${e.message}", null)
                         }
                     }
-
-                    val newFileDoc = treeDoc.createFile(mimeType, fileName)
-                    if (newFileDoc == null) {
-                        result.error("SAF_CREATE_FAILED", "Failed to create document in SAF folder: $fileName", null)
-                        return
-                    }
-
-                    val outputStream = context.contentResolver.openOutputStream(newFileDoc.uri)
-                    if (outputStream == null) {
-                        result.error("SAF_STREAM_FAILED", "Could not open output stream for SAF URI: ${newFileDoc.uri}", null)
-                        return
-                    }
-
-                    FileInputStream(sourceFile).use { input ->
-                        outputStream.use { output ->
-                            copyStream(input, output)
-                        }
-                    }
-
-                    result.success(newFileDoc.uri.toString())
-                } catch (e: Exception) {
-                    result.error("SAF_WRITE_ERROR", "Error writing clip via SAF: ${e.message}", null)
-                }
+                }.start()
             }
 
             "writeClipToMediaStore" -> {
@@ -253,49 +267,61 @@ class StorageBridge(private val context: Context) : MethodChannel.MethodCallHand
                     return
                 }
 
-                try {
-                    val sourceFile = File(tempFilePath)
-                    if (!sourceFile.exists()) {
-                        result.error("SOURCE_NOT_FOUND", "Source temp clip not found", null)
-                        return
-                    }
+                Thread {
+                    try {
+                        val sourceFile = File(tempFilePath)
+                        if (!sourceFile.exists()) {
+                            Handler(Looper.getMainLooper()).post {
+                                result.error("SOURCE_NOT_FOUND", "Source temp clip not found", null)
+                            }
+                            return@Thread
+                        }
 
-                    val values = ContentValues().apply {
-                        put(MediaStore.Video.Media.DISPLAY_NAME, fileName)
-                        put(MediaStore.Video.Media.MIME_TYPE, mimeType)
-                        put(MediaStore.Video.Media.RELATIVE_PATH, relativePath)
-                        put(MediaStore.Video.Media.IS_PENDING, 1)
-                        put(MediaStore.Video.Media.DATE_ADDED, System.currentTimeMillis() / 1000)
-                    }
+                        val values = ContentValues().apply {
+                            put(MediaStore.Video.Media.DISPLAY_NAME, fileName)
+                            put(MediaStore.Video.Media.MIME_TYPE, mimeType)
+                            put(MediaStore.Video.Media.RELATIVE_PATH, relativePath)
+                            put(MediaStore.Video.Media.IS_PENDING, 1)
+                            put(MediaStore.Video.Media.DATE_ADDED, System.currentTimeMillis() / 1000)
+                        }
 
-                    val collection = MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-                    val itemUri = context.contentResolver.insert(collection, values)
-                    if (itemUri == null) {
-                        result.error("MEDIASTORE_INSERT_FAILED", "Failed to insert record into MediaStore", null)
-                        return
-                    }
+                        val collection = MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+                        val itemUri = context.contentResolver.insert(collection, values)
+                        if (itemUri == null) {
+                            Handler(Looper.getMainLooper()).post {
+                                result.error("MEDIASTORE_INSERT_FAILED", "Failed to insert record into MediaStore", null)
+                            }
+                            return@Thread
+                        }
 
-                    val outputStream = context.contentResolver.openOutputStream(itemUri)
-                    if (outputStream == null) {
-                        result.error("MEDIASTORE_STREAM_FAILED", "Could not open output stream for MediaStore item", null)
-                        return
-                    }
+                        val outputStream = context.contentResolver.openOutputStream(itemUri)
+                        if (outputStream == null) {
+                            Handler(Looper.getMainLooper()).post {
+                                result.error("MEDIASTORE_STREAM_FAILED", "Could not open output stream for MediaStore item", null)
+                            }
+                            return@Thread
+                        }
 
-                    FileInputStream(sourceFile).use { input ->
-                        outputStream.use { output ->
-                            copyStream(input, output)
+                        FileInputStream(sourceFile).use { input ->
+                            outputStream.use { output ->
+                                copyStream(input, output)
+                            }
+                        }
+
+                        // Release pending state so gallery and players see the clip
+                        values.clear()
+                        values.put(MediaStore.Video.Media.IS_PENDING, 0)
+                        context.contentResolver.update(itemUri, values, null, null)
+
+                        Handler(Looper.getMainLooper()).post {
+                            result.success(itemUri.toString())
+                        }
+                    } catch (e: Exception) {
+                        Handler(Looper.getMainLooper()).post {
+                            result.error("MEDIASTORE_WRITE_ERROR", "Error saving clip to MediaStore: ${e.message}", null)
                         }
                     }
-
-                    // Release pending state so gallery and players see the clip
-                    values.clear()
-                    values.put(MediaStore.Video.Media.IS_PENDING, 0)
-                    context.contentResolver.update(itemUri, values, null, null)
-
-                    result.success(itemUri.toString())
-                } catch (e: Exception) {
-                    result.error("MEDIASTORE_WRITE_ERROR", "Error saving clip to MediaStore: ${e.message}", null)
-                }
+                }.start()
             }
 
             "getFreeDiskSpace" -> {

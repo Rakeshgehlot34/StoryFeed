@@ -488,6 +488,9 @@ class FFmpegVideoProcessor implements VideoProcessor {
                 currentClipName: clipName,
                 currentClipProgress: 0.0,
                 overallProgress: i / totalClips,
+                stageLabel: mode == SplitMode.fast
+                    ? 'Splitting clip ${i + 1} of $totalClips...'
+                    : 'Cropping & converting to 9:16 (${i + 1}/$totalClips)...',
                 outputPaths: List.unmodifiable(outputPaths),
               ),
             );
@@ -530,6 +533,7 @@ class FFmpegVideoProcessor implements VideoProcessor {
                 totalDuration: segment.durationSeconds,
                 onProgress: (clipProgress) {
                   if (!_isCancelled && !controller.isClosed) {
+                    final percent = (clipProgress * 100).toInt();
                     controller.add(
                       ProcessingProgress(
                         status: ProcessingStatus.processing,
@@ -538,12 +542,42 @@ class FFmpegVideoProcessor implements VideoProcessor {
                         currentClipName: clipName,
                         currentClipProgress: clipProgress,
                         overallProgress: (i + clipProgress) / totalClips,
+                        stageLabel: mode == SplitMode.fast
+                            ? 'Splitting frames ($percent%)...'
+                            : 'Cropping & converting frames ($percent%)...',
                         outputPaths: List.unmodifiable(outputPaths),
                       ),
                     );
                   }
                 },
               );
+            } catch (e) {
+              final errStr = e.toString().toLowerCase();
+              if (outputPaths.isNotEmpty &&
+                  (errStr.contains('ended prematurely') ||
+                      errStr.contains('empty or missing') ||
+                      errStr.contains('no valid frames') ||
+                      errStr.contains('eof'))) {
+                AppLogger.warning(
+                  'Premature EOF encountered at clip $clipName: $e. Gracefully concluding export with ${outputPaths.length} valid clips.',
+                );
+                controller.add(
+                  ProcessingProgress(
+                    status: ProcessingStatus.completed,
+                    currentClipIndex: outputPaths.length,
+                    totalClips: totalClips,
+                    currentClipProgress: 1.0,
+                    overallProgress: 1.0,
+                    currentClipName:
+                        'Reached end of source video ($clipName reached EOF)',
+                    stageLabel: 'Complete',
+                    outputPaths: List.unmodifiable(outputPaths),
+                  ),
+                );
+                await controller.close();
+                return;
+              }
+              rethrow;
             } finally {
               if (tempOverlayPng != null) {
                 _safeDelete(tempOverlayPng);
@@ -555,8 +589,7 @@ class FFmpegVideoProcessor implements VideoProcessor {
               return;
             }
 
-            // Emit "Saving..." at 100% clip progress so UI does not freeze or
-            // appear to reset while FFprobe verification and file-copy run.
+            // Emit "Verifying..." at 100% clip progress
             if (!controller.isClosed) {
               controller.add(
                 ProcessingProgress(
@@ -565,7 +598,8 @@ class FFmpegVideoProcessor implements VideoProcessor {
                   totalClips: totalClips,
                   currentClipName: clipName,
                   currentClipProgress: 1.0,
-                  overallProgress: (i + 1.0) / totalClips,
+                  overallProgress: (i + 0.94) / totalClips,
+                  stageLabel: 'Verifying clip duration...',
                   outputPaths: List.unmodifiable(outputPaths),
                 ),
               );
@@ -582,12 +616,34 @@ class FFmpegVideoProcessor implements VideoProcessor {
               final probedDuration =
                   double.tryParse(rawDuration ?? '') ?? segment.durationSeconds;
 
-              // If fast stream copy overshot due to keyframe snapping (e.g. 183s-187s),
-              // clamp it precisely to 180.000s so it NEVER exceeds the 3:00 YouTube Shorts limit.
-              if (probedDuration > AppConstants.maxClipDurationSeconds) {
+              // In precise mode, the clip was already encoded with -t duration.
+              // Container audio packet boundaries may cause probed duration to be e.g. 180.03s,
+              // which is completely normal container padding. Only clamp if in fast stream copy
+              // mode (which snaps to keyframes up to e.g. 187s) or if precise mode significantly
+              // exceeded the cap (> 180.5s).
+              final clampThreshold = mode == SplitMode.precise
+                  ? AppConstants.maxClipDurationSeconds + 0.5
+                  : AppConstants.maxClipDurationSeconds.toDouble();
+
+              if (probedDuration > clampThreshold) {
                 AppLogger.warning(
-                  'Clip $clipName duration (${probedDuration.toStringAsFixed(2)}s) exceeded 180s hard cap. Clamping precisely to 180.0s.',
+                  'Clip $clipName duration (${probedDuration.toStringAsFixed(2)}s) exceeded ${clampThreshold}s. Clamping precisely to 180.0s.',
                 );
+                if (!controller.isClosed) {
+                  controller.add(
+                    ProcessingProgress(
+                      status: ProcessingStatus.processing,
+                      currentClipIndex: i + 1,
+                      totalClips: totalClips,
+                      currentClipName: clipName,
+                      currentClipProgress: 1.0,
+                      overallProgress: (i + 0.96) / totalClips,
+                      stageLabel: 'Trimming to 180s Shorts limit...',
+                      outputPaths: List.unmodifiable(outputPaths),
+                    ),
+                  );
+                }
+
                 final clampedTempPath = p.join(
                   tempCacheDir.path,
                   'clamped_${segment.index}_${DateTime.now().millisecondsSinceEpoch}.mp4',
@@ -614,7 +670,23 @@ class FFmpegVideoProcessor implements VideoProcessor {
                 final clampSuccess = await _executeSession(
                   clampArgs,
                   AppConstants.maxClipDurationSeconds.toDouble(),
-                  (_) {},
+                  (clampProg) {
+                    if (!_isCancelled && !controller.isClosed) {
+                      final clampPct = (clampProg * 100).toInt();
+                      controller.add(
+                        ProcessingProgress(
+                          status: ProcessingStatus.processing,
+                          currentClipIndex: i + 1,
+                          totalClips: totalClips,
+                          currentClipName: clipName,
+                          currentClipProgress: 1.0,
+                          overallProgress: (i + 0.96) / totalClips,
+                          stageLabel: 'Trimming to 180s ($clampPct%)...',
+                          outputPaths: List.unmodifiable(outputPaths),
+                        ),
+                      );
+                    }
+                  },
                 );
 
                 if (clampSuccess &&
@@ -632,8 +704,44 @@ class FFmpegVideoProcessor implements VideoProcessor {
 
             final tempFile = File(finalTempClipPath);
             if (!await tempFile.exists() || await tempFile.length() == 0) {
+              if (outputPaths.isNotEmpty) {
+                AppLogger.warning(
+                  'Encoded clip $clipName is empty or missing (likely source EOF). Gracefully concluding export with ${outputPaths.length} valid clips.',
+                );
+                controller.add(
+                  ProcessingProgress(
+                    status: ProcessingStatus.completed,
+                    currentClipIndex: outputPaths.length,
+                    totalClips: totalClips,
+                    currentClipProgress: 1.0,
+                    overallProgress: 1.0,
+                    currentClipName:
+                        'Reached end of source video ($clipName reached EOF)',
+                    stageLabel: 'Complete',
+                    outputPaths: List.unmodifiable(outputPaths),
+                  ),
+                );
+                await controller.close();
+                return;
+              }
               throw VideoProcessingException(
                 'Encoded clip $clipName is empty or missing.',
+              );
+            }
+
+            // Emit "Saving clip to storage..." so user knows file transfer is in progress
+            if (!controller.isClosed) {
+              controller.add(
+                ProcessingProgress(
+                  status: ProcessingStatus.processing,
+                  currentClipIndex: i + 1,
+                  totalClips: totalClips,
+                  currentClipName: clipName,
+                  currentClipProgress: 1.0,
+                  overallProgress: (i + 0.98) / totalClips,
+                  stageLabel: 'Saving clip to storage folder...',
+                  outputPaths: List.unmodifiable(outputPaths),
+                ),
               );
             }
 
@@ -645,6 +753,22 @@ class FFmpegVideoProcessor implements VideoProcessor {
 
             outputPaths.add(finalDestinationUri);
             _safeDelete(finalTempClipPath);
+
+            // Emit "Saved to storage!"
+            if (!controller.isClosed) {
+              controller.add(
+                ProcessingProgress(
+                  status: ProcessingStatus.processing,
+                  currentClipIndex: i + 1,
+                  totalClips: totalClips,
+                  currentClipName: clipName,
+                  currentClipProgress: 1.0,
+                  overallProgress: (i + 1.0) / totalClips,
+                  stageLabel: 'Saved to storage folder!',
+                  outputPaths: List.unmodifiable(outputPaths),
+                ),
+              );
+            }
           }
 
           controller.add(
@@ -655,6 +779,7 @@ class FFmpegVideoProcessor implements VideoProcessor {
               currentClipProgress: 1.0,
               overallProgress: 1.0,
               currentClipName: 'All clips generated successfully',
+              stageLabel: 'Complete',
               outputPaths: List.unmodifiable(outputPaths),
             ),
           );
@@ -720,8 +845,14 @@ class FFmpegVideoProcessor implements VideoProcessor {
           onProgress,
         );
         if (hwSuccess) {
-          PerfTrace.instance.recordEncoder('h264_mediacodec');
-          return;
+          final tempFile = File(tempOutputPath);
+          if (tempFile.existsSync() && tempFile.lengthSync() > 1024) {
+            PerfTrace.instance.recordEncoder('h264_mediacodec');
+            return;
+          }
+          AppLogger.warning(
+            'Hardware encoder produced an empty or truncated file. Retrying with software encoder...',
+          );
         }
       } catch (e) {
         AppLogger.warning('h264_mediacodec hardware encoding unavailable: $e');
@@ -749,10 +880,16 @@ class FFmpegVideoProcessor implements VideoProcessor {
       onProgress,
     );
     if (success) {
-      PerfTrace.instance.recordEncoder(
-        mode == SplitMode.fast ? 'copy' : 'libx264-ultrafast',
+      final tempFile = File(tempOutputPath);
+      if (tempFile.existsSync() && tempFile.lengthSync() > 1024) {
+        PerfTrace.instance.recordEncoder(
+          mode == SplitMode.fast ? 'copy' : 'libx264-ultrafast',
+        );
+        return;
+      }
+      AppLogger.warning(
+        'Primary software encoder produced an empty or truncated file. Retrying with baseline fallback...',
       );
-      return;
     }
 
     if (_isCancelled) return;
@@ -885,6 +1022,9 @@ class FFmpegVideoProcessor implements VideoProcessor {
         args.addAll(['-map', filterResult.outputVideoMap]);
       } else if (filterResult.simpleFilter != null) {
         args.addAll(['-vf', filterResult.simpleFilter!]);
+        args.addAll(['-map', filterResult.outputVideoMap]);
+      } else {
+        args.addAll(['-map', '0:v']);
       }
     } else {
       switch (aspectRatio) {
@@ -915,7 +1055,9 @@ class FFmpegVideoProcessor implements VideoProcessor {
       }
     }
 
-    args.addAll(['-map', '0:a?']);
+    final cpuThreads = Platform.numberOfProcessors.clamp(2, 8).toString();
+    args.addAll(['-threads', cpuThreads]);
+    args.addAll(['-map', '0:a:0?']);
     args.addAll([
       '-c:v',
       'h264_mediacodec',
@@ -930,7 +1072,11 @@ class FFmpegVideoProcessor implements VideoProcessor {
       '-c:a',
       'aac',
       '-b:a',
-      '128k',
+      '192k',
+      '-ac',
+      '2',
+      '-ar',
+      '48000',
       '-movflags',
       '+faststart',
       outputPath,
@@ -970,9 +1116,9 @@ class FFmpegVideoProcessor implements VideoProcessor {
         '-c',
         'copy',
         '-map',
-        '0:v?',
+        '0:v:0?',
         '-map',
-        '0:a?',
+        '0:a:0?',
         '-avoid_negative_ts',
         'make_zero',
         outputPath,
@@ -1012,6 +1158,9 @@ class FFmpegVideoProcessor implements VideoProcessor {
         args.addAll(['-map', filterResult.outputVideoMap]);
       } else if (filterResult.simpleFilter != null) {
         args.addAll(['-vf', filterResult.simpleFilter!]);
+        args.addAll(['-map', filterResult.outputVideoMap]);
+      } else {
+        args.addAll(['-map', '0:v']);
       }
     } else {
       // Legacy fallback
@@ -1043,11 +1192,15 @@ class FFmpegVideoProcessor implements VideoProcessor {
       }
     }
 
-    // Map audio track gracefully (-map 0:a? so videos without audio don't fail)
-    args.addAll(['-map', '0:a?']);
+    // Map single primary audio track gracefully (-map 0:a:0? so videos without audio don't fail and multi-track audio doesn't break mobile apps)
+    args.addAll(['-map', '0:a:0?']);
+
+    final cpuThreads = Platform.numberOfProcessors.clamp(2, 8).toString();
 
     if (isSoftwareFallback) {
       args.addAll([
+        '-threads',
+        cpuThreads,
         '-c:v',
         'libx264',
         '-profile:v',
@@ -1056,10 +1209,18 @@ class FFmpegVideoProcessor implements VideoProcessor {
         '3.1',
         '-preset',
         'ultrafast',
+        '-g',
+        '48',
+        '-keyint_min',
+        '24',
         '-c:a',
         'aac',
         '-b:a',
-        '128k',
+        '192k',
+        '-ac',
+        '2',
+        '-ar',
+        '48000',
         '-pix_fmt',
         'yuv420p',
         '-movflags',
@@ -1068,16 +1229,30 @@ class FFmpegVideoProcessor implements VideoProcessor {
       ]);
     } else {
       args.addAll([
+        '-threads',
+        cpuThreads,
         '-c:v',
         'libx264',
+        '-profile:v',
+        'high',
+        '-level',
+        '4.1',
         '-preset',
-        'ultrafast',
+        'veryfast',
         '-crf',
         '22',
+        '-g',
+        '48',
+        '-keyint_min',
+        '24',
         '-c:a',
         'aac',
         '-b:a',
-        '128k',
+        '192k',
+        '-ac',
+        '2',
+        '-ar',
+        '48000',
         '-pix_fmt',
         'yuv420p',
         '-movflags',

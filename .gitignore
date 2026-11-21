@@ -83,3 +83,22 @@ app.*.map.json
 test/fixtures/*.mp4
 test/fixtures/*.mp3
 test/fixtures/*.png
+
+# Large media files (videos, test clips, recordings)
+*.mp4
+*.mkv
+*.mov
+*.avi
+*.webm
+*.ts
+*.m4v
+*.flv
+*.wmv
+
+# Web Tester local uploads, outputs, and sample videos
+tools/web_tester/uploads/
+tools/web_tester/outputs/
+tools/web_tester/samples/
+tools/web_tester/temp/
+__pycache__/
+

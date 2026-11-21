@@ -64,6 +64,15 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
     final progress = ref.read(processingControllerProvider);
     if (!progress.isProcessing) return true;
 
+    final isSaving = progress.currentClipProgress >= 1.0;
+    if (isSaving) {
+      AppMessenger.showInfo(
+        context,
+        'Clip is currently being saved to storage. Please wait a moment.',
+      );
+      return false;
+    }
+
     final shouldCancel = await ConfirmDialog.show(
       context: context,
       title: 'Cancel Video Split?',
@@ -116,6 +125,35 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
     ref.listen<ProcessingProgress>(processingControllerProvider, (prev, next) {
       if (next.status == ProcessingStatus.completed && mounted) {
         context.go(AppRoutes.results);
+      } else if (next.status == ProcessingStatus.error && mounted) {
+        final errorMsg = next.errorMessage?.isNotEmpty == true
+            ? next.errorMessage!
+            : 'An unexpected error occurred while processing the video.';
+        showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            icon: Icon(
+              Icons.error_outline_rounded,
+              size: 40,
+              color: Theme.of(ctx).colorScheme.error,
+            ),
+            title: const Text('Export Error'),
+            content: Text(
+              errorMsg,
+              style: const TextStyle(fontSize: 14),
+            ),
+            actions: [
+              FilledButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  context.pop();
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
       }
     });
 
@@ -185,9 +223,11 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
           ProgressRing(
             progress: progress.overallProgress,
             size: 150,
-            statusText: progress.totalClips > 0
-                ? 'Clip ${progress.currentClipIndex} of ${progress.totalClips}'
-                : 'Preparing...',
+            statusText: progress.status == ProcessingStatus.completed
+                ? 'Done! All Clips Exported 🎉'
+                : (progress.totalClips > 0
+                    ? 'Clip ${progress.currentClipIndex} of ${progress.totalClips}'
+                    : 'Preparing...'),
           ),
           const SizedBox(height: AppTokens.spaceLg),
           Row(
@@ -254,9 +294,11 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
                   ),
                   const SizedBox(width: AppTokens.spaceSm),
                   Text(
-                    progress.totalClips > 0
-                        ? 'Clip ${progress.currentClipIndex} of ${progress.totalClips}'
-                        : 'Current Clip',
+                    progress.status == ProcessingStatus.completed
+                        ? 'All Clips Complete'
+                        : (progress.totalClips > 0
+                            ? 'Clip ${progress.currentClipIndex} of ${progress.totalClips}'
+                            : 'Current Clip'),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
@@ -306,6 +348,55 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
               backgroundColor: colorScheme.surfaceContainerHighest,
             ),
           ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTokens.spaceMd,
+              vertical: AppTokens.spaceSm,
+            ),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(width: AppTokens.spaceSm),
+                Expanded(
+                  child: Text(
+                    progress.hasError
+                        ? (progress.errorMessage ??
+                            'Export encountered an error')
+                        : (progress.status == ProcessingStatus.completed
+                            ? 'All clips saved successfully!'
+                            : (progress.stageLabel.isNotEmpty &&
+                                    progress.stageLabel != 'Idle'
+                                ? progress.stageLabel
+                                : (progress.currentClipProgress >= 1.0
+                                    ? 'Saving clip to storage...'
+                                    : 'Processing video frames...'))),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: progress.hasError
+                          ? colorScheme.error
+                          : colorScheme.primary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -338,8 +429,44 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
     ProcessingProgress progress,
   ) {
     if (progress.isProcessing) {
+      final isSaving = progress.currentClipProgress >= 1.0;
+
       return Column(
         children: [
+          if (isSaving)
+            Container(
+              margin: const EdgeInsets.only(bottom: AppTokens.spaceSm),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTokens.spaceMd,
+                vertical: AppTokens.spaceSm,
+              ),
+              decoration: BoxDecoration(
+                color: colorScheme.primaryContainer.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.save_outlined,
+                    size: 16,
+                    color: colorScheme.primary,
+                  ),
+                  const SizedBox(width: AppTokens.spaceSm),
+                  Expanded(
+                    child: Text(
+                      'Saving clip in progress. Please wait a moment...',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onPrimaryContainer,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           FilledButton.icon(
             style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(AppTokens.minTouchTarget),
@@ -351,16 +478,22 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
           const SizedBox(height: AppTokens.spaceSm),
           OutlinedButton.icon(
             style: OutlinedButton.styleFrom(
-              foregroundColor: colorScheme.error,
-              side: BorderSide(color: colorScheme.error),
+              foregroundColor:
+                  isSaving ? colorScheme.outline : colorScheme.error,
+              side: BorderSide(
+                color:
+                    isSaving ? colorScheme.outlineVariant : colorScheme.error,
+              ),
               minimumSize: const Size.fromHeight(AppTokens.minTouchTarget),
             ),
             icon: const Icon(Icons.cancel_outlined),
-            label: const Text('Cancel Split'),
-            onPressed: () async {
-              final shouldCancel = await _onWillPop();
-              if (shouldCancel && mounted) context.pop();
-            },
+            label: Text(isSaving ? 'Finishing Save...' : 'Cancel Split'),
+            onPressed: isSaving
+                ? null
+                : () async {
+                    final shouldCancel = await _onWillPop();
+                    if (shouldCancel && mounted) context.pop();
+                  },
           ),
         ],
       );

@@ -51,8 +51,8 @@ class OverlayRenderer {
     final textHeight = paragraph.height;
 
     // Background pill/box padding
-    const horizontalPadding = 24.0;
-    const verticalPadding = 12.0;
+    const horizontalPadding = 32.0;
+    const verticalPadding = 16.0;
 
     // Calculate vertical position honoring safe areas
     final targetY = (height * overlaySpec.position.yOffsetFraction).clamp(
@@ -86,7 +86,10 @@ class OverlayRenderer {
       ..style = ui.PaintingStyle.fill;
 
     canvas.drawRRect(
-      ui.RRect.fromRectAndRadius(boxRect, const ui.Radius.circular(16)),
+      ui.RRect.fromRectAndRadius(
+        boxRect,
+        ui.Radius.circular(boxRect.height / 2),
+      ),
       boxPaint,
     );
 

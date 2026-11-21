@@ -1,0 +1,19 @@
+# Local uploads, outputs, and sample files
+uploads/
+outputs/
+samples/
+temp/
+*.mp4
+*.mkv
+*.mov
+*.avi
+*.webm
+*.png
+__pycache__/
+
+# Keep source code and documentation
+!index.html
+!server.py
+!README.md
+!.gitignore
+

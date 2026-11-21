@@ -112,7 +112,7 @@ class OverlaySpec {
     this.template = 'Part {n}/{total}',
     this.allPartsMessage,
     this.position = OverlayPosition.topCenter,
-    this.fontSize = 42.0,
+    this.fontSize = 50.0,
     this.textColorValue = 0xFFFFFFFF,
     this.boxColorValue = 0x99000000, // ~60% black
     this.displayWholeClip = true,

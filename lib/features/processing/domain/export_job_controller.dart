@@ -828,6 +828,11 @@ class ExportJobController extends Notifier<ExportJobState> {
         final now = DateTime.now();
         final elapsed = now.difference(jobStartTime);
 
+        final currentStage =
+            progress.stageLabel.isNotEmpty && progress.stageLabel != 'Idle'
+                ? progress.stageLabel
+                : (isTwoStage ? 'Splitting' : 'Encoding');
+
         // Build per-part granular progress states (R4)
         final partMap =
             Map<int, PartProgressState>.from(progress.partProgressMap);
@@ -844,7 +849,7 @@ class ExportJobController extends Notifier<ExportJobState> {
               partMap[seg.index] = PartProgressState(
                 partIndex: seg.index,
                 progress: progress.currentClipProgress,
-                stageLabel: isTwoStage ? 'Splitting' : 'Encoding',
+                stageLabel: currentStage,
               );
             } else {
               partMap[seg.index] = PartProgressState(
@@ -882,7 +887,7 @@ class ExportJobController extends Notifier<ExportJobState> {
           totalClips: totalToProcess,
           currentClipProgress: progress.currentClipProgress,
           overallProgress: progress.overallProgress,
-          stageLabel: isTwoStage ? 'Splitting' : 'Encoding',
+          stageLabel: currentStage,
           elapsed: elapsed,
           eta: eta,
           outputPaths: [
@@ -898,10 +903,13 @@ class ExportJobController extends Notifier<ExportJobState> {
         final clipPct = (adjustedProgress.currentClipProgress * 100).toInt();
         final etaStr =
             eta != null ? ' • ~${Formatters.formatDuration(eta)} left' : '';
+        final stageStr = adjustedProgress.stageLabel.isNotEmpty
+            ? '${adjustedProgress.stageLabel} • '
+            : '';
         await ForegroundServiceManager.startOrUpdate(
           title:
               'Exporting Shorts (${adjustedProgress.currentClipIndex}/$totalToProcess) • $clipPct%',
-          message: '${adjustedProgress.currentClipName} ($pct% overall)$etaStr',
+          message: '$stageStr${adjustedProgress.currentClipName}$etaStr',
           progress: pct,
         );
 
@@ -1024,11 +1032,17 @@ class ExportJobController extends Notifier<ExportJobState> {
       await projectRepo.updateProjectTimestamp(record.id);
 
       ref.invalidate(historyControllerProvider);
+      if (completedClips.isNotEmpty) {
+        ref.read(exportedClipsProvider.notifier).setClips(completedClips);
+      }
+
+      final successCount =
+          completedClips.isNotEmpty ? completedClips.length : record.totalClips;
 
       await ForegroundServiceManager.showCompleted(
         title: 'Export Complete',
         message:
-            '${completedClips.length} YouTube Shorts saved successfully! Tap to view.',
+            '$successCount YouTube Shorts saved successfully! Tap to view.',
       );
     } catch (e) {
       AppLogger.warning('Error completing export job: $e');
@@ -1069,6 +1083,12 @@ class ExportJobController extends Notifier<ExportJobState> {
     try {
       final processor = ref.read(videoProcessorProvider);
       await processor.cancel();
+    } catch (_) {}
+    try {
+      await ForegroundServiceManager.showCompleted(
+        title: 'Export Failed',
+        message: error ?? 'Video processing encountered an error.',
+      );
     } catch (_) {}
     await ForegroundServiceManager.stop();
   }

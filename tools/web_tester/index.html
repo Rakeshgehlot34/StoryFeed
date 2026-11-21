@@ -1,0 +1,2535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShortsSplitter — Android APK Simulator & Testing Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Android Material 3 Dark Theme Palette (Default: YouTube Red seed #FF0033) */
+      --md-sys-color-primary: #FF5449;
+      --md-sys-color-on-primary: #680003;
+      --md-sys-color-primary-container: #93000A;
+      --md-sys-color-on-primary-container: #FFDAD6;
+      --md-sys-color-secondary: #E7BDB8;
+      --md-sys-color-secondary-container: #5D3F3D;
+      --md-sys-color-on-secondary-container: #FFDAD6;
+      --md-sys-color-surface: #141212;
+      --md-sys-color-surface-container: #201A1A;
+      --md-sys-color-surface-container-high: #2B2424;
+      --md-sys-color-surface-container-highest: #362E2E;
+      --md-sys-color-on-surface: #EDE0DF;
+      --md-sys-color-on-surface-variant: #D8C2BF;
+      --md-sys-color-outline: #A08C8A;
+      --md-sys-color-outline-variant: #443B3A;
+      --md-sys-color-error: #FFB4AB;
+      --md-sys-color-success: #4ADE80;
+      --md-sys-color-success-container: #14532D;
+
+      /* Desktop surrounding background */
+      --desktop-bg: #0C0D12;
+      --desktop-panel: #161722;
+      --desktop-border: #292B3E;
+    }
+
+    /* Accent color themes selectable in app bar */
+    body.theme-violet {
+      --md-sys-color-primary: #BFA8FF;
+      --md-sys-color-primary-container: #4D18D6;
+      --md-sys-color-on-primary: #2B0082;
+      --md-sys-color-on-primary-container: #E7DEFF;
+    }
+
+    body.theme-ocean {
+      --md-sys-color-primary: #7BD0FF;
+      --md-sys-color-primary-container: #004C6D;
+      --md-sys-color-on-primary: #00344D;
+      --md-sys-color-on-primary-container: #C8E6FF;
+    }
+
+    body.theme-emerald {
+      --md-sys-color-primary: #4DE2C6;
+      --md-sys-color-primary-container: #005047;
+      --md-sys-color-on-primary: #003730;
+      --md-sys-color-on-primary-container: #6FFAD8;
+    }
+
+    body.theme-orange {
+      --md-sys-color-primary: #FFB77C;
+      --md-sys-color-primary-container: #824300;
+      --md-sys-color-on-primary: #4A2200;
+      --md-sys-color-on-primary-container: #FFDCC1;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      background-color: var(--desktop-bg);
+      color: var(--md-sys-color-on-surface);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    /* Top Bar */
+    .desktop-header {
+      width: 100%;
+      max-width: 1240px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--desktop-border);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .desktop-header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #FFFFFF;
+    }
+
+    .desktop-header h1 span {
+      background: linear-gradient(135deg, #FF5449, #FF7B72);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .desktop-header p {
+      font-size: 13px;
+      color: #94A3B8;
+      margin-top: 3px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(74, 222, 128, 0.12);
+      color: #4ADE80;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid rgba(74, 222, 128, 0.3);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4ADE80;
+      box-shadow: 0 0 10px #4ADE80;
+    }
+
+    /* 2-Column Workstation: Phone Frame (Left) + Live Step Inspector (Right) */
+    .lab-container {
+      width: 100%;
+      max-width: 1240px;
+      display: grid;
+      grid-template-columns: 440px 1fr;
+      gap: 28px;
+      align-items: start;
+    }
+
+    @media (max-width: 960px) {
+      .lab-container {
+        grid-template-columns: 1fr;
+        justify-items: center;
+      }
+    }
+
+    /* ==========================================================================
+       ANDROID PHONE CHASSIS (Exact 1:1 Pixel Mockup of Google Pixel / Samsung Galaxy)
+       ========================================================================== */
+    .phone-chassis {
+      width: 420px;
+      height: 840px;
+      background: #000000;
+      border-radius: 50px;
+      border: 14px solid #1E2028;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 0 2px rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Android Status Bar */
+    .phone-status-bar {
+      height: 32px;
+      background: var(--md-sys-color-surface);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 22px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--md-sys-color-on-surface-variant);
+      user-select: none;
+      z-index: 10;
+    }
+
+    .notch-camera-hole {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: #000;
+      border: 2px solid #282A36;
+    }
+
+    /* Material 3 App Bar */
+    .phone-app-bar {
+      height: 56px;
+      background: var(--md-sys-color-surface);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--md-sys-color-outline-variant);
+      z-index: 10;
+    }
+
+    .app-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .app-bar-icon-btn {
+      background: none;
+      border: none;
+      color: var(--md-sys-color-on-surface);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      transition: background 0.2s;
+    }
+
+    .app-bar-icon-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .phone-app-bar-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--md-sys-color-on-surface);
+    }
+
+    /* Accent color swatch picker in App Bar */
+    .accent-dots-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .accent-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.15s, border-color 0.15s;
+    }
+
+    .accent-dot.active {
+      border-color: white;
+      transform: scale(1.2);
+    }
+
+    /* Android Material 3 Step Indicator (Exact replica of SelectVideoScreen._buildStepIndicator) */
+    .m3-step-indicator {
+      display: flex;
+      align-items: center;
+      padding: 12px 18px;
+      background: var(--md-sys-color-surface);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .step-badge-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      min-width: 48px;
+    }
+
+    .step-circle {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--md-sys-color-surface-container-highest);
+      color: var(--md-sys-color-on-surface-variant);
+      transition: all 0.2s;
+    }
+
+    .step-badge-col.active .step-circle {
+      background: var(--md-sys-color-primary);
+      color: var(--md-sys-color-on-primary);
+    }
+
+    .step-badge-col.completed .step-circle {
+      background: var(--md-sys-color-primary-container);
+      color: var(--md-sys-color-on-primary-container);
+    }
+
+    .step-badge-label {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+
+    .step-badge-col.active .step-badge-label {
+      font-weight: 700;
+      color: var(--md-sys-color-primary);
+    }
+
+    .step-line {
+      flex: 1;
+      height: 2px;
+      background: var(--md-sys-color-outline-variant);
+      margin: 0 4px;
+      margin-bottom: 14px;
+    }
+
+    .step-line.completed {
+      background: var(--md-sys-color-primary);
+    }
+
+    /* Scrollable Phone Screen Body */
+    .phone-screen-body {
+      flex: 1;
+      background: var(--md-sys-color-surface);
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .phone-screen-body::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .phone-screen-body::-webkit-scrollbar-thumb {
+      background: var(--md-sys-color-outline-variant);
+      border-radius: 4px;
+    }
+
+    /* Step Screens */
+    .screen-view {
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .screen-view.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Material 3 Card */
+    .m3-card {
+      background: var(--md-sys-color-surface-container);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .m3-card-header {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--md-sys-color-on-surface);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .m3-card-header svg {
+      width: 18px;
+      height: 18px;
+      fill: var(--md-sys-color-primary);
+    }
+
+    /* Empty Picker Card (Step 1) */
+    .empty-picker-box {
+      border: 2px dashed var(--md-sys-color-outline-variant);
+      border-radius: 18px;
+      padding: 30px 16px;
+      text-align: center;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.02);
+      transition: all 0.2s;
+    }
+
+    .empty-picker-box:hover {
+      border-color: var(--md-sys-color-primary);
+      background: rgba(255, 84, 73, 0.05);
+    }
+
+    .empty-picker-circle {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: var(--md-sys-color-primary-container);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 12px auto;
+    }
+
+    .empty-picker-circle svg {
+      width: 32px;
+      height: 32px;
+      fill: var(--md-sys-color-on-primary-container);
+    }
+
+    .empty-picker-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--md-sys-color-on-surface);
+    }
+
+    .empty-picker-sub {
+      font-size: 12px;
+      color: var(--md-sys-color-on-surface-variant);
+      margin-top: 4px;
+    }
+
+    /* Material 3 Buttons */
+    .m3-filled-button {
+      width: 100%;
+      background: var(--md-sys-color-primary);
+      color: var(--md-sys-color-on-primary);
+      border: none;
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    .m3-filled-button:hover:not(:disabled) {
+      opacity: 0.94;
+      transform: translateY(-1px);
+    }
+
+    .m3-filled-button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .m3-outlined-button {
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--md-sys-color-outline-variant);
+      color: var(--md-sys-color-primary);
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+
+    .m3-outlined-button:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    /* ChoiceChips */
+    .choice-chips-wrap {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .m3-choice-chip {
+      background: var(--md-sys-color-surface-container-highest);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      color: var(--md-sys-color-on-surface);
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .m3-choice-chip:hover {
+      background: var(--md-sys-color-surface-container-high);
+    }
+
+    .m3-choice-chip.selected {
+      background: var(--md-sys-color-primary-container);
+      color: var(--md-sys-color-on-primary-container);
+      border-color: var(--md-sys-color-primary);
+      font-weight: 700;
+    }
+
+    /* Segmented Button (Top / Center / Bottom, Auto / Always / Never) */
+    .m3-segmented-row {
+      display: flex;
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: 12px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+
+    .m3-segment-item {
+      flex: 1;
+      padding: 8px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--md-sys-color-on-surface-variant);
+      cursor: pointer;
+      background: var(--md-sys-color-surface-container);
+      transition: all 0.2s;
+      border-right: 1px solid var(--md-sys-color-outline-variant);
+    }
+
+    .m3-segment-item:last-child {
+      border-right: none;
+    }
+
+    .m3-segment-item.selected {
+      background: var(--md-sys-color-primary-container);
+      color: var(--md-sys-color-on-primary-container);
+      font-weight: 700;
+    }
+
+    /* Color Swatches (Solid color background selector) */
+    .color-swatches-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .color-swatch-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.15s, border-color 0.15s;
+    }
+
+    .color-swatch-circle.selected {
+      border-color: var(--md-sys-color-primary);
+      transform: scale(1.15);
+    }
+
+    /* Switch Tile */
+    .m3-switch-tile {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .m3-switch-tile:first-of-type {
+      border-top: none;
+    }
+
+    .switch-info-col {
+      flex: 1;
+      padding-right: 12px;
+    }
+
+    .switch-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--md-sys-color-on-surface);
+    }
+
+    .switch-desc {
+      font-size: 11px;
+      color: var(--md-sys-color-on-surface-variant);
+      margin-top: 2px;
+      line-height: 1.3;
+    }
+
+    /* Custom M3 Switch */
+    .m3-switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+
+    .m3-switch input { opacity: 0; width: 0; height: 0; }
+    .m3-switch-track {
+      position: absolute; cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: var(--md-sys-color-surface-container-highest);
+      border: 1px solid var(--md-sys-color-outline);
+      transition: .25s;
+      border-radius: 24px;
+    }
+
+    .m3-switch-track:before {
+      position: absolute; content: "";
+      height: 16px; width: 16px;
+      left: 3px; bottom: 3px;
+      background-color: var(--md-sys-color-outline);
+      transition: .25s;
+      border-radius: 50%;
+    }
+
+    input:checked + .m3-switch-track {
+      background-color: var(--md-sys-color-primary);
+      border-color: var(--md-sys-color-primary);
+    }
+
+    input:checked + .m3-switch-track:before {
+      transform: translateX(20px);
+      background-color: var(--md-sys-color-on-primary);
+    }
+
+    /* Plan Review Part Items (Step 4) */
+    .part-tile {
+      background: var(--md-sys-color-surface);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .part-tile.selected {
+      border-color: var(--md-sys-color-primary);
+      background: rgba(255, 84, 73, 0.04);
+    }
+
+    .part-checkbox {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--md-sys-color-primary);
+    }
+
+    .part-num-circle {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .part-details-col {
+      flex: 1;
+    }
+
+    .part-time-range {
+      font-size: 13px;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--md-sys-color-on-surface);
+    }
+
+    .part-filename {
+      font-size: 11px;
+      color: var(--md-sys-color-on-surface-variant);
+      margin-top: 2px;
+    }
+
+    .part-tag-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(74, 222, 128, 0.15);
+      color: #4ADE80;
+    }
+
+    /* Circular Progress Ring in Step 5 (Processing) */
+    .m3-progress-ring-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 0 16px 0;
+    }
+
+    .m3-circle-wrap {
+      width: 140px;
+      height: 140px;
+      position: relative;
+    }
+
+    .m3-circle-wrap svg {
+      width: 140px;
+      height: 140px;
+      transform: rotate(-90deg);
+    }
+
+    .m3-circle-bg {
+      fill: none;
+      stroke: var(--md-sys-color-surface-container-highest);
+      stroke-width: 10;
+    }
+
+    .m3-circle-bar {
+      fill: none;
+      stroke: var(--md-sys-color-primary);
+      stroke-width: 10;
+      stroke-linecap: round;
+      stroke-dasharray: 377;
+      stroke-dashoffset: 377;
+      transition: stroke-dashoffset 0.3s ease;
+    }
+
+    .m3-circle-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 26px;
+      font-weight: 900;
+      color: var(--md-sys-color-on-surface);
+    }
+
+    .m3-circle-counter {
+      margin-top: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--md-sys-color-primary);
+    }
+
+    /* Live stats container */
+    .m3-stats-card {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      background: var(--md-sys-color-surface);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: 12px;
+      padding: 10px;
+      text-align: center;
+      margin-top: 12px;
+    }
+
+    .m3-stat-item-label {
+      font-size: 10px;
+      color: var(--md-sys-color-on-surface-variant);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .m3-stat-item-val {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--md-sys-color-on-surface);
+      margin-top: 3px;
+    }
+
+    /* Results Screen (Step 6) */
+    .results-player-wrap {
+      width: 100%;
+      height: 300px;
+      background: #000;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--md-sys-color-outline-variant);
+      position: relative;
+    }
+
+    .results-player-wrap video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .clip-pills-scroll {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .clip-pill-btn {
+      background: var(--md-sys-color-surface-container-highest);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      color: var(--md-sys-color-on-surface);
+      padding: 6px 14px;
+      border-radius: 10px;
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .clip-pill-btn.active {
+      background: var(--md-sys-color-primary);
+      color: var(--md-sys-color-on-primary);
+      font-weight: 700;
+      border-color: var(--md-sys-color-primary);
+    }
+
+    /* Modal Dialog (Error & Part Customization) */
+    .m3-dialog-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      z-index: 50;
+    }
+
+    .m3-dialog-card {
+      background: var(--md-sys-color-surface-container-high);
+      border-radius: 24px;
+      padding: 24px;
+      width: 100%;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+      border: 1px solid var(--md-sys-color-outline-variant);
+    }
+
+    .m3-dialog-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--md-sys-color-on-surface);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .m3-dialog-msg {
+      font-size: 13px;
+      color: var(--md-sys-color-on-surface-variant);
+      line-height: 1.4;
+      margin-bottom: 20px;
+    }
+
+    .m3-dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    /* Right Column: Live Step Diagnostic Console */
+    .diagnostic-panel {
+      background: var(--desktop-panel);
+      border: 1px solid var(--desktop-border);
+      border-radius: 24px;
+      padding: 22px;
+      height: 840px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .diag-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .diag-title-row h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .diag-log-container {
+      flex: 1;
+      background: #090A10;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: #94A3B8;
+      overflow-y: auto;
+      line-height: 1.6;
+    }
+
+    .diag-log-line {
+      margin-bottom: 6px;
+      word-break: break-all;
+    }
+
+    .diag-log-line.info { color: #38BDF8; }
+    .diag-log-line.success { color: #4ADE80; }
+    .diag-log-line.warn { color: #FBBF24; }
+    .diag-log-line.error { color: #F87171; }
+
+    .sample-pill-btn {
+      background: var(--md-sys-color-surface-container-highest);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      color: var(--md-sys-color-primary);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 11px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin: 3px;
+      transition: background 0.15s;
+    }
+
+    .sample-pill-btn:hover {
+      background: var(--md-sys-color-surface-container-high);
+    }
+
+    .spinner-icon {
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-top-color: var(--md-sys-color-primary);
+      border-radius: 50%;
+      width: 14px;
+      height: 14px;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="theme-red">
+
+  <!-- Desktop Header -->
+  <div class="desktop-header">
+    <div>
+      <h1>📱 ShortsSplitter <span>Android APK Studio & Verification Lab</span></h1>
+      <p>1:1 pixel-accurate Android Material 3 mobile environment with full settings, trimming, and background testing</p>
+    </div>
+    <div class="status-pill">
+      <span class="status-dot"></span>
+      <span id="engineStatusText">Connecting to FFmpeg engine...</span>
+    </div>
+  </div>
+
+  <div class="lab-container">
+
+    <!-- ======================================================================
+         LEFT COLUMN: EXACT ANDROID PHONE CHASSIS
+         ====================================================================== -->
+    <div class="phone-chassis">
+      
+      <!-- Android Status Bar -->
+      <div class="phone-status-bar">
+        <span>09:41</span>
+        <div class="notch-camera-hole"></div>
+        <span>5G • 100%</span>
+      </div>
+
+      <!-- Material 3 App Bar -->
+      <div class="phone-app-bar">
+        <div class="app-bar-left">
+          <button type="button" class="app-bar-icon-btn" id="appBarBackBtn" style="display: none;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+          </button>
+          <div class="phone-app-bar-title" id="appBarTitle">Step 1: Select Video</div>
+        </div>
+        <!-- Accent Theme Color Chooser (Red, Violet, Ocean, Emerald, Orange) -->
+        <div class="accent-dots-wrapper" title="Switch Material 3 Accent Theme">
+          <div class="accent-dot active" data-theme="red" style="background: #FF0033;"></div>
+          <div class="accent-dot" data-theme="violet" style="background: #7C4DFF;"></div>
+          <div class="accent-dot" data-theme="ocean" style="background: #0288D1;"></div>
+          <div class="accent-dot" data-theme="emerald" style="background: #00897B;"></div>
+          <div class="accent-dot" data-theme="orange" style="background: #FF6F00;"></div>
+        </div>
+      </div>
+
+      <!-- Material 3 Step Indicator (Exact match of SelectVideoScreen._buildStepIndicator) -->
+      <div class="m3-step-indicator" id="stepIndicatorBar">
+        <div class="step-badge-col active" id="badgeStep1">
+          <div class="step-circle">1</div>
+          <div class="step-badge-label">Select</div>
+        </div>
+        <div class="step-line" id="lineStep1"></div>
+        <div class="step-badge-col" id="badgeStep2">
+          <div class="step-circle">2</div>
+          <div class="step-badge-label">Trim</div>
+        </div>
+        <div class="step-line" id="lineStep2"></div>
+        <div class="step-badge-col" id="badgeStep3">
+          <div class="step-circle">3</div>
+          <div class="step-badge-label">Settings</div>
+        </div>
+        <div class="step-line" id="lineStep3"></div>
+        <div class="step-badge-col" id="badgeStep4">
+          <div class="step-circle">4</div>
+          <div class="step-badge-label">Review</div>
+        </div>
+      </div>
+
+      <!-- Phone Body Scroll Area -->
+      <div class="phone-screen-body">
+
+        <!-- ==================================================================
+             STEP 1: SELECT VIDEO SCREEN (SelectVideoScreen)
+             ================================================================== -->
+        <div class="screen-view active" id="viewStep1">
+          <div class="m3-card">
+            <div class="empty-picker-box" id="emptyPickerBtn">
+              <div class="empty-picker-circle">
+                <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8 12.5v-9l6 4.5-6 4.5z"/></svg>
+              </div>
+              <div class="empty-picker-title">Choose Video to Split</div>
+              <div class="empty-picker-sub">Tap to pick from gallery or files (MP4, MOV, MKV, WebM)</div>
+              <input type="file" id="realFileInput" accept="video/*" style="display: none;">
+            </div>
+
+            <div style="margin-top: 14px;">
+              <div style="font-size: 11px; font-weight: 700; color: var(--md-sys-color-on-surface-variant); margin-bottom: 6px;">QUICK TEST SAMPLES:</div>
+              <div id="quickSamplesContainer">
+                <button type="button" class="sample-pill-btn" id="sample23sBtn">⚡ 23s Test Video</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Video Preview Card (Shown after selection) -->
+          <div class="m3-card" id="videoPreviewCard" style="display: none;">
+            <div class="m3-card-header">
+              <svg viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
+              <span id="previewVideoName">video.mp4</span>
+            </div>
+            <video id="step1VideoPlayer" controls style="width: 100%; height: 130px; border-radius: 10px; background: #000;"></video>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 11px; margin-top: 10px; color: var(--md-sys-color-on-surface-variant);">
+              <div>Duration: <b id="metaDuration" style="color: var(--md-sys-color-on-surface);">-</b></div>
+              <div>Resolution: <b id="metaResolution" style="color: var(--md-sys-color-on-surface);">-</b></div>
+              <div>Aspect Ratio: <b id="metaAspect" style="color: var(--md-sys-color-on-surface);">-</b></div>
+              <div>Audio: <b id="metaAudio" style="color: var(--md-sys-color-on-surface);">-</b></div>
+            </div>
+            <button type="button" class="m3-outlined-button" id="changeVideoBtn" style="margin-top: 10px;">
+              🔄 Change Video
+            </button>
+          </div>
+
+          <!-- Truncated/Incomplete Video Warning Card -->
+          <div class="m3-card" id="truncatedFileCard" style="display: none; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35);">
+            <div style="display: flex; align-items: flex-start; gap: 8px;">
+              <span style="font-size: 18px;">⚠️</span>
+              <div>
+                <div style="font-weight: 700; font-size: 12px; color: #FCD34D;">Incomplete / Partial Video File Detected</div>
+                <div style="font-size: 11px; color: #FDE68A; margin-top: 3px;" id="truncatedFileDesc">
+                  Source file was partially downloaded. Playable video ends at 45m 01s (metadata stated 1h 31m).
+                </div>
+                <div style="font-size: 10px; color: var(--md-sys-color-on-surface-variant); margin-top: 4px;">
+                  Trim sliders and splitting are automatically clamped to the available playable duration so all clips export cleanly.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button type="button" class="m3-filled-button" id="btnToStep2" disabled>
+            Proceed to Trim ➔
+          </button>
+        </div>
+
+        <!-- ==================================================================
+             STEP 2: TRIM VIDEO SCREEN (TrimScreen)
+             ================================================================== -->
+        <div class="screen-view" id="viewStep2">
+          <!-- Video Player Card with time overlay -->
+          <div class="m3-card" style="padding: 10px; position: relative;">
+            <video id="trimVideoPlayer" controls style="width: 100%; height: 170px; border-radius: 10px; background: #000;"></video>
+          </div>
+
+          <!-- Specific Trim Positions (Exact match of mobile _buildTimeBadgesCard) -->
+          <div class="m3-card">
+            <div class="m3-card-header">
+              <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+              <span>Trim Positions & Specific Time Entry</span>
+            </div>
+
+            <!-- Two Clickable Start & End Position Cards -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+              <!-- START Position Box -->
+              <div id="startPositionCard" style="background: var(--md-sys-color-surface); border: 2px solid var(--md-sys-color-primary); border-radius: 12px; padding: 10px; cursor: pointer; transition: all 0.2s;" title="Tap to enter exact specific start time">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 10px; font-weight: 700; color: var(--md-sys-color-on-surface-variant);">START</span>
+                  <span style="font-size: 10px; color: var(--md-sys-color-primary); font-weight: 600;">✏️ Set Time</span>
+                </div>
+                <div id="startFormattedText" style="font-size: 15px; font-weight: 900; color: var(--md-sys-color-primary); font-family: 'JetBrains Mono', monospace; margin-top: 4px;">00:00:00.0</div>
+                <div id="startSecSubText" style="font-size: 10px; color: var(--md-sys-color-on-surface-variant);">(0.0s)</div>
+              </div>
+
+              <!-- END Position Box -->
+              <div id="endPositionCard" style="background: var(--md-sys-color-surface); border: 1.5px solid var(--md-sys-color-outline-variant); border-radius: 12px; padding: 10px; cursor: pointer; transition: all 0.2s;" title="Tap to enter exact specific end time">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 10px; font-weight: 700; color: var(--md-sys-color-on-surface-variant);">END</span>
+                  <span style="font-size: 10px; color: var(--md-sys-color-primary); font-weight: 600;">✏️ Set Time</span>
+                </div>
+                <div id="endFormattedText" style="font-size: 15px; font-weight: 900; color: var(--md-sys-color-on-surface); font-family: 'JetBrains Mono', monospace; margin-top: 4px;">00:00:23.0</div>
+                <div id="endSecSubText" style="font-size: 10px; color: var(--md-sys-color-on-surface-variant);">(23.0s)</div>
+              </div>
+            </div>
+
+            <!-- Set to Current Video Position Buttons -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px;">
+              <button type="button" class="m3-outlined-button" id="btnSetStartCurrent" style="padding: 8px 10px; font-size: 11px;">
+                ⏮️ Set Start Here
+              </button>
+              <button type="button" class="m3-outlined-button" id="btnSetEndCurrent" style="padding: 8px 10px; font-size: 11px;">
+                ⏭️ Set End Here
+              </button>
+            </div>
+
+            <!-- Sliders for Start & End -->
+            <div style="margin-bottom: 12px;">
+              <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">
+                <span>Start Slider:</span>
+                <b id="sliderStartText" style="color: var(--md-sys-color-on-surface); font-family: 'JetBrains Mono', monospace;">00:00.0</b>
+              </div>
+              <input type="range" id="trimStartRange" min="0" max="100" value="0" step="0.1" style="width: 100%; accent-color: var(--md-sys-color-primary);">
+            </div>
+
+            <div style="margin-bottom: 12px;">
+              <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">
+                <span>End Slider:</span>
+                <b id="sliderEndText" style="color: var(--md-sys-color-on-surface); font-family: 'JetBrains Mono', monospace;">00:23.0</b>
+              </div>
+              <input type="range" id="trimEndRange" min="0" max="100" value="100" step="0.1" style="width: 100%; accent-color: var(--md-sys-color-primary);">
+            </div>
+
+            <!-- Selected Duration Badge -->
+            <div style="background: rgba(255, 84, 73, 0.08); border: 1px solid var(--md-sys-color-primary); border-radius: 10px; padding: 10px; text-align: center; margin-bottom: 12px;">
+              <div style="font-size: 10px; font-weight: 700; color: var(--md-sys-color-on-surface-variant); text-transform: uppercase;">Selected Trim Duration:</div>
+              <div id="trimDurationBadge" style="font-size: 15px; font-weight: 900; color: var(--md-sys-color-primary); font-family: 'JetBrains Mono', monospace; margin-top: 2px;">00:00:23.0 (23.0s)</div>
+            </div>
+
+            <!-- Nudge Controls Target Switcher -->
+            <div style="font-size: 11px; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">Nudge Marker:</div>
+            <div class="m3-segmented-row" id="nudgeTargetSegmented">
+              <div class="m3-segment-item selected" data-target="start">Adjust Start</div>
+              <div class="m3-segment-item" data-target="end">Adjust End</div>
+            </div>
+
+            <!-- Nudge Buttons -->
+            <div style="display: flex; justify-content: center; gap: 4px; flex-wrap: wrap; margin-top: 10px;">
+              <button type="button" class="sample-pill-btn" id="nudgeMinus10">-10s</button>
+              <button type="button" class="sample-pill-btn" id="nudgeMinus1">-1s</button>
+              <button type="button" class="sample-pill-btn" id="nudgeMinus01">-0.1s</button>
+              <button type="button" class="sample-pill-btn" id="nudgeReset">Reset Full</button>
+              <button type="button" class="sample-pill-btn" id="nudgePlus01">+0.1s</button>
+              <button type="button" class="sample-pill-btn" id="nudgePlus1">+1s</button>
+              <button type="button" class="sample-pill-btn" id="nudgePlus10">+10s</button>
+            </div>
+          </div>
+
+          <button type="button" class="m3-filled-button" id="btnToStep3">
+            Proceed to Settings ➔
+          </button>
+        </div>
+
+        <!-- ==================================================================
+             STEP 3: SPLIT SETTINGS SCREEN (SplitConfigScreen)
+             ================================================================== -->
+        <div class="screen-view" id="viewStep3">
+
+          <!-- 1. Clip Duration Card -->
+          <div class="m3-card">
+            <div class="m3-card-header">
+              <svg viewBox="0 0 24 24"><path d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61l1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42C16.07 4.74 14.12 4 12 4c-4.97 0-9 4.03-9 9s4.02 9 9 9 9-4.03 9-9c0-2.12-.74-4.07-1.97-5.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+              <span>1. Clip Duration (Max 180s)</span>
+            </div>
+            <div class="choice-chips-wrap" id="presetChipsWrap">
+              <div class="m3-choice-chip selected" data-dur="0">⚡ Full Video</div>
+              <div class="m3-choice-chip" data-dur="15">15s (Shorts)</div>
+              <div class="m3-choice-chip" data-dur="30">30s (Reels)</div>
+              <div class="m3-choice-chip" data-dur="60">60s (Standard)</div>
+              <div class="m3-choice-chip" data-dur="180">3 min (180s)</div>
+              <div class="m3-choice-chip" data-dur="custom">Custom...</div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 6px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 8px; padding: 8px 10px; margin-top: 10px; font-size: 11px; color: #FCD34D;">
+              <span>💡</span>
+              <div><b>Uploading 3-minute Shorts to YouTube:</b> In the YouTube mobile app, tap <b>[+]</b> then select <b>"Upload a video"</b> (NOT the in-app "Create a Short" camera) so YouTube accepts your 3-minute video without duration errors.</div>
+            </div>
+
+            <!-- Custom Duration Stepper Box -->
+            <div id="customDurationBox" style="display: none; background: rgba(0, 0, 0, 0.2); padding: 10px; border-radius: 10px; margin-top: 8px;">
+              <div style="font-size: 11px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">Enter Duration in Seconds (1s to 180s max):</div>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <input type="number" id="customDurationInput" min="1" max="180" value="45" style="width: 80px; background: var(--md-sys-color-surface-container-highest); border: 1px solid var(--md-sys-color-outline-variant); color: white; padding: 8px; border-radius: 8px; font-weight: 700; text-align: center;">
+                <span style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">seconds</span>
+              </div>
+              <div style="font-size: 10px; color: #F59E0B; margin-top: 4px;">⚠️ YouTube Shorts limit: strictly capped at 180s.</div>
+            </div>
+          </div>
+
+          <!-- 2. Canvas & Crop Card -->
+          <div class="m3-card">
+            <div class="m3-card-header">
+              <svg viewBox="0 0 24 24"><path d="M19 12h-2v3h-3v2h5v-5zM7 9h3V7H5v5h2V9zm14-6H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16.01H3V4.99h18v14.02z"/></svg>
+              <span>2. Canvas & Aspect Ratio</span>
+            </div>
+            <div class="choice-chips-wrap" id="canvasRatioChips">
+              <div class="m3-choice-chip selected" data-ratio="9:16">9:16 (Shorts/Reels)</div>
+              <div class="m3-choice-chip" data-ratio="1:1">1:1 (Square)</div>
+              <div class="m3-choice-chip" data-ratio="16:9">16:9 (Landscape)</div>
+              <div class="m3-choice-chip" data-ratio="4:5">4:5 (Portrait)</div>
+              <div class="m3-choice-chip" data-ratio="original">Original</div>
+            </div>
+
+            <!-- Crop to Fill Switch (OFF by default: No cropping!) -->
+            <div class="m3-switch-tile">
+              <div class="switch-info-col">
+                <div class="switch-title">Crop to Fill Canvas</div>
+                <div class="switch-desc" id="cropDescText">Scales to fit without cropping (preserves full video).</div>
+              </div>
+              <label class="m3-switch">
+                <input type="checkbox" id="cropToFillCheck">
+                <span class="m3-switch-track"></span>
+              </label>
+            </div>
+
+            <!-- Safety Banner for Full Video Protection -->
+            <div id="noCropProtectionBanner" style="display: flex; align-items: center; gap: 8px; background: rgba(0, 150, 136, 0.15); border: 1px solid rgba(0, 150, 136, 0.4); border-radius: 8px; padding: 8px 12px; margin-top: 10px; font-size: 11px; color: #80cbc4;">
+              <span style="font-size: 15px;">🛡️</span>
+              <div><b>No Cropping Active:</b> 100% of your video frame is preserved without cutting off sides.</div>
+            </div>
+
+            <!-- Vertical Alignment (shown when Crop to Fill is disabled) -->
+            <div id="verticalAlignRow" style="display: block; margin-top: 10px;">
+              <div style="font-size: 11px; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">Vertical Position:</div>
+              <div class="m3-segmented-row" id="verticalAlignSegmented">
+                <div class="m3-segment-item" data-align="top">Top</div>
+                <div class="m3-segment-item selected" data-align="center">Center</div>
+                <div class="m3-segment-item" data-align="bottom">Bottom</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Background Fill Card (shown when Crop to Fill is disabled) -->
+          <div class="m3-card" id="backgroundFillCard" style="display: block;">
+            <div class="m3-card-header">
+              <svg viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 18.5c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l.9-.9C8.19 19.57 10.01 20 12 20c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 15c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg>
+              <span>3. Background Fill (No-Crop Padding)</span>
+            </div>
+            <div class="choice-chips-wrap" id="bgTypeChips">
+              <div class="m3-choice-chip selected" data-bg="blur">Blurred Video</div>
+              <div class="m3-choice-chip" data-bg="solid">Solid Color</div>
+            </div>
+
+            <div id="solidColorSwatches" class="color-swatches-row" style="display: none;">
+              <div class="color-swatch-circle selected" data-color="#000000" style="background: #000000;" title="Black"></div>
+              <div class="color-swatch-circle" data-color="#212121" style="background: #212121;" title="Dark Grey"></div>
+              <div class="color-swatch-circle" data-color="#FFFFFF" style="background: #FFFFFF;" title="White"></div>
+              <div class="color-swatch-circle" data-color="#3F51B5" style="background: #3F51B5;" title="Indigo"></div>
+              <div class="color-swatch-circle" data-color="#E91E63" style="background: #E91E63;" title="Pink"></div>
+              <div class="color-swatch-circle" data-color="#009688" style="background: #009688;" title="Teal"></div>
+            </div>
+          </div>
+
+          <!-- 4. Audio Track Card (Shown when video has audio) -->
+          <div class="m3-card" id="audioTrackCard" style="display: none;">
+            <div class="m3-card-header">
+              <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+              <span>4. Audio Track (Mobile Stereo Safe)</span>
+            </div>
+            <div style="font-size: 11px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 8px;">
+              Select primary audio track. Multi-channel audio (5.1/7.1) will be automatically downmixed to 2-channel stereo for 100% YouTube, Instagram, and TikTok upload compatibility.
+            </div>
+            <div class="choice-chips-wrap" id="audioTrackChips">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- 5. Part Number Overlay Card -->
+          <div class="m3-card">
+            <div class="m3-card-header">
+              <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
+              <span>5. Part Numbering Label</span>
+            </div>
+            <div class="m3-segmented-row" id="overlayModeSegmented">
+              <div class="m3-segment-item selected" data-mode="auto">Auto</div>
+              <div class="m3-segment-item" data-mode="always">Always</div>
+              <div class="m3-segment-item" data-mode="never">Never</div>
+            </div>
+            <div id="overlayModeDesc" style="font-size: 11px; color: var(--md-sys-color-on-surface-variant); margin-top: 4px;">
+              Auto: Adds Part badge only if video splits into 2+ parts.
+            </div>
+
+            <!-- Overlay Safe Position & Template -->
+            <div id="overlayOptionsBlock" style="margin-top: 12px;">
+              <div style="font-size: 11px; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 6px;">Safe Zone Position:</div>
+              <div class="choice-chips-wrap" id="overlayPositionChips">
+                <div class="m3-choice-chip selected" data-pos="top_center">Top Center (Safe Zone)</div>
+                <div class="m3-choice-chip" data-pos="bottom_center">Bottom Center</div>
+                <div class="m3-choice-chip" data-pos="top_left">Top Left</div>
+                <div class="m3-choice-chip" data-pos="top_right">Top Right</div>
+              </div>
+
+              <div style="font-size: 11px; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-top: 10px; margin-bottom: 4px;">Overlay Template:</div>
+              <input type="text" id="overlayTemplateInput" value="Part {n}/{total}" style="width: 100%; background: var(--md-sys-color-surface-container-highest); border: 1px solid var(--md-sys-color-outline-variant); color: white; padding: 8px 12px; border-radius: 8px; font-size: 12px;">
+
+              <div style="font-size: 11px; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-top: 10px; margin-bottom: 6px;">Badge Text Size:</div>
+              <div class="choice-chips-wrap" id="overlayFontSizeChips">
+                <div class="m3-choice-chip" data-size="42">Normal (42px)</div>
+                <div class="m3-choice-chip selected" data-size="52">Large (52px - Recommended)</div>
+                <div class="m3-choice-chip" data-size="64">Extra Large (64px)</div>
+              </div>
+
+              <!-- Live Badge Preview -->
+              <div style="margin-top: 10px; background: rgba(0, 0, 0, 0.3); border: 1px dashed var(--md-sys-color-outline-variant); border-radius: 10px; padding: 12px; text-align: center;">
+                <div style="font-size: 10px; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 8px;">LIVE OVERLAY BADGE PREVIEW:</div>
+                <div style="display: inline-flex; align-items: center; justify-content: center; background: rgba(15, 17, 26, 0.85); border: 1.5px solid rgba(255, 255, 255, 0.2); border-radius: 20px; padding: 8px 24px;">
+                  <span id="badgePreviewText" style="color: white; font-weight: 700; font-size: 15px; letter-spacing: 0.5px; text-shadow: 1px 1px 3px rgba(0,0,0,0.9);">Part 1 of 20</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. Output Settings & Remainder Card -->
+          <div class="m3-card">
+            <div class="m3-card-header">
+              <svg viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+              <span>5. Output & Storage</span>
+            </div>
+
+            <div style="font-size: 11px; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">Output Base Name:</div>
+            <input type="text" id="customBaseNameInput" placeholder="video_name" style="width: 100%; background: var(--md-sys-color-surface-container-highest); border: 1px solid var(--md-sys-color-outline-variant); color: white; padding: 8px 12px; border-radius: 8px; font-size: 12px; margin-bottom: 10px;">
+
+            <div class="m3-switch-tile">
+              <div class="switch-info-col">
+                <div class="switch-title">Merge Short Remainder</div>
+                <div class="switch-desc">Merge trailing clip if &lt;3.0s and sum &le;180s.</div>
+              </div>
+              <label class="m3-switch">
+                <input type="checkbox" id="mergeRemainderToggle" checked>
+                <span class="m3-switch-track"></span>
+              </label>
+            </div>
+          </div>
+
+          <button type="button" class="m3-filled-button" id="btnToStep4">
+            Review Split Plan ➔
+          </button>
+        </div>
+
+        <!-- ==================================================================
+             STEP 4: PLAN REVIEW SCREEN (PlanReviewScreen)
+             ================================================================== -->
+        <div class="screen-view" id="viewStep4">
+          <!-- Plan Header Card -->
+          <div class="m3-card" style="background: var(--md-sys-color-surface-container-high);">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 900;" id="planTotalPartsCircle">3</div>
+              <div style="flex: 1;">
+                <div style="font-size: 15px; font-weight: 700; color: var(--md-sys-color-on-surface);" id="planHeaderTitle">3 Shorts Planned</div>
+                <div style="font-size: 11px; color: var(--md-sys-color-on-surface-variant);" id="planHeaderSub">Active video: 23.0s • Zero gaps • Frame-accurate</div>
+              </div>
+              <div style="background: rgba(255, 84, 73, 0.12); color: var(--md-sys-color-primary); padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 700;">Max 180s</div>
+            </div>
+          </div>
+
+          <!-- Planned Parts List Container -->
+          <div class="m3-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <div class="m3-card-header" style="margin-bottom: 0;">Planned Video Parts</div>
+              <button type="button" id="toggleSelectAllBtn" style="background: none; border: none; color: var(--md-sys-color-primary); font-size: 11px; font-weight: 700; cursor: pointer;">Deselect All</button>
+            </div>
+            <div id="planPartsItemsWrapper">
+              <!-- Dynamically populated part items -->
+            </div>
+          </div>
+
+          <button type="button" class="m3-filled-button" id="btnStartExport">
+            🚀 Start Creating Shorts (3 Clips)
+          </button>
+        </div>
+
+        <!-- ==================================================================
+             STEP 5: PROCESSING SCREEN (ProcessingScreen)
+             ================================================================== -->
+        <div class="screen-view" id="viewStep5">
+          <!-- Circular Progress Ring Card -->
+          <div class="m3-card" style="text-align: center;">
+            <div class="m3-progress-ring-box">
+              <div class="m3-circle-wrap">
+                <svg>
+                  <circle class="m3-circle-bg" cx="70" cy="70" r="60"></circle>
+                  <circle class="m3-circle-bar" id="m3CircleBar" cx="70" cy="70" r="60"></circle>
+                </svg>
+                <div class="m3-circle-text" id="m3CirclePercent">0%</div>
+              </div>
+              <!-- Dynamically increments: Clip 1 of 4 -> Clip 2 of 4! -->
+              <div class="m3-circle-counter" id="m3ClipCounterText">Clip 1 of 3</div>
+            </div>
+
+            <!-- Live Elapsed, Remaining, Speed -->
+            <div class="m3-stats-card">
+              <div>
+                <div class="m3-stat-item-label">Elapsed</div>
+                <div class="m3-stat-item-val" id="statElapsedVal">00:00</div>
+              </div>
+              <div>
+                <div class="m3-stat-item-label">Remaining</div>
+                <div class="m3-stat-item-val" id="statRemainingVal">Estimating...</div>
+              </div>
+              <div>
+                <div class="m3-stat-item-label">Speed</div>
+                <div class="m3-stat-item-val" id="statSpeedVal">38 FPS</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Active Clip Card -->
+          <div class="m3-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <div style="font-size: 13px; font-weight: 700;" id="activeClipBadge">Clip 1 of 3</div>
+              <div style="background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700;" id="activeClipPercentBadge">0%</div>
+            </div>
+            <div style="font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--md-sys-color-on-surface-variant); margin-bottom: 8px;" id="activeClipFileName">video_part_001.mp4</div>
+            <div style="height: 6px; background: rgba(255, 255, 255, 0.1); border-radius: 4px; overflow: hidden; margin-bottom: 10px;">
+              <div id="activeClipLinearBar" style="height: 100%; width: 0%; background: var(--md-sys-color-primary); transition: width 0.2s;"></div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--md-sys-color-on-surface-variant); background: rgba(0, 0, 0, 0.2); padding: 8px; border-radius: 8px;">
+              <span class="spinner-icon"></span>
+              <span id="activeClipStageMsg">Cropping & converting frames (0%)...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================================================================
+             STEP 6: RESULTS SCREEN (ResultsScreen)
+             ================================================================== -->
+        <div class="screen-view" id="viewStep6">
+          <!-- Success Banner -->
+          <div class="m3-card" style="background: rgba(74, 222, 128, 0.12); border-color: rgba(74, 222, 128, 0.3);">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 24px;">✅</span>
+              <div>
+                <div style="font-weight: 700; font-size: 14px; color: #4ADE80;" id="resultsTitle">Successfully created 3 clips!</div>
+                <div style="font-size: 11px; color: var(--md-sys-color-on-surface-variant);">Saved to: Movies/ShortsSplitter/</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Partial / Truncated Notice Banner (Shown if video ended early) -->
+          <div class="m3-card" id="resultsNoticeBanner" style="display: none; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35);">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 20px;">ℹ️</span>
+              <div style="font-size: 11px; color: #FCD34D;" id="resultsNoticeText">
+                Export concluded at end of available video media.
+              </div>
+            </div>
+          </div>
+
+          <!-- Vertical 9:16 Video Player -->
+          <div class="results-player-wrap">
+            <video id="resultsPlayer" controls autoplay loop playsinline></video>
+          </div>
+
+          <!-- Clip Selectors -->
+          <div style="font-size: 11px; font-weight: 700; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">SELECT GENERATED SHORT:</div>
+          <div class="clip-pills-scroll" id="resultsPillsRow"></div>
+
+          <!-- Clip Info Specs -->
+          <div class="m3-card" style="font-size: 11px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+            <div>Resolution: <b id="resSpecRes" style="color: white;">1080x1920</b></div>
+            <div>Duration: <b id="resSpecDur" style="color: white;">10.0s</b></div>
+            <div>Video Stream: <b style="color: #4ADE80;">H.264 Active</b></div>
+            <div>Audio Stream: <b style="color: #4ADE80;">AAC Stereo</b></div>
+          </div>
+
+          <a href="#" class="m3-filled-button" id="downloadCurrentClipBtn" download style="text-decoration: none;">
+            ⬇️ Download This Short (.mp4)
+          </a>
+
+          <button type="button" class="m3-outlined-button" id="btnRestartAll">
+            🔄 Create Another Split
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Wheel / Specific Time Picker Modal (Matching Android WheelTimePickerSheet) -->
+      <div class="m3-dialog-overlay" id="timePickerModal">
+        <div class="m3-dialog-card" style="max-width: 370px;">
+          <div class="m3-dialog-title">
+            <span>⏱️</span>
+            <span id="timePickerTitleText">Set Specific Time</span>
+          </div>
+          <div style="font-size: 11px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 14px;">
+            Set exact timestamp with spinners or direct keyboard entry:
+          </div>
+
+          <!-- Time Spinners (Hours, Minutes, Seconds, Millis) -->
+          <div style="display: flex; gap: 4px; justify-content: center; align-items: center; margin-bottom: 14px;">
+            <div style="text-align: center;">
+              <div style="font-size: 9px; color: var(--md-sys-color-on-surface-variant); font-weight: 700;">HRS</div>
+              <input type="number" id="timePickerHrs" min="0" max="99" value="0" style="width: 54px; background: var(--md-sys-color-surface-container-highest); border: 1px solid var(--md-sys-color-outline-variant); color: white; padding: 8px 2px; border-radius: 8px; font-size: 14px; font-weight: 700; text-align: center;">
+            </div>
+            <span style="font-size: 16px; font-weight: 700; color: var(--md-sys-color-primary); margin-top: 14px;">:</span>
+            <div style="text-align: center;">
+              <div style="font-size: 9px; color: var(--md-sys-color-on-surface-variant); font-weight: 700;">MIN</div>
+              <input type="number" id="timePickerMins" min="0" max="59" value="0" style="width: 54px; background: var(--md-sys-color-surface-container-highest); border: 1px solid var(--md-sys-color-outline-variant); color: white; padding: 8px 2px; border-radius: 8px; font-size: 14px; font-weight: 700; text-align: center;">
+            </div>
+            <span style="font-size: 16px; font-weight: 700; color: var(--md-sys-color-primary); margin-top: 14px;">:</span>
+            <div style="text-align: center;">
+              <div style="font-size: 9px; color: var(--md-sys-color-on-surface-variant); font-weight: 700;">SEC</div>
+              <input type="number" id="timePickerSecs" min="0" max="59" value="0" style="width: 54px; background: var(--md-sys-color-surface-container-highest); border: 1px solid var(--md-sys-color-outline-variant); color: white; padding: 8px 2px; border-radius: 8px; font-size: 14px; font-weight: 700; text-align: center;">
+            </div>
+            <span style="font-size: 16px; font-weight: 700; color: var(--md-sys-color-primary); margin-top: 14px;">.</span>
+            <div style="text-align: center;">
+              <div style="font-size: 9px; color: var(--md-sys-color-on-surface-variant); font-weight: 700;">MS</div>
+              <input type="number" id="timePickerMs" min="0" max="999" step="100" value="0" style="width: 58px; background: var(--md-sys-color-surface-container-highest); border: 1px solid var(--md-sys-color-outline-variant); color: white; padding: 8px 2px; border-radius: 8px; font-size: 14px; font-weight: 700; text-align: center;">
+            </div>
+          </div>
+
+          <!-- Direct Keyboard Entry Field -->
+          <div style="margin-bottom: 16px;">
+            <div style="font-size: 11px; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">Or Type Specific Time / Seconds:</div>
+            <input type="text" id="timePickerRawInput" placeholder="e.g. 01:21.0 or 81.1 or 01:31:58" style="width: 100%; background: var(--md-sys-color-surface-container-highest); border: 1px solid var(--md-sys-color-outline-variant); color: white; padding: 8px 12px; border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 13px;">
+            <div id="timePickerErrorText" style="font-size: 11px; color: var(--md-sys-color-error); margin-top: 4px; display: none;"></div>
+          </div>
+
+          <div class="m3-dialog-actions">
+            <button type="button" class="m3-outlined-button" id="timePickerCancelBtn" style="width: auto;">Cancel</button>
+            <button type="button" class="m3-filled-button" id="timePickerApplyBtn" style="width: auto;">Apply Time</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Material 3 Error / Notice Dialog Modal -->
+      <div class="m3-dialog-overlay" id="m3DialogOverlay">
+        <div class="m3-dialog-card">
+          <div class="m3-dialog-title" id="m3DialogTitle">
+            <span id="m3DialogIcon">⚠️</span>
+            <span id="m3DialogTitleText">Export Notice</span>
+          </div>
+          <div class="m3-dialog-msg" id="m3DialogMessageText">Notice message here.</div>
+          <div class="m3-dialog-actions">
+            <button type="button" class="m3-outlined-button" id="m3DialogCancelBtn" style="width: auto;">Dismiss</button>
+            <button type="button" class="m3-filled-button" id="m3DialogConfirmBtn" style="width: auto;">OK</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ======================================================================
+         RIGHT COLUMN: LIVE DIAGNOSTIC & FFmpeg INSPECTOR
+         ====================================================================== -->
+    <div class="diagnostic-panel">
+      <div class="diag-title-row">
+        <h3>🔍 Real-Time Diagnostic & Pipeline Console</h3>
+        <button type="button" id="clearConsoleBtn" style="background: none; border: 1px solid var(--desktop-border); color: #94A3B8; padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer;">Clear Console</button>
+      </div>
+
+      <div class="diag-log-container" id="diagnosticLogBox">
+        <div class="diag-log-line info">⚡ System initialized. Ready to execute Android ShortsSplitter pipeline.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // State
+    let activeVideoMeta = null;
+    let activeVideoPath = null;
+    let currentStep = 1;
+
+    let trimStartSec = 0.0;
+    let trimEndSec = 23.0;
+
+    let selectedPresetDur = 0; // 0 = Full video
+    let selectedCanvasRatio = '9:16';
+    let isCropToFill = false; // Default: Scale to Fit (No Cropping!)
+    let verticalAlign = 'center';
+    let backgroundFillType = 'blur'; // Default: Blurred video background for Shorts
+    let solidColorHex = '#000000';
+    let selectedAudioTrackIdx = 0; // Default: Primary / Default audio track downmixed to stereo
+    let overlayMode = 'auto';
+    let overlayPosition = 'top_center';
+    let overlayTemplate = 'Part {n}/{total}';
+    let selectedFontSize = 52;
+
+    let plannedSegments = [];
+    let exportedClips = [];
+    let currentResultIdx = 0;
+
+    let exportTimer = null;
+    let exportStartTime = 0;
+
+    // Logging helper
+    function log(msg, type = 'info') {
+      const box = document.getElementById('diagnosticLogBox');
+      const div = document.createElement('div');
+      div.className = `diag-log-line ${type}`;
+      const time = new Date().toLocaleTimeString();
+      div.textContent = `[${time}] ${msg}`;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    // Material 3 Accent switcher
+    document.querySelectorAll('.accent-dot').forEach(dot => {
+      dot.addEventListener('click', () => {
+        document.querySelectorAll('.accent-dot').forEach(d => d.classList.remove('active'));
+        dot.classList.add('active');
+        const theme = dot.getAttribute('data-theme');
+        document.body.className = `theme-${theme}`;
+        log(`Switched Android M3 theme accent to: ${theme.toUpperCase()}`, 'info');
+      });
+    });
+
+    // Check backend health
+    fetch('/api/status')
+      .then(r => r.json())
+      .then(d => {
+        document.getElementById('engineStatusText').textContent = 'FFmpeg Engine Active';
+        log(`Backend ready: FFmpeg at ${d.ffmpeg}`, 'success');
+      })
+      .catch(() => {
+        document.getElementById('engineStatusText').textContent = 'Engine Offline';
+        log('Error: Server connection failed', 'error');
+      });
+
+    // Load detected sample videos
+    fetch('/api/samples')
+      .then(r => r.json())
+      .then(data => {
+        if (data.samples && data.samples.length > 0) {
+          const wrapper = document.getElementById('quickSamplesContainer');
+          wrapper.innerHTML = '';
+          data.samples.forEach(s => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'sample-pill-btn';
+            const shortTitle = s.filename.length > 25 ? s.filename.substring(0, 22) + '...' : s.filename;
+            btn.textContent = `⚡ ${shortTitle} (${s.duration_formatted})`;
+            btn.addEventListener('click', () => setSourceVideo(s));
+            wrapper.appendChild(btn);
+          });
+          log(`Loaded ${data.samples.length} sample videos from disk.`, 'info');
+        }
+      });
+
+    // File upload
+    const emptyPickerBtn = document.getElementById('emptyPickerBtn');
+    const realFileInput = document.getElementById('realFileInput');
+    emptyPickerBtn.addEventListener('click', () => realFileInput.click());
+    realFileInput.addEventListener('change', () => {
+      if (realFileInput.files.length > 0) uploadVideo(realFileInput.files[0]);
+    });
+
+    document.getElementById('changeVideoBtn').addEventListener('click', () => realFileInput.click());
+
+    function uploadVideo(file) {
+      log(`Uploading video file: ${file.name} (${(file.size / (1024*1024)).toFixed(2)} MB)...`, 'info');
+      const formData = new FormData();
+      formData.append('file', file);
+      fetch('/api/upload', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(res => {
+          if (res.error) {
+            showDialog('Upload Error', res.error, '❌');
+            return;
+          }
+          log(`Upload success: ${res.metadata.filename} (${res.metadata.width}x${res.metadata.height}, ${res.metadata.duration}s)`, 'success');
+          setSourceVideo(res.metadata);
+        })
+        .catch(e => log(`Upload error: ${e}`, 'error'));
+    }
+
+    function setSourceVideo(meta) {
+      activeVideoMeta = meta;
+      activeVideoPath = meta.filepath;
+
+      document.getElementById('previewVideoName').textContent = meta.filename;
+      document.getElementById('metaDuration').textContent = `${meta.duration}s (${meta.duration_formatted})`;
+      document.getElementById('metaResolution').textContent = `${meta.width}x${meta.height}`;
+      document.getElementById('metaAspect').textContent = meta.aspect_ratio;
+      
+      const audioStreams = meta.audio_streams || [];
+      selectedAudioTrackIdx = meta.default_audio_idx || 0;
+      if (audioStreams.length > 0) {
+        const curStream = audioStreams[selectedAudioTrackIdx] || audioStreams[0];
+        document.getElementById('metaAudio').textContent = `${curStream.language.toUpperCase()} (Stereo Safe)`;
+      } else {
+        document.getElementById('metaAudio').textContent = 'None';
+      }
+
+      // Populate Audio Track Selector (Single Stereo Track for YouTube & Android compliance)
+      const audioCard = document.getElementById('audioTrackCard');
+      const audioChips = document.getElementById('audioTrackChips');
+      if (audioStreams.length > 0) {
+        audioChips.innerHTML = '';
+        audioStreams.forEach(stream => {
+          const chip = document.createElement('div');
+          chip.className = `m3-choice-chip ${stream.audio_index === selectedAudioTrackIdx ? 'selected' : ''}`;
+          chip.setAttribute('data-audio-idx', stream.audio_index);
+          const chLabel = stream.channels > 2 ? `${stream.channel_layout} ➔ Stereo` : 'Stereo';
+          chip.textContent = `${stream.title} (${chLabel})`;
+          chip.addEventListener('click', () => {
+            document.querySelectorAll('#audioTrackChips .m3-choice-chip').forEach(c => c.classList.remove('selected'));
+            chip.classList.add('selected');
+            selectedAudioTrackIdx = stream.audio_index;
+            document.getElementById('metaAudio').textContent = `${stream.language.toUpperCase()} (Stereo Safe)`;
+            log(`Audio Track selected: ${stream.title} (downmixing to stereo)`, 'info');
+          });
+          audioChips.appendChild(chip);
+        });
+        audioCard.style.display = 'block';
+      } else {
+        audioCard.style.display = 'none';
+      }
+
+      const player1 = document.getElementById('step1VideoPlayer');
+      player1.src = meta.sample_url;
+
+      const playerTrim = document.getElementById('trimVideoPlayer');
+      playerTrim.src = meta.sample_url;
+
+      // Initialize trim range
+      trimStartSec = 0.0;
+      trimEndSec = meta.duration;
+      document.getElementById('trimStartRange').max = meta.duration;
+      document.getElementById('trimStartRange').value = 0;
+      document.getElementById('trimEndRange').max = meta.duration;
+      document.getElementById('trimEndRange').value = meta.duration;
+      updateTrimLabels();
+
+      // Custom base name default
+      document.getElementById('customBaseNameInput').value = meta.filename.split('.')[0];
+
+      // Handle truncated / partial file detection
+      const truncCard = document.getElementById('truncatedFileCard');
+      if (meta.is_truncated) {
+        truncCard.style.display = 'block';
+        document.getElementById('truncatedFileDesc').textContent = 
+          `Source file was partially downloaded/transferred (${meta.size_mb}). Playable video ends at ${meta.duration_formatted} (container metadata claimed ${meta.original_duration_formatted || meta.original_duration + 's'}).`;
+        log(`⚠️ Detected partial/incomplete video: Playable length is ${meta.duration_formatted} (${meta.duration}s). Sliders and split count clamped to safe limits.`, 'warning');
+      } else {
+        truncCard.style.display = 'none';
+      }
+
+      document.getElementById('videoPreviewCard').style.display = 'block';
+      document.getElementById('btnToStep2').disabled = false;
+      log(`Active source video set: ${meta.filename}`, 'info');
+    }
+
+    // Step navigation
+    function goToStep(step) {
+      currentStep = step;
+
+      // Update Screen views
+      document.querySelectorAll('.screen-view').forEach(v => v.classList.remove('active'));
+      const activeView = document.getElementById(`viewStep${step}`);
+      if (activeView) activeView.classList.add('active');
+
+      // Update Step Indicators (1 to 4)
+      const visibleStep = Math.min(step, 4);
+      for (let i = 1; i <= 4; i++) {
+        const badge = document.getElementById(`badgeStep${i}`);
+        if (badge) {
+          badge.classList.remove('active', 'completed');
+          if (i === visibleStep) badge.classList.add('active');
+          else if (i < visibleStep) badge.classList.add('completed');
+        }
+        if (i < 4) {
+          const line = document.getElementById(`lineStep${i}`);
+          if (line) {
+            line.classList.toggle('completed', i < visibleStep);
+          }
+        }
+      }
+
+      // App bar back button & title
+      const backBtn = document.getElementById('appBarBackBtn');
+      const title = document.getElementById('appBarTitle');
+
+      if (step === 1) {
+        backBtn.style.display = 'none';
+        title.textContent = 'Step 1: Select Video';
+      } else if (step === 2) {
+        backBtn.style.display = 'flex';
+        title.textContent = 'Step 2: Trim Video';
+      } else if (step === 3) {
+        backBtn.style.display = 'flex';
+        title.textContent = 'Split Settings';
+      } else if (step === 4) {
+        backBtn.style.display = 'flex';
+        title.textContent = 'Plan Review';
+      } else if (step === 5) {
+        backBtn.style.display = 'none';
+        title.textContent = 'Exporting Shorts';
+      } else if (step === 6) {
+        backBtn.style.display = 'none';
+        title.textContent = 'Exported Clips';
+      }
+
+      log(`Navigated to: ${title.textContent}`, 'info');
+    }
+
+    document.getElementById('appBarBackBtn').addEventListener('click', () => {
+      if (currentStep > 1 && currentStep <= 4) goToStep(currentStep - 1);
+    });
+
+    // Step 1 -> Step 2
+    document.getElementById('btnToStep2').addEventListener('click', () => goToStep(2));
+
+    // Step 2: Trim logic with specific time entry and formatters
+    let activeTimePickerTarget = 'start'; // 'start' or 'end'
+    let activeNudgeMarker = 'start';      // 'start' or 'end'
+
+    function formatTimestamp(totalSeconds, includeMillis = false) {
+      if (isNaN(totalSeconds) || totalSeconds < 0) totalSeconds = 0;
+      const totalMs = Math.round(totalSeconds * 1000);
+      const hours = Math.floor(totalMs / 3600000);
+      const minutes = Math.floor((totalMs % 3600000) / 60000);
+      const seconds = Math.floor((totalMs % 60000) / 1000);
+      const millis = totalMs % 1000;
+
+      const hh = hours.toString().padStart(2, '0');
+      const mm = minutes.toString().padStart(2, '0');
+      const ss = seconds.toString().padStart(2, '0');
+      const mmm = millis.toString().padStart(3, '0');
+
+      if (hours > 0) {
+        return includeMillis ? `${hh}:${mm}:${ss}.${mmm.slice(0, 1)}` : `${hh}:${mm}:${ss}`;
+      }
+      return includeMillis ? `${mm}:${ss}.${mmm.slice(0, 1)}` : `${mm}:${ss}`;
+    }
+
+    function parseTimestamp(str) {
+      if (!str) return null;
+      const clean = str.trim();
+      if (!clean) return null;
+      if (/^\d+(\.\d+)?$/.test(clean)) {
+        return parseFloat(clean);
+      }
+      const parts = clean.split(':');
+      if (parts.length === 2) {
+        const m = parseFloat(parts[0]);
+        const s = parseFloat(parts[1]);
+        if (!isNaN(m) && !isNaN(s)) return (m * 60) + s;
+      } else if (parts.length === 3) {
+        const h = parseFloat(parts[0]);
+        const m = parseFloat(parts[1]);
+        const s = parseFloat(parts[2]);
+        if (!isNaN(h) && !isNaN(m) && !isNaN(s)) return (h * 3600) + (m * 60) + s;
+      }
+      return null;
+    }
+
+    function updateTrimLabels() {
+      // Start representations
+      document.getElementById('startFormattedText').textContent = formatTimestamp(trimStartSec, true);
+      document.getElementById('startSecSubText').textContent = `(${trimStartSec.toFixed(1)}s)`;
+      document.getElementById('sliderStartText').textContent = `${formatTimestamp(trimStartSec)} (${trimStartSec.toFixed(1)}s)`;
+
+      // End representations
+      document.getElementById('endFormattedText').textContent = formatTimestamp(trimEndSec, true);
+      document.getElementById('endSecSubText').textContent = `(${trimEndSec.toFixed(1)}s)`;
+      document.getElementById('sliderEndText').textContent = `${formatTimestamp(trimEndSec)} (${trimEndSec.toFixed(1)}s)`;
+
+      // Duration representation
+      const dur = Math.max(0, trimEndSec - trimStartSec);
+      document.getElementById('trimDurationBadge').textContent = `${formatTimestamp(dur, true)} (${dur.toFixed(1)}s)`;
+
+      // Sync slider inputs
+      startRange.value = trimStartSec;
+      endRange.value = trimEndSec;
+    }
+
+    const startRange = document.getElementById('trimStartRange');
+    const endRange = document.getElementById('trimEndRange');
+    const trimPlayer = document.getElementById('trimVideoPlayer');
+
+    startRange.addEventListener('input', () => {
+      trimStartSec = Math.min(parseFloat(startRange.value), trimEndSec - 0.5);
+      updateTrimLabels();
+      trimPlayer.currentTime = trimStartSec;
+    });
+
+    endRange.addEventListener('input', () => {
+      trimEndSec = Math.max(parseFloat(endRange.value), trimStartSec + 0.5);
+      updateTrimLabels();
+      trimPlayer.currentTime = trimEndSec;
+    });
+
+    // Tap START or END Card to open manual specific time modal
+    document.getElementById('startPositionCard').addEventListener('click', () => openTimePicker('start'));
+    document.getElementById('endPositionCard').addEventListener('click', () => openTimePicker('end'));
+
+    // Set to Current Video Position
+    document.getElementById('btnSetStartCurrent').addEventListener('click', () => {
+      const pos = trimPlayer.currentTime;
+      trimStartSec = Math.min(pos, trimEndSec - 0.5);
+      updateTrimLabels();
+      log(`Start Position snapped to current video playhead: ${formatTimestamp(trimStartSec, true)}`, 'info');
+    });
+
+    document.getElementById('btnSetEndCurrent').addEventListener('click', () => {
+      const pos = trimPlayer.currentTime;
+      trimEndSec = Math.max(pos, trimStartSec + 0.5);
+      updateTrimLabels();
+      log(`End Position snapped to current video playhead: ${formatTimestamp(trimEndSec, true)}`, 'info');
+    });
+
+    // Nudge marker target selection
+    document.querySelectorAll('#nudgeTargetSegmented .m3-segment-item').forEach(seg => {
+      seg.addEventListener('click', () => {
+        document.querySelectorAll('#nudgeTargetSegmented .m3-segment-item').forEach(s => s.classList.remove('selected'));
+        seg.classList.add('selected');
+        activeNudgeMarker = seg.getAttribute('data-target');
+        log(`Fine Nudge active target marker: ${activeNudgeMarker.toUpperCase()}`, 'info');
+      });
+    });
+
+    function applyNudgeDelta(delta) {
+      if (activeNudgeMarker === 'start') {
+        trimStartSec = Math.max(0, Math.min(trimStartSec + delta, trimEndSec - 0.5));
+        trimPlayer.currentTime = trimStartSec;
+      } else {
+        const maxSec = activeVideoMeta ? activeVideoMeta.duration : 10000;
+        trimEndSec = Math.min(maxSec, Math.max(trimEndSec + delta, trimStartSec + 0.5));
+        trimPlayer.currentTime = trimEndSec;
+      }
+      updateTrimLabels();
+    }
+
+    document.getElementById('nudgeMinus10').addEventListener('click', () => applyNudgeDelta(-10.0));
+    document.getElementById('nudgeMinus1').addEventListener('click', () => applyNudgeDelta(-1.0));
+    document.getElementById('nudgeMinus01').addEventListener('click', () => applyNudgeDelta(-0.1));
+    document.getElementById('nudgePlus01').addEventListener('click', () => applyNudgeDelta(0.1));
+    document.getElementById('nudgePlus1').addEventListener('click', () => applyNudgeDelta(1.0));
+    document.getElementById('nudgePlus10').addEventListener('click', () => applyNudgeDelta(10.0));
+
+    document.getElementById('nudgeReset').addEventListener('click', () => {
+      trimStartSec = 0.0;
+      trimEndSec = activeVideoMeta ? activeVideoMeta.duration : 23.0;
+      updateTrimLabels();
+      trimPlayer.currentTime = 0;
+      log('Trim reset to full video range.', 'info');
+    });
+
+    // SPECIFIC TIME MODAL LOGIC (Matching WheelTimePickerSheet)
+    function openTimePicker(target) {
+      activeTimePickerTarget = target;
+      const isStart = (target === 'start');
+      const currVal = isStart ? trimStartSec : trimEndSec;
+      const totalSec = activeVideoMeta ? activeVideoMeta.duration : 100;
+
+      document.getElementById('timePickerTitleText').textContent = isStart ? 'Set Specific Start Time' : 'Set Specific End Time';
+      document.getElementById('timePickerErrorText').style.display = 'none';
+
+      // Split into hours, minutes, seconds, millis
+      const totalMs = Math.round(currVal * 1000);
+      const hrs = Math.floor(totalMs / 3600000);
+      const mins = Math.floor((totalMs % 3600000) / 60000);
+      const secs = Math.floor((totalMs % 60000) / 1000);
+      const ms = totalMs % 1000;
+
+      document.getElementById('timePickerHrs').value = hrs;
+      document.getElementById('timePickerMins').value = mins;
+      document.getElementById('timePickerSecs').value = secs;
+      document.getElementById('timePickerMs').value = ms;
+      document.getElementById('timePickerRawInput').value = formatTimestamp(currVal, true);
+
+      document.getElementById('timePickerModal').style.display = 'flex';
+    }
+
+    // Modal spinners change -> update raw input and preview seek
+    function syncSpinnersToRaw() {
+      const h = parseInt(document.getElementById('timePickerHrs').value) || 0;
+      const m = parseInt(document.getElementById('timePickerMins').value) || 0;
+      const s = parseInt(document.getElementById('timePickerSecs').value) || 0;
+      const ms = parseInt(document.getElementById('timePickerMs').value) || 0;
+      const totalSec = (h * 3600) + (m * 60) + s + (ms / 1000.0);
+
+      document.getElementById('timePickerRawInput').value = formatTimestamp(totalSec, true);
+      trimPlayer.currentTime = totalSec;
+    }
+
+    ['timePickerHrs', 'timePickerMins', 'timePickerSecs', 'timePickerMs'].forEach(id => {
+      document.getElementById(id).addEventListener('input', syncSpinnersToRaw);
+    });
+
+    // Raw input typing -> parse and seek
+    document.getElementById('timePickerRawInput').addEventListener('input', (e) => {
+      const val = parseTimestamp(e.target.value);
+      if (val !== null) {
+        document.getElementById('timePickerErrorText').style.display = 'none';
+        const totalMs = Math.round(val * 1000);
+        document.getElementById('timePickerHrs').value = Math.floor(totalMs / 3600000);
+        document.getElementById('timePickerMins').value = Math.floor((totalMs % 3600000) / 60000);
+        document.getElementById('timePickerSecs').value = Math.floor((totalMs % 60000) / 1000);
+        document.getElementById('timePickerMs').value = totalMs % 1000;
+        trimPlayer.currentTime = val;
+      }
+    });
+
+    document.getElementById('timePickerCancelBtn').addEventListener('click', () => {
+      document.getElementById('timePickerModal').style.display = 'none';
+    });
+
+    document.getElementById('timePickerApplyBtn').addEventListener('click', () => {
+      const parsed = parseTimestamp(document.getElementById('timePickerRawInput').value);
+      const maxLimit = activeVideoMeta ? activeVideoMeta.duration : 10000;
+
+      if (parsed === null || isNaN(parsed) || parsed < 0) {
+        const err = document.getElementById('timePickerErrorText');
+        err.textContent = 'Invalid timestamp. Use HH:MM:SS, MM:SS, or decimal seconds (e.g. 01:21.0 or 81.1).';
+        err.style.display = 'block';
+        return;
+      }
+
+      if (activeTimePickerTarget === 'start') {
+        if (parsed >= trimEndSec) {
+          const err = document.getElementById('timePickerErrorText');
+          err.textContent = `Start time must be before End time (${formatTimestamp(trimEndSec, true)}).`;
+          err.style.display = 'block';
+          return;
+        }
+        trimStartSec = Math.max(0, Math.min(parsed, trimEndSec - 0.5));
+        log(`Applied manual start time: ${formatTimestamp(trimStartSec, true)} (${trimStartSec.toFixed(1)}s)`, 'success');
+      } else {
+        if (parsed <= trimStartSec) {
+          const err = document.getElementById('timePickerErrorText');
+          err.textContent = `End time must be after Start time (${formatTimestamp(trimStartSec, true)}).`;
+          err.style.display = 'block';
+          return;
+        }
+        trimEndSec = Math.min(maxLimit, Math.max(parsed, trimStartSec + 0.5));
+        log(`Applied manual end time: ${formatTimestamp(trimEndSec, true)} (${trimEndSec.toFixed(1)}s)`, 'success');
+      }
+
+      updateTrimLabels();
+      trimPlayer.currentTime = (activeTimePickerTarget === 'start') ? trimStartSec : trimEndSec;
+      document.getElementById('timePickerModal').style.display = 'none';
+    });
+
+    document.getElementById('btnToStep3').addEventListener('click', () => goToStep(3));
+
+    // Step 3: Duration presets
+    document.querySelectorAll('#presetChipsWrap .m3-choice-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('#presetChipsWrap .m3-choice-chip').forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        const dur = chip.getAttribute('data-dur');
+        if (dur === 'custom') {
+          document.getElementById('customDurationBox').style.display = 'block';
+          selectedPresetDur = parseFloat(document.getElementById('customDurationInput').value);
+        } else {
+          document.getElementById('customDurationBox').style.display = 'none';
+          selectedPresetDur = parseFloat(dur);
+        }
+        log(`Selected Split Duration: ${selectedPresetDur === 0 ? 'Full Video' : selectedPresetDur + 's'}`, 'info');
+      });
+    });
+
+    document.getElementById('customDurationInput').addEventListener('input', (e) => {
+      let val = parseFloat(e.target.value) || 15;
+      if (val > 180) val = 180;
+      if (val < 1) val = 1;
+      selectedPresetDur = val;
+    });
+
+    // Step 3: Canvas Ratio
+    document.querySelectorAll('#canvasRatioChips .m3-choice-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('#canvasRatioChips .m3-choice-chip').forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        selectedCanvasRatio = chip.getAttribute('data-ratio');
+        const isOrig = (selectedCanvasRatio === 'original');
+        const banner = document.getElementById('noCropProtectionBanner');
+        
+        document.getElementById('backgroundFillCard').style.display = (isOrig || isCropToFill) ? 'none' : 'block';
+        document.getElementById('verticalAlignRow').style.display = (isOrig || isCropToFill) ? 'none' : 'block';
+        
+        if (isOrig) {
+          banner.style.background = 'rgba(33, 150, 243, 0.15)';
+          banner.style.borderColor = 'rgba(33, 150, 243, 0.4)';
+          banner.style.color = '#90caf9';
+          banner.innerHTML = '<span style="font-size: 15px;">📐</span><div><b>Original Aspect Ratio:</b> Video keeps original width and height without any cropping or padding.</div>';
+        } else if (!isCropToFill) {
+          banner.style.background = 'rgba(0, 150, 136, 0.15)';
+          banner.style.borderColor = 'rgba(0, 150, 136, 0.4)';
+          banner.style.color = '#80cbc4';
+          banner.innerHTML = '<span style="font-size: 15px;">🛡️</span><div><b>No Cropping Active:</b> 100% of your video frame is preserved without cutting off sides.</div>';
+        }
+        log(`Canvas Aspect Ratio selected: ${selectedCanvasRatio}`, 'info');
+      });
+    });
+
+    // Step 3: Crop to Fill Switch
+    const cropToFillCheck = document.getElementById('cropToFillCheck');
+    cropToFillCheck.addEventListener('change', () => {
+      isCropToFill = cropToFillCheck.checked;
+      const banner = document.getElementById('noCropProtectionBanner');
+      if (isCropToFill) {
+        document.getElementById('cropDescText').textContent = 'Zooms & crops video edges to fill 9:16 canvas bleed.';
+        banner.style.background = 'rgba(239, 83, 80, 0.15)';
+        banner.style.borderColor = 'rgba(239, 83, 80, 0.4)';
+        banner.style.color = '#ef9a9a';
+        banner.innerHTML = '<span style="font-size: 15px;">⚠️</span><div><b>Crop to Fill Active:</b> Left and right sides of widescreen videos will be cropped to fill height.</div>';
+        document.getElementById('verticalAlignRow').style.display = 'none';
+        document.getElementById('backgroundFillCard').style.display = 'none';
+      } else {
+        document.getElementById('cropDescText').textContent = 'Scales to fit without cropping (preserves full video).';
+        banner.style.background = 'rgba(0, 150, 136, 0.15)';
+        banner.style.borderColor = 'rgba(0, 150, 136, 0.4)';
+        banner.style.color = '#80cbc4';
+        banner.innerHTML = '<span style="font-size: 15px;">🛡️</span><div><b>No Cropping Active:</b> 100% of your video frame is preserved without cutting off sides.</div>';
+        document.getElementById('verticalAlignRow').style.display = (selectedCanvasRatio === 'original') ? 'none' : 'block';
+        document.getElementById('backgroundFillCard').style.display = (selectedCanvasRatio === 'original') ? 'none' : 'block';
+      }
+      log(`Crop to Fill Canvas: ${isCropToFill ? 'ENABLED (Cropped)' : 'DISABLED (Full Frame)'}`, 'info');
+    });
+
+    // Step 3: Vertical Position Segmented
+    document.querySelectorAll('#verticalAlignSegmented .m3-segment-item').forEach(seg => {
+      seg.addEventListener('click', () => {
+        document.querySelectorAll('#verticalAlignSegmented .m3-segment-item').forEach(s => s.classList.remove('selected'));
+        seg.classList.add('selected');
+        verticalAlign = seg.getAttribute('data-align');
+        log(`Vertical Position: ${verticalAlign}`, 'info');
+      });
+    });
+
+    // Step 3: Background Type
+    document.querySelectorAll('#bgTypeChips .m3-choice-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('#bgTypeChips .m3-choice-chip').forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        backgroundFillType = chip.getAttribute('data-bg');
+        document.getElementById('solidColorSwatches').style.display = (backgroundFillType === 'solid') ? 'flex' : 'none';
+        log(`Background Fill Type: ${backgroundFillType}`, 'info');
+      });
+    });
+
+    // Step 3: Color Swatches
+    document.querySelectorAll('.color-swatch-circle').forEach(sw => {
+      sw.addEventListener('click', () => {
+        document.querySelectorAll('.color-swatch-circle').forEach(s => s.classList.remove('selected'));
+        sw.classList.add('selected');
+        solidColorHex = sw.getAttribute('data-color');
+        log(`Solid Background Color: ${solidColorHex}`, 'info');
+      });
+    });
+
+    // Step 3: Overlay Mode Segmented
+    document.querySelectorAll('#overlayModeSegmented .m3-segment-item').forEach(seg => {
+      seg.addEventListener('click', () => {
+        document.querySelectorAll('#overlayModeSegmented .m3-segment-item').forEach(s => s.classList.remove('selected'));
+        seg.classList.add('selected');
+        overlayMode = seg.getAttribute('data-mode');
+        document.getElementById('overlayOptionsBlock').style.display = (overlayMode === 'never') ? 'none' : 'block';
+        if (overlayMode === 'auto') {
+          document.getElementById('overlayModeDesc').textContent = 'Auto: Adds Part badge only if video splits into 2+ parts.';
+        } else if (overlayMode === 'always') {
+          document.getElementById('overlayModeDesc').textContent = 'Always: Adds Part badge to every clip, including single clips.';
+        } else {
+          document.getElementById('overlayModeDesc').textContent = 'Never: No text overlay rendered on generated clips.';
+        }
+        log(`Overlay Mode: ${overlayMode}`, 'info');
+      });
+    });
+
+    // Step 3: Overlay Position
+    document.querySelectorAll('#overlayPositionChips .m3-choice-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('#overlayPositionChips .m3-choice-chip').forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        overlayPosition = chip.getAttribute('data-pos');
+        log(`Overlay Position: ${overlayPosition}`, 'info');
+      });
+    });
+
+    // Step 3: Overlay Font Size & Live Preview
+    document.querySelectorAll('#overlayFontSizeChips .m3-choice-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('#overlayFontSizeChips .m3-choice-chip').forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        selectedFontSize = parseInt(chip.getAttribute('data-size'));
+        updateBadgePreview();
+        log(`Overlay Font Size selected: ${selectedFontSize}px`, 'info');
+      });
+    });
+
+    document.getElementById('overlayTemplateInput').addEventListener('input', updateBadgePreview);
+
+    function updateBadgePreview() {
+      const tpl = document.getElementById('overlayTemplateInput').value.trim() || 'Part {n}/{total}';
+      const sample = tpl.replace('{n}', '1').replace('{total}', '20').replace('{name}', 'video');
+      const badgePreview = document.getElementById('badgePreviewText');
+      if (badgePreview) {
+        badgePreview.textContent = sample;
+        badgePreview.style.fontSize = `${Math.round(selectedFontSize * 0.28)}px`;
+      }
+    }
+
+    // Step 3 -> Step 4: Calculate Plan
+    document.getElementById('btnToStep4').addEventListener('click', async () => {
+      log('Calculating clip segments for Plan Review...', 'info');
+      const mergeRemainder = document.getElementById('mergeRemainderToggle').checked;
+      const customBase = document.getElementById('customBaseNameInput').value.trim() || 'video';
+
+      try {
+        const res = await fetch('/api/plan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            filepath: activeVideoPath,
+            split_duration: selectedPresetDur,
+            trim_start: trimStartSec,
+            trim_end: trimEndSec,
+            merge_remainder: mergeRemainder,
+            custom_base_name: customBase,
+          })
+        }).then(r => r.json());
+
+        if (res.error) throw new Error(res.error);
+
+        plannedSegments = res.segments;
+        const total = plannedSegments.length;
+
+        document.getElementById('planTotalPartsCircle').textContent = total;
+        document.getElementById('planHeaderTitle').textContent = `${total} Short${total > 1 ? 's' : ''} Planned`;
+        const fitLabel = (selectedCanvasRatio === 'original')
+          ? 'Original Size'
+          : (isCropToFill ? 'Crop to Fill' : `Full Video (${backgroundFillType === 'blur' ? 'Blurred BG' : 'Solid Pad'})`);
+        document.getElementById('planHeaderSub').textContent = `Trimmed: ${(trimEndSec - trimStartSec).toFixed(1)}s • ${fitLabel} • Contiguous`;
+        document.getElementById('btnStartExport').textContent = `🚀 Start Creating Shorts (${total} Clip${total > 1 ? 's' : ''})`;
+
+        const itemsWrapper = document.getElementById('planPartsItemsWrapper');
+        itemsWrapper.innerHTML = '';
+
+        plannedSegments.forEach(seg => {
+          const tile = document.createElement('div');
+          tile.className = 'part-tile selected';
+          tile.setAttribute('data-idx', seg.index);
+          tile.innerHTML = `
+            <input type="checkbox" class="part-checkbox" checked>
+            <div class="part-num-circle">${seg.index}</div>
+            <div class="part-details-col">
+              <div class="part-time-range">${seg.start.toFixed(1)}s ➔ ${seg.end.toFixed(1)}s (${seg.duration.toFixed(1)}s)</div>
+              <div class="part-filename">${seg.name}</div>
+            </div>
+            <div class="part-tag-badge">READY</div>
+          `;
+          itemsWrapper.appendChild(tile);
+        });
+
+        // Add checkbox listeners
+        document.querySelectorAll('.part-checkbox').forEach(cb => {
+          cb.addEventListener('change', (e) => {
+            const parent = e.target.closest('.part-tile');
+            parent.classList.toggle('selected', e.target.checked);
+            updatePlanCount();
+          });
+        });
+
+        log(`Plan calculated: ${total} contiguous clip(s) ready.`, 'success');
+        goToStep(4);
+      } catch (e) {
+        log(`Plan calculation error: ${e.message}`, 'error');
+        showDialog('Plan Calculation Error', e.message, '❌');
+      }
+    });
+
+    function updatePlanCount() {
+      const selectedCount = document.querySelectorAll('.part-checkbox:checked').length;
+      document.getElementById('btnStartExport').disabled = (selectedCount === 0);
+      document.getElementById('btnStartExport').textContent = `🚀 Start Creating Shorts (${selectedCount} Clip${selectedCount > 1 ? 's' : ''})`;
+    }
+
+    // Toggle Select All
+    let allSelected = true;
+    document.getElementById('toggleSelectAllBtn').addEventListener('click', () => {
+      allSelected = !allSelected;
+      document.querySelectorAll('.part-checkbox').forEach(cb => {
+        cb.checked = allSelected;
+        cb.closest('.part-tile').classList.toggle('selected', allSelected);
+      });
+      document.getElementById('toggleSelectAllBtn').textContent = allSelected ? 'Deselect All' : 'Select All';
+      updatePlanCount();
+    });
+
+    // Step 4 -> Step 5: START EXPORT
+    document.getElementById('btnStartExport').addEventListener('click', async () => {
+      goToStep(5);
+
+      const selectedTiles = Array.from(document.querySelectorAll('.part-tile.selected'));
+      const totalClips = selectedTiles.length;
+      exportedClips = [];
+
+      // Determine overlay text
+      const template = document.getElementById('overlayTemplateInput').value.trim() || 'Part {n}/{total}';
+      let effectiveOverlay = null;
+      if (overlayMode === 'always') {
+        effectiveOverlay = template;
+      } else if (overlayMode === 'auto') {
+        effectiveOverlay = (totalClips > 1) ? template : null;
+      }
+
+      // Determine transcoding mode
+      let effectiveMode = 'blur_background';
+      if (selectedCanvasRatio === 'original') {
+        effectiveMode = 'original';
+      } else if (isCropToFill) {
+        effectiveMode = 'crop_to_fill';
+      } else {
+        effectiveMode = (backgroundFillType === 'blur') ? 'blur_background' : 'solid_color';
+      }
+
+      const actionDesc = (effectiveMode === 'original')
+        ? 'Splitting clip'
+        : (effectiveMode === 'crop_to_fill'
+          ? 'Cropping & converting frames'
+          : (effectiveMode === 'blur_background'
+            ? 'Scaling to fit (blurred background)'
+            : 'Scaling to fit (solid letterbox)'));
+
+      // Timer
+      exportStartTime = Date.now();
+      exportTimer = setInterval(() => {
+        const sec = Math.floor((Date.now() - exportStartTime) / 1000);
+        const m = Math.floor(sec / 60).toString().padStart(2, '0');
+        const s = (sec % 60).toString().padStart(2, '0');
+        document.getElementById('statElapsedVal').textContent = `${m}:${s}`;
+      }, 1000);
+
+      const circleBar = document.getElementById('m3CircleBar');
+      const circumference = 377; // 2 * pi * 60
+
+      function setOverallProgress(pct) {
+        document.getElementById('m3CirclePercent').textContent = `${pct}%`;
+        const offset = circumference - (pct / 100) * circumference;
+        circleBar.style.strokeDashoffset = offset;
+      }
+
+      // SEQUENTIAL CLIP PROCESSING LOOP
+      for (let i = 0; i < totalClips; i++) {
+        const tile = selectedTiles[i];
+        const segIdx = parseInt(tile.getAttribute('data-idx'));
+        const seg = plannedSegments.find(s => s.index === segIdx) || plannedSegments[i];
+        const clipNum = i + 1;
+
+        // INCREMENT CLIP COUNTER (Clip 1 of 4 -> Clip 2 of 4)
+        document.getElementById('m3ClipCounterText').textContent = `Clip ${clipNum} of ${totalClips}`;
+        document.getElementById('activeClipBadge').textContent = `Clip ${clipNum} of ${totalClips}`;
+        document.getElementById('activeClipPercentBadge').textContent = '0%';
+        document.getElementById('activeClipFileName').textContent = seg.name;
+        document.getElementById('activeClipLinearBar').style.width = '0%';
+        document.getElementById('activeClipStageMsg').textContent = `${actionDesc} (0%)...`;
+
+        log(`[Clip ${clipNum}/${totalClips}] Transcoding: ${seg.duration}s @ ${effectiveMode} (${selectedCanvasRatio})...`, 'info');
+
+        // Linear bar simulation tick
+        let simPct = 10;
+        const tick = setInterval(() => {
+          if (simPct < 90) {
+            simPct += 15;
+            document.getElementById('activeClipLinearBar').style.width = `${simPct}%`;
+            document.getElementById('activeClipPercentBadge').textContent = `${simPct}%`;
+            document.getElementById('activeClipStageMsg').textContent = `${actionDesc} (${simPct}%)...`;
+          }
+        }, 300);
+
+        try {
+          const res = await fetch('/api/process_single', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              filepath: activeVideoPath,
+              mode: effectiveMode,
+              aspect_ratio: selectedCanvasRatio,
+              bg_color: solidColorHex,
+              vertical_align: verticalAlign,
+              segment: seg,
+              total_clips: totalClips,
+              overlay_text: effectiveOverlay,
+              overlay_position: overlayPosition,
+              font_size: selectedFontSize,
+              audio_track_idx: selectedAudioTrackIdx,
+              custom_base_name: document.getElementById('customBaseNameInput').value.trim()
+            })
+          }).then(r => r.json());
+
+          clearInterval(tick);
+
+          if (res.eof_reached) {
+            if (exportedClips.length > 0) {
+              log(`[Clip ${clipNum}/${totalClips}] ℹ️ End of playable source video reached. Concluding export with ${exportedClips.length} valid clips.`, 'warning');
+              setOverallProgress(100);
+              break;
+            } else {
+              throw new Error(res.error || 'Source video has no readable frames.');
+            }
+          }
+
+          if (res.error) throw new Error(res.error);
+
+          // Saving stage indicator (so user never sees a freeze at 100%)
+          document.getElementById('activeClipLinearBar').style.width = '100%';
+          document.getElementById('activeClipPercentBadge').textContent = '100%';
+          document.getElementById('activeClipStageMsg').textContent = `Saving clip in progress, please wait a moment...`;
+
+          exportedClips.push(res.clip);
+
+          const overallPct = Math.round(((i + 1) / totalClips) * 100);
+          setOverallProgress(overallPct);
+
+          log(`[Clip ${clipNum}/${totalClips}] ✅ Transcoded & saved (${res.clip.size_mb}, ${res.clip.processing_time})`, 'success');
+          await new Promise(r => setTimeout(r, 600));
+
+        } catch (err) {
+          clearInterval(tick);
+          clearInterval(exportTimer);
+          log(`[Clip ${clipNum}/${totalClips}] ❌ Processing failed: ${err.message}`, 'error');
+          showDialog('Export Error', `Error on clip ${clipNum}: ${err.message}`, '❌');
+          goToStep(4);
+          return;
+        }
+      }
+
+      // ALL CLIPS EXPORTED!
+      clearInterval(exportTimer);
+      setOverallProgress(100);
+      document.getElementById('m3CirclePercent').textContent = 'Done';
+      document.getElementById('m3ClipCounterText').textContent = `Done! All ${totalClips} Clips Exported`;
+      document.getElementById('activeClipStageMsg').textContent = `All clips saved successfully!`;
+      log(`🎉 ALL ${totalClips} CLIPS EXPORTED AND VERIFIED!`, 'success');
+
+      await new Promise(r => setTimeout(r, 1200));
+
+      // TRANSITION TO STEP 6: RESULTS SCREEN
+      setupResultsScreen();
+      goToStep(6);
+    });
+
+    // Step 6: Results Screen
+    function setupResultsScreen() {
+      const count = exportedClips.length;
+      document.getElementById('resultsTitle').textContent = `Successfully created ${count} ${count === 1 ? 'clip' : 'clips'}!`;
+
+      const notice = document.getElementById('resultsNoticeBanner');
+      if (activePlanSegments && exportedClips.length < activePlanSegments.length) {
+        notice.style.display = 'block';
+        document.getElementById('resultsNoticeText').textContent = 
+          `Note: Successfully exported ${exportedClips.length} of ${activePlanSegments.length} planned parts. The source video reached its physical end (incomplete download/transfer). All ${exportedClips.length} generated clips are saved and ready.`;
+      } else {
+        notice.style.display = 'none';
+      }
+
+      const pills = document.getElementById('resultsPillsRow');
+      pills.innerHTML = '';
+
+      exportedClips.forEach((clip, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `clip-pill-btn ${idx === 0 ? 'active' : ''}`;
+        btn.textContent = `Part ${clip.index} (${clip.duration}s)`;
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.clip-pill-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          loadResultVideo(idx);
+        });
+        pills.appendChild(btn);
+      });
+
+      loadResultVideo(0);
+    }
+
+    function loadResultVideo(idx) {
+      currentResultIdx = idx;
+      const clip = exportedClips[idx];
+      const player = document.getElementById('resultsPlayer');
+      player.src = clip.url;
+      player.play().catch(() => {});
+
+      document.getElementById('resSpecRes').textContent = clip.resolution;
+      document.getElementById('resSpecDur').textContent = `${clip.duration}s`;
+
+      const dlBtn = document.getElementById('downloadCurrentClipBtn');
+      dlBtn.href = clip.download_url;
+      dlBtn.setAttribute('download', clip.name);
+      dlBtn.textContent = `⬇️ Download Short (${clip.name})`;
+
+      log(`Loaded Part ${clip.index} in 9:16 player: ${clip.name} (${clip.resolution}, ${clip.size_mb})`, 'info');
+    }
+
+    document.getElementById('btnRestartAll').addEventListener('click', () => goToStep(1));
+
+    // Clear logs
+    document.getElementById('clearConsoleBtn').addEventListener('click', () => {
+      document.getElementById('diagnosticLogBox').innerHTML = '<div class="diag-log-line info">Console cleared.</div>';
+    });
+
+    // Modal dialog
+    function showDialog(title, message, icon = '⚠️') {
+      document.getElementById('m3DialogTitleText').textContent = title;
+      document.getElementById('m3DialogMessageText').textContent = message;
+      document.getElementById('m3DialogIcon').textContent = icon;
+      document.getElementById('m3DialogOverlay').style.display = 'flex';
+    }
+
+    document.getElementById('m3DialogConfirmBtn').addEventListener('click', () => {
+      document.getElementById('m3DialogOverlay').style.display = 'none';
+    });
+    document.getElementById('m3DialogCancelBtn').addEventListener('click', () => {
+      document.getElementById('m3DialogOverlay').style.display = 'none';
+    });
+  </script>
+</body>
+</html>

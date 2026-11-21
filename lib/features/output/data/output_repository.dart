@@ -114,9 +114,9 @@ class OutputRepository {
     if (!await dir.exists()) return const [];
 
     final files = dir
-        .listSync()
+        .listSync(recursive: true)
         .whereType<File>()
-        .where((f) => f.path.endsWith('.mp4'))
+        .where((f) => f.path.toLowerCase().endsWith('.mp4'))
         .toList();
 
     final regex =
