@@ -10,10 +10,13 @@ import '../../domain/clip_writer.dart';
 import '../../domain/models/storage_strategy.dart';
 
 /// Strategy 2 (FALLBACK for Android 9 / API 28 only): Direct Public Storage.
-/// Writes directly to public external Movies/ShortsSplitter via standard POSIX file IO.
+/// Writes directly to public external Movies/StoryFeed/[foldername] via standard POSIX file IO.
 /// Strictly guarded by WRITE_EXTERNAL_STORAGE (maxSdkVersion 28) and never used on API 29+.
 class DirectPublicClipWriter implements ClipWriter {
-  static const String defaultFolderName = 'Movies/ShortsSplitter';
+  static const String defaultFolderName = 'Movies/StoryFeed';
+  final String folderName;
+
+  const DirectPublicClipWriter({this.folderName = defaultFolderName});
 
   @override
   StorageStrategyType get strategyType => StorageStrategyType.directPublic;
@@ -44,13 +47,13 @@ class DirectPublicClipWriter implements ClipWriter {
   }) async {
     final sdkInt = await StorageBridge.getSdkInt();
     if (sdkInt > 28 && Platform.isAndroid) {
-      throw const StorageAccessException(
+      throw StorageAccessException(
         'Direct public storage write is prohibited on Android 10+ (API 29+).',
-        path: defaultFolderName,
+        path: folderName,
       );
     }
 
-    final publicDir = Directory('/storage/emulated/0/$defaultFolderName');
+    final publicDir = Directory('/storage/emulated/0/$folderName');
     if (!await publicDir.exists()) {
       await publicDir.create(recursive: true);
     }

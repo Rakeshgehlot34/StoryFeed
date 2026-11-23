@@ -258,7 +258,7 @@ class StorageBridge(private val context: Context) : MethodChannel.MethodCallHand
                 }
 
                 val tempFilePath = call.argument<String>("tempFilePath")
-                val relativePath = call.argument<String>("relativePath") ?: "Movies/ShortsSplitter"
+                val relativePath = call.argument<String>("relativePath") ?: "Movies/StoryFeed"
                 val fileName = call.argument<String>("fileName")
                 val mimeType = call.argument<String>("mimeType") ?: "video/mp4"
 

@@ -223,7 +223,7 @@ class PermissionUtils {
         title: 'Storage Permission Required',
         message:
             'On Android 9, ShortsSplitter needs storage permission to save '
-            'clips into your Movies/ShortsSplitter folder.',
+            'clips into your Movies/StoryFeed folder.',
       );
       if (!proceed) return false;
     }

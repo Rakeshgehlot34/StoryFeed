@@ -39,7 +39,7 @@ class FolderLayoutResolver {
     }
 
     if (sanitized.isEmpty) {
-      sanitized = 'ShortsSplitter_Video';
+      sanitized = 'StoryFeed_Video';
     }
 
     if (sanitized.length > maxFolderNameLength) {
@@ -50,10 +50,10 @@ class FolderLayoutResolver {
   }
 
   /// Resolves the layout decision based on total planned parts.
+  /// Always organizes split clips into their dedicated subfolder:
+  /// Movies/StoryFeed/[foldername]/[all_split video]
   static OutputFolderLayout decideLayout(int totalPartsCount) {
-    return totalPartsCount > 1
-        ? OutputFolderLayout.multiSubfolder
-        : OutputFolderLayout.singleRoot;
+    return OutputFolderLayout.multiSubfolder;
   }
 
   /// Prepares or retrieves the target destination for a project.
@@ -74,7 +74,7 @@ class FolderLayoutResolver {
         layout: layout,
         folderName: '',
         destinationLocation: rootSaveLocation,
-        relativePath: 'Movies/ShortsSplitter',
+        relativePath: 'Movies/StoryFeed',
       );
     }
 
@@ -84,7 +84,7 @@ class FolderLayoutResolver {
         layout: layout,
         folderName: sanitizeFolderName(baseName),
         destinationLocation: existingFolderUri,
-        relativePath: 'Movies/ShortsSplitter/${sanitizeFolderName(baseName)}',
+        relativePath: 'Movies/StoryFeed/${sanitizeFolderName(baseName)}',
       );
     }
 
@@ -110,7 +110,7 @@ class FolderLayoutResolver {
 
       case StorageStrategyType.mediaStore:
         destinationLocation = rootSaveLocation;
-        relativePath = 'Movies/ShortsSplitter/$targetFolderName';
+        relativePath = 'Movies/StoryFeed/$targetFolderName';
         break;
 
       case StorageStrategyType.directPublic:

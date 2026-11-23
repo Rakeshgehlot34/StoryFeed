@@ -112,7 +112,7 @@ class StorageBridge {
   /// Writes an MP4 clip to the MediaStore video collection (API 29+ only) with IS_PENDING.
   static Future<String> writeClipToMediaStore({
     required String tempFilePath,
-    String relativePath = 'Movies/ShortsSplitter',
+    String relativePath = 'Movies/StoryFeed',
     required String fileName,
     String mimeType = 'video/mp4',
   }) async {

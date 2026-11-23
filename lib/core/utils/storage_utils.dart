@@ -9,7 +9,7 @@ import '../logger/app_logger.dart';
 class StorageUtils {
   StorageUtils._();
 
-  static const String appFolderName = 'ShortsSplitter';
+  static const String appFolderName = 'StoryFeed';
 
   /// Resolves the default persistent folder for saving clips.
   /// Uses app-specific external storage on Android (accessible across Android 10-15+ without broad permissions)

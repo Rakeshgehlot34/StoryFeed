@@ -10,9 +10,13 @@ import '../../domain/clip_writer.dart';
 import '../../domain/models/storage_strategy.dart';
 
 /// Strategy 4 (FINAL FALLBACK across all API levels): App-Specific Storage.
-/// Writes to `/Android/data/com.shortssplitter.shorts_splitter/files/ShortsSplitter/`.
+/// Writes to `/Android/data/com.shortssplitter.shorts_splitter/files/StoryFeed/[subfolderName]/`.
 /// Fully compliant with Android Scoped Storage and requires zero manifest or runtime permissions.
 class AppSpecificClipWriter implements ClipWriter {
+  final String? subfolderName;
+
+  const AppSpecificClipWriter({this.subfolderName});
+
   @override
   StorageStrategyType get strategyType => StorageStrategyType.appSpecific;
 
@@ -35,7 +39,13 @@ class AppSpecificClipWriter implements ClipWriter {
       );
     }
 
-    final targetDir = await StorageUtils.getAppDefaultOutputDirectory();
+    var targetDir = await StorageUtils.getAppDefaultOutputDirectory();
+    if (subfolderName != null && subfolderName!.isNotEmpty) {
+      targetDir = Directory(p.join(targetDir.path, subfolderName!));
+      if (!await targetDir.exists()) {
+        await targetDir.create(recursive: true);
+      }
+    }
     var destPath = p.join(targetDir.path, fileName);
     var destFile = File(destPath);
 

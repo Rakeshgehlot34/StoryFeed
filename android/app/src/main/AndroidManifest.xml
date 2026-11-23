@@ -17,7 +17,7 @@
     <!-- Android 12 and below (API ≤ 32): Legacy external storage read — appears as "Storage" -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
 
-    <!-- Android 9 only (API 28): Direct write to public Movies/ShortsSplitter folder -->
+    <!-- Android 9 only (API 28): Direct write to public Movies/StoryFeed folder -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
 
     <!-- Foreground Service permissions for uninterrupted background export -->

@@ -269,6 +269,10 @@ class FFmpegVideoProcessor implements VideoProcessor {
                 preferredSafUri: outputDirectoryPath.startsWith('content://')
                     ? outputDirectoryPath
                     : null,
+                subfolderName: baseName,
+                customRelativePath: outputDirectoryPath.startsWith('Movies/')
+                    ? outputDirectoryPath
+                    : 'Movies/StoryFeed/$baseName',
               );
 
           final tempCacheDir = await getTemporaryDirectory();

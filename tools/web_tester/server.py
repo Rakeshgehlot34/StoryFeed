@@ -610,6 +610,10 @@ class ShortsTesterRequestHandler(http.server.SimpleHTTPRequestHandler):
         if path.startswith("/api/video/"):
             clip_name = path[len("/api/video/"):]
             clip_path = OUTPUTS_DIR / clip_name
+            if not clip_path.exists():
+                found = list(OUTPUTS_DIR.glob(f"**/{clip_name}"))
+                if found:
+                    clip_path = found[0]
             self.stream_video(clip_path)
             return
 
@@ -625,6 +629,10 @@ class ShortsTesterRequestHandler(http.server.SimpleHTTPRequestHandler):
         if path.startswith("/api/download/"):
             clip_name = path[len("/api/download/"):]
             clip_path = OUTPUTS_DIR / clip_name
+            if not clip_path.exists():
+                found = list(OUTPUTS_DIR.glob(f"**/{clip_name}"))
+                if found:
+                    clip_path = found[0]
             if clip_path.exists():
                 self.download_file(clip_path)
             else:
@@ -776,8 +784,13 @@ class ShortsTesterRequestHandler(http.server.SimpleHTTPRequestHandler):
         timestamp = int(time.time())
         pad_width = max(3, len(str(total_clips)))
 
+        # Subfolder per video project: Movies/StoryFeed/[foldername]/[all_split_video]
+        folder_name = data.get("folder_name") or base_name
+        target_dir = OUTPUTS_DIR / folder_name
+        target_dir.mkdir(parents=True, exist_ok=True)
+
         clip_name = f"{base_name}_part_{idx:0{pad_width}d}_{timestamp}.mp4"
-        out_clip_path = str(OUTPUTS_DIR / clip_name)
+        out_clip_path = str(target_dir / clip_name)
 
         audio_track_idx = data.get("audio_track_idx")
         if audio_track_idx is not None:
@@ -904,10 +917,14 @@ class ShortsTesterRequestHandler(http.server.SimpleHTTPRequestHandler):
         else:
             audio_track_idx = source_meta.get("default_audio_idx", 0)
 
+        folder_name = data.get("folder_name") or base_name
+        target_dir = OUTPUTS_DIR / folder_name
+        target_dir.mkdir(parents=True, exist_ok=True)
+
         for seg in segments:
             idx = seg["index"]
             clip_name = f"{base_name}_part_{idx:0{pad_width}d}_{timestamp}.mp4"
-            out_clip_path = str(OUTPUTS_DIR / clip_name)
+            out_clip_path = str(target_dir / clip_name)
 
             cmd = build_ffmpeg_command(
                 input_path=file_path,

@@ -12,12 +12,14 @@ import 'writers/saf_clip_writer.dart';
 /// and user configuration.
 class ClipWriterFactory {
   /// Resolves the optimal ClipWriter based on Android API level and storage availability:
-  /// 1. PRIMARY (API 28+): SAF if a valid user-selected tree URI exists.
-  /// 2. FALLBACK on API 28: Direct public storage (Movies/ShortsSplitter).
-  /// 3. FALLBACK on API 29+: MediaStore Video collection (RELATIVE_PATH + IS_PENDING).
-  /// 4. FINAL FALLBACK: App-specific external files directory.
+  /// 1. PRIMARY (API 28+): SAF if a valid user-selected tree URI exists (creates subfolder in tree).
+  /// 2. FALLBACK on API 28: Direct public storage (Movies/StoryFeed/[foldername]).
+  /// 3. FALLBACK on API 29+: MediaStore Video collection (RELATIVE_PATH = Movies/StoryFeed/[foldername] + IS_PENDING).
+  /// 4. FINAL FALLBACK: App-specific external files directory (StoryFeed/[foldername]).
   static Future<ClipWriter> resolveWriter({
     String? preferredSafUri,
+    String? subfolderName,
+    String? customRelativePath,
     int? overrideSdkInt,
     bool? isAndroid,
   }) async {
@@ -26,7 +28,18 @@ class ClipWriterFactory {
 
     // 1. Try Primary: SAF (API 28+)
     if (preferredSafUri != null && preferredSafUri.isNotEmpty) {
-      final safWriter = SafClipWriter(treeUri: preferredSafUri);
+      var effectiveSafUri = preferredSafUri;
+      if (subfolderName != null && subfolderName.isNotEmpty) {
+        try {
+          effectiveSafUri = await StorageBridge.createSafDirectory(
+            treeUri: preferredSafUri,
+            dirName: subfolderName,
+          );
+        } catch (e) {
+          AppLogger.warning('Could not create subfolder in SAF tree: $e');
+        }
+      }
+      final safWriter = SafClipWriter(treeUri: effectiveSafUri);
       if (await safWriter.isAvailable()) {
         AppLogger.info('Resolved Storage Strategy: SAF (${safWriter.treeUri})');
         return safWriter;
@@ -38,12 +51,16 @@ class ClipWriterFactory {
 
     // Non-Android platforms (iOS, desktop) fallback directly to app-specific storage
     if (!android) {
-      return AppSpecificClipWriter();
+      return AppSpecificClipWriter(subfolderName: subfolderName);
     }
 
     // 2. Fallback on Android 9 (API 28 only)
     if (sdkInt == 28) {
-      final directWriter = DirectPublicClipWriter();
+      final folder = customRelativePath ??
+          (subfolderName != null && subfolderName.isNotEmpty
+              ? 'Movies/StoryFeed/$subfolderName'
+              : 'Movies/StoryFeed');
+      final directWriter = DirectPublicClipWriter(folderName: folder);
       if (await directWriter.isAvailable()) {
         AppLogger.info('Resolved Storage Strategy: Direct Public (API 28)');
         return directWriter;
@@ -55,9 +72,15 @@ class ClipWriterFactory {
 
     // 3. Fallback on Android 10+ (API 29+)
     if (sdkInt >= 29) {
-      final mediaStoreWriter = MediaStoreClipWriter();
+      final relPath = customRelativePath ??
+          (subfolderName != null && subfolderName.isNotEmpty
+              ? 'Movies/StoryFeed/$subfolderName'
+              : 'Movies/StoryFeed');
+      final mediaStoreWriter = MediaStoreClipWriter(relativePath: relPath);
       if (await mediaStoreWriter.isAvailable()) {
-        AppLogger.info('Resolved Storage Strategy: MediaStore (API $sdkInt)');
+        AppLogger.info(
+          'Resolved Storage Strategy: MediaStore (API $sdkInt) -> $relPath',
+        );
         return mediaStoreWriter;
       }
       AppLogger.warning(
@@ -67,6 +90,6 @@ class ClipWriterFactory {
 
     // 4. Final Fallback: App-Specific Storage
     AppLogger.info('Resolved Storage Strategy: AppSpecific (Final Fallback)');
-    return AppSpecificClipWriter();
+    return AppSpecificClipWriter(subfolderName: subfolderName);
   }
 }

@@ -7,10 +7,13 @@ import '../../domain/clip_writer.dart';
 import '../../domain/models/storage_strategy.dart';
 
 /// Strategy 3 (FALLBACK for Android 10+ / API 29+): MediaStore Video Collection.
-/// Inserts clips into MediaStore with RELATIVE_PATH = "Movies/ShortsSplitter" and IS_PENDING.
+/// Inserts clips into MediaStore with RELATIVE_PATH = "Movies/StoryFeed/[foldername]" and IS_PENDING.
 /// Automatically indexes clips in Google Photos/Gallery without broad permissions. Never used on API 28.
 class MediaStoreClipWriter implements ClipWriter {
-  static const String defaultRelativePath = 'Movies/ShortsSplitter';
+  static const String defaultRelativePath = 'Movies/StoryFeed';
+  final String relativePath;
+
+  const MediaStoreClipWriter({this.relativePath = defaultRelativePath});
 
   @override
   StorageStrategyType get strategyType => StorageStrategyType.mediaStore;
@@ -31,9 +34,9 @@ class MediaStoreClipWriter implements ClipWriter {
   }) async {
     final sdkInt = await StorageBridge.getSdkInt();
     if (sdkInt < 29 && Platform.isAndroid) {
-      throw const StorageAccessException(
+      throw StorageAccessException(
         'MediaStore RELATIVE_PATH strategy cannot be used on API 28.',
-        path: defaultRelativePath,
+        path: relativePath,
       );
     }
 
@@ -47,18 +50,20 @@ class MediaStoreClipWriter implements ClipWriter {
     try {
       final mediaUri = await StorageBridge.writeClipToMediaStore(
         tempFilePath: sourceTempFile.path,
-        relativePath: defaultRelativePath,
+        relativePath: relativePath,
         fileName: fileName,
         mimeType: 'video/mp4',
       );
 
-      AppLogger.info('MediaStore clip written: $fileName -> $mediaUri');
+      AppLogger.info(
+        'MediaStore clip written: $fileName -> $mediaUri ($relativePath)',
+      );
       return mediaUri;
     } catch (e, st) {
       AppLogger.error('MediaStoreClipWriter failed', error: e, stackTrace: st);
       throw StorageAccessException(
         'Failed to save clip to MediaStore: $e',
-        path: defaultRelativePath,
+        path: relativePath,
         cause: e,
         stackTrace: st,
       );

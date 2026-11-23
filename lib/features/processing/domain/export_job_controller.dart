@@ -305,15 +305,21 @@ class ExportJobController extends Notifier<ExportJobState> {
 
     // 1. Resolve output writer and collision-safe folder layout (R3)
     final outputRepo = ref.read(outputRepositoryProvider);
-    final clipWriter = await outputRepo.resolveClipWriter();
+    final baseWriter = await outputRepo.resolveClipWriter();
 
     final resolvedTarget = await FolderLayoutResolver.resolveTarget(
       totalPartsCount: allSegments.length,
       baseName: activeBaseName,
-      strategyType: clipWriter.strategyType,
+      strategyType: baseWriter.strategyType,
       rootSaveLocation: outputDirectoryPath,
     );
     final effectiveOutputDir = resolvedTarget.destinationLocation;
+
+    // Resolve active writer targeted to the dedicated subfolder: Movies/StoryFeed/[foldername]
+    final activeClipWriter = await outputRepo.resolveClipWriter(
+      subfolderName: resolvedTarget.folderName,
+      customRelativePath: resolvedTarget.relativePath,
+    );
 
     final record = ExportJobRecord(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -446,7 +452,7 @@ class ExportJobController extends Notifier<ExportJobState> {
         segmentsToProcess: segmentsToProcess,
         config: config,
         plan: plan,
-        clipWriter: clipWriter,
+        clipWriter: activeClipWriter,
       ),
     );
 
@@ -505,7 +511,10 @@ class ExportJobController extends Notifier<ExportJobState> {
     }
 
     final outputRepo = ref.read(outputRepositoryProvider);
-    final clipWriter = await outputRepo.resolveClipWriter();
+    final clipWriter = await outputRepo.resolveClipWriter(
+      subfolderName: sourceName,
+      customRelativePath: 'Movies/StoryFeed/$sourceName',
+    );
     final processor = ref.read(videoProcessorProvider);
 
     final totalTarget = targetParts.length;
@@ -793,7 +802,13 @@ class ExportJobController extends Notifier<ExportJobState> {
     final processor = ref.read(videoProcessorProvider);
     final outputRepo = ref.read(outputRepositoryProvider);
 
-    final activeClipWriter = clipWriter ?? await outputRepo.resolveClipWriter();
+    final activeClipWriter = clipWriter ??
+        await outputRepo.resolveClipWriter(
+          subfolderName: record.baseName,
+          customRelativePath: record.outputDirectoryPath.startsWith('Movies/')
+              ? record.outputDirectoryPath
+              : 'Movies/StoryFeed/${record.baseName}',
+        );
     final duplicateHandling = await outputRepo.getDuplicateHandling();
 
     await ForegroundServiceManager.startOrUpdate(

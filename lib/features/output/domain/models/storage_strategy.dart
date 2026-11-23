@@ -5,7 +5,7 @@ enum StorageStrategyType {
   saf,
 
   /// Fallback strategy exclusively for Android 9 (API 28):
-  /// Writes directly to public Movies/ShortsSplitter with WRITE_EXTERNAL_STORAGE permission.
+  /// Writes directly to public Movies/StoryFeed with WRITE_EXTERNAL_STORAGE permission.
   directPublic,
 
   /// Fallback strategy for Android 10+ (API 29+):

@@ -90,10 +90,17 @@ class OutputRepository {
   }
 
   /// Resolves the active ClipWriter strategy at runtime based on SDK level and chosen directory.
-  Future<ClipWriter> resolveClipWriter() async {
+  Future<ClipWriter> resolveClipWriter({
+    String? subfolderName,
+    String? customRelativePath,
+  }) async {
     final path = await getSavedOutputDirectoryPath();
     final safUri = path.startsWith('content://') ? path : null;
-    return ClipWriterFactory.resolveWriter(preferredSafUri: safUri);
+    return ClipWriterFactory.resolveWriter(
+      preferredSafUri: safUri,
+      subfolderName: subfolderName,
+      customRelativePath: customRelativePath,
+    );
   }
 
   Future<void> resetToDefaultDirectory() async {
