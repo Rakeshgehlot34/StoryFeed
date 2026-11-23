@@ -1,4 +1,5 @@
 import 'dart:async' show unawaited;
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -198,8 +199,9 @@ class ResultsScreen extends ConsumerWidget {
                 child: SecondaryButton(
                   icon: Icons.folder_open_outlined,
                   label: 'Open Folder',
-                  onPressed:
-                      dirPath.isNotEmpty ? () => OpenFilex.open(dirPath) : null,
+                  onPressed: dirPath.isNotEmpty
+                      ? () => _openFolder(context, dirPath)
+                      : null,
                 ),
               ),
               const SizedBox(width: AppTokens.spaceMd),
@@ -528,6 +530,24 @@ class ResultsScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _openFolder(BuildContext context, String dirPath) async {
+    if (dirPath.isEmpty) return;
+    var path = dirPath;
+    if (path.startsWith('Movies/')) {
+      path = '/storage/emulated/0/$path';
+    }
+    final dir = Directory(path);
+    if (!await dir.exists()) {
+      try {
+        await dir.create(recursive: true);
+      } catch (_) {}
+    }
+    final result = await OpenFilex.open(path);
+    if (result.type != ResultType.done && context.mounted) {
+      AppMessenger.showInfo(context, 'Folder: $path');
+    }
   }
 
   void _shareAll(List<ExportedClip> clips) {

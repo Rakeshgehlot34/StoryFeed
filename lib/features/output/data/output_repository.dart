@@ -44,6 +44,10 @@ class OutputRepository {
       }
     }
 
+    if (Platform.isAndroid) {
+      return '/storage/emulated/0/Movies/StoryFeed';
+    }
+
     final defaultDir = await StorageUtils.getAppDefaultOutputDirectory();
     return defaultDir.path;
   }
@@ -115,6 +119,8 @@ class OutputRepository {
     if (dirPath.startsWith('content://')) {
       final defaultDir = await StorageUtils.getAppDefaultOutputDirectory();
       resolvedDir = defaultDir.path;
+    } else if (Platform.isAndroid && dirPath.startsWith('Movies/')) {
+      resolvedDir = '/storage/emulated/0/$dirPath';
     }
 
     final dir = Directory(resolvedDir);

@@ -109,15 +109,27 @@ class FolderLayoutResolver {
         break;
 
       case StorageStrategyType.mediaStore:
-        destinationLocation = rootSaveLocation;
+        final base = rootSaveLocation.startsWith('/storage/emulated/0')
+            ? rootSaveLocation
+            : (Platform.isAndroid
+                ? '/storage/emulated/0/Movies/StoryFeed'
+                : rootSaveLocation);
+        destinationLocation = '$base/$targetFolderName';
         relativePath = 'Movies/StoryFeed/$targetFolderName';
         break;
 
       case StorageStrategyType.directPublic:
       case StorageStrategyType.appSpecific:
-        final dir = Directory('$rootSaveLocation/$targetFolderName');
+        final base = (strategyType == StorageStrategyType.directPublic &&
+                !rootSaveLocation.startsWith('/storage/emulated/0') &&
+                Platform.isAndroid)
+            ? '/storage/emulated/0/Movies/StoryFeed'
+            : rootSaveLocation;
+        final dir = Directory('$base/$targetFolderName');
         if (!await dir.exists()) {
-          await dir.create(recursive: true);
+          try {
+            await dir.create(recursive: true);
+          } catch (_) {}
         }
         destinationLocation = dir.path;
         break;
