@@ -106,8 +106,7 @@ class FFmpegVideoProcessor implements VideoProcessor {
       }
 
       final rawDuration = mediaInfo.getDuration();
-      final durationSeconds = double.tryParse(rawDuration ?? '0') ?? 0.0;
-      final duration = Duration(milliseconds: (durationSeconds * 1000).round());
+      double durationSeconds = double.tryParse(rawDuration ?? '0') ?? 0.0;
 
       int width = 0;
       int height = 0;
@@ -125,6 +124,15 @@ class FFmpegVideoProcessor implements VideoProcessor {
         if (stream.getType() == 'video' && width == 0) {
           width = stream.getWidth() ?? 0;
           height = stream.getHeight() ?? 0;
+
+          final streamDurStr = stream.getStringProperty('duration');
+          if (streamDurStr != null) {
+            final sDur = double.tryParse(streamDurStr) ?? 0.0;
+            if (sDur > 0.0 &&
+                (durationSeconds <= 0.0 || sDur < durationSeconds)) {
+              durationSeconds = sDur;
+            }
+          }
 
           final rFrameRate = stream.getRealFrameRate();
           if (rFrameRate != null && rFrameRate.contains('/')) {
@@ -166,6 +174,7 @@ class FFmpegVideoProcessor implements VideoProcessor {
         }
       }
 
+      final duration = Duration(milliseconds: (durationSeconds * 1000).round());
       final metadata = VideoMetadata(
         duration: duration,
         sizeInBytes: fileSize,
@@ -828,8 +837,14 @@ class FFmpegVideoProcessor implements VideoProcessor {
     required double totalDuration,
     required void Function(double) onProgress,
   }) async {
-    // 1. Android Hardware MediaCodec Acceleration (when not stream copy and not software fallback)
-    if (Platform.isAndroid && mode == SplitMode.precise) {
+    final is4k = plan?.canvasSpec.resolution == CanvasResolution.ultraHd4k ||
+        (plan != null &&
+            (plan.canvasSpec.width > 1920 || plan.canvasSpec.height > 1920));
+
+    // 1. Android Hardware MediaCodec Acceleration (when not stream copy, not software fallback, and not 4K)
+    // Note: Android MediaCodec hardware encoders commonly fail on vertical 4K (2160x3840) because
+    // mobile hardware encoders limit frame height to 2160. 4K routes directly to libx264 software encoder.
+    if (Platform.isAndroid && mode == SplitMode.precise && !is4k) {
       try {
         final hwArgs = _buildHardwareArguments(
           inputPath: inputPath,
